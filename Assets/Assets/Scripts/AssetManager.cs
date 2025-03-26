@@ -4,31 +4,32 @@ using UnityEngine;
 public class AssetManager : MonoBehaviour
 {
     [SerializeField]private Camera mainCamera;
-    [SerializeField]private GameObject levelPrefab;
     [SerializeField]private GameObject player;
     [SerializeField]private GameObject enemy;
     [SerializeField]private GameObject iceSheet;
-    [SerializeField]private GameObject tile;
+    [SerializeField]private GameObject squareTile;
+    [SerializeField]private GameObject hexTile;
     [SerializeField]private GameObject playerBullet;
     [SerializeField]private GameObject enemyBullet;
     [SerializeField]private GameObject rangeMarker;
     [SerializeField]private GameObject treasure;
     [SerializeField]private GameObject ammoSpawnPrefab;
 
-    
-    private GameObject currentLevel;
-    private Level currentLevelScript;
-    private List<GameObject> allIceSheets = new List<GameObject>();
-    private List<GameObject> allEnemies   = new List<GameObject>();
+    private Transform playerGround; 
+        
+    private LevelManager     levelManager;
+    private List<GameObject> allIceSheets     = new List<GameObject>();
+    private List<GameObject> allHexTiles      = new List<GameObject>();
+    private List<GameObject> allEnemies       = new List<GameObject>();
     private List<GameObject> allPlayerBullets = new List<GameObject>();
-    private List<GameObject> allEnemyBullets = new List<GameObject>();
-    private List<GameObject> allTreasures = new List<GameObject>();
-    private List<GameObject> allPlayerAmmos = new List<GameObject>();
+    private List<GameObject> allEnemyBullets  = new List<GameObject>();
+    private List<GameObject> allTreasures     = new List<GameObject>();
+    private List<GameObject> allPlayerAmmos   = new List<GameObject>();
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        
+        levelManager = GameObject.Find("LevelManager").GetComponent<LevelManager>();
     }
 
     // Update is called once per frame
@@ -63,6 +64,16 @@ public class AssetManager : MonoBehaviour
         thisBullet.GetComponent<Bullet>().SetStartPos(pos);
         allEnemyBullets.Add(thisBullet);
         return thisBullet;
+    }
+
+    public void GetHexTiles(List<Vector3> positions)
+    {
+        //spawn the hex tiles at each position
+        foreach (Vector3 pos in positions)
+        {
+            GameObject thisHexTile = Instantiate(hexTile, pos, Quaternion.identity, transform);
+            allHexTiles.Add(thisHexTile);
+        }
     }
 
     public GameObject GetIceSheet()
@@ -110,9 +121,9 @@ public class AssetManager : MonoBehaviour
         return thisRangeMarker;
     }
 
-    public GameObject GetTile()
+    public GameObject GetSquareTile()
     {
-        return tile;
+        return squareTile;
     }
     
     public GameObject GetTreasure(Vector3 spawnPos)
@@ -122,16 +133,6 @@ public class AssetManager : MonoBehaviour
         GameObject thisTreasure = GameObject.Instantiate(treasure, pos, rot);
         allTreasures.Add(thisTreasure);
         return thisTreasure;
-    }    
-
-    public Level LoadLevel()
-    {
-        Vector3 pos = Vector3.zero;
-        Quaternion rot = levelPrefab.transform.rotation;
-        //GameObject level = GameObject.Instantiate(level, pos, rot, parent);
-        currentLevel = GameObject.Instantiate(levelPrefab, pos, rot);
-        currentLevelScript = currentLevel.GetComponent<Level>();
-        return currentLevelScript;
     }
 
     public void RemoveGameObject(GameObject taggedObject)
@@ -142,8 +143,38 @@ public class AssetManager : MonoBehaviour
         {
             //remove current ammo prefab, call for a new one to be spawned in a random short time interval
             GameObject.Destroy(taggedObject, 0.1f);
-            currentLevelScript.SpawnNewPlayerAmmo();
+            SpawnNewPlayerAmmo();
         }
+    }
+
+    public void SpawnNewPlayerAmmo()
+    {
+        //fix this!   set the playerGround someother way.
+        if (playerGround == null)
+        {
+            // using this to help spawn ammo.  
+            Vector3 rayStart = player.transform.position;
+            Vector3 rayDir = transform.up * -1;
+            Ray ray = new Ray(rayStart, rayDir);        
+            float rayLength = 10f;
+            RaycastHit hitData;
+            if (Physics.Raycast(ray, out hitData, rayLength))
+            {            
+                string tag = hitData.collider.tag;
+                if(tag == "Ground")
+                {
+                    //we hit a tile, get the parent container
+                    playerGround = hitData.transform.parent;
+                    Debug.Log("Level found " + playerGround.name + " as player ground container.");
+                }
+            }
+            else { Debug.Log(gameObject.name + " could not find the player ground!"); }
+
+        }
+
+        Vector3 spawnPos = playerGround.GetChild(Random.Range(0, playerGround.childCount)).position;
+        spawnPos.y += 1;
+        GetAmmoSpawnPrefab(spawnPos);
     }
 
 }

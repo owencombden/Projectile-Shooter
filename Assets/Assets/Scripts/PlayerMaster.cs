@@ -11,7 +11,6 @@ public class PlayerMaster : MonoBehaviour
     
     GameManager gameManagerScript;
     AssetManager assetManagerScript;
-    CameraLook cameraLookScript;
     PlayerInputHandler inputHandlerScript; 
     PlayerMove playerMoveScript;
     PlayerShoot playerShootScript;
@@ -24,7 +23,6 @@ public class PlayerMaster : MonoBehaviour
     {
         gameManagerScript = GameObject.Find("GameManager").GetComponent<GameManager>();
         assetManagerScript = GameObject.Find("AssetManager").GetComponent<AssetManager>();
-        cameraLookScript = mainCamera.GetComponent<CameraLook>();
         inputHandlerScript = gameObject.GetComponent<PlayerInputHandler>();
         playerMoveScript = gameObject.GetComponent<PlayerMove>();
         playerShootScript = gameObject.GetComponent<PlayerShoot>();
@@ -152,9 +150,7 @@ public class PlayerMaster : MonoBehaviour
     {
         // flag the player as dead.  Uncouple and deactivate the camera
         playerDead = true;
-        mainCamera.transform.parent = null;
-        
-        //cameraLookScript.IsFollowing(false);  //need this ?
+        mainCamera.transform.parent = null;  //needed?
 
         //tip the player towards the water in the direction of player velocity        
         LeanTween.rotateAround(gameObject, tippingAxis, -120, 0.4f);
