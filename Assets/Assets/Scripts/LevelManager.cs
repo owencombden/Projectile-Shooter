@@ -16,15 +16,16 @@ public class LevelManager : MonoBehaviour
 
     private AssetManager assetManager;
 
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         assetManager = GameObject.Find("AssetManager").GetComponent<AssetManager>();
 
-        GenerateHexes();
+        BuildPlayerFloor();
     }
 
-    void GenerateHexes()
+    private void BuildPlayerFloor()
     {
         List<Vector3> hexPositions = new List<Vector3>();
 
@@ -46,7 +47,7 @@ public class LevelManager : MonoBehaviour
         }
 
         //spawn the hex tiles at each position
-        assetManager.GetHexTiles(hexPositions);        
+        assetManager.BuildPlayerFloor(hexPositions); 
     }
 
     List<Vector3> GenerateGridPositions()

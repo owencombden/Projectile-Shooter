@@ -57,32 +57,36 @@ public class PlayerMaster : MonoBehaviour
         
         if(tag == "Ground")
         {
-            // handle movement and rotation
-            Vector2 moveInput = inputHandlerScript.GetMovementInput();
-            Vector2 lookInput = inputHandlerScript.GetLookInput();
-            if ( moveInput.magnitude > 0.1f )
-            {
-                playerMoveScript.MovePlayer(moveInput);
-            }
-
-            //handle shooting from the hip
-            if(inputHandlerScript.GetShootFromTheHipInput()) {playerShootScript.ShootFromTheHip();}
             
-            //handle autoshooting (click-to-shoot at target)
-            else if (inputHandlerScript.GetShootAtTargetInput())
-            { 
-                Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-                RaycastHit hit;
-                // the object identified by hit.transform was clicked
-                if (Physics.Raycast(ray, out hit))
-                {
-                    // ignore clicks on water/floor
-                    if(hit.transform.tag == "Water") { return; }  
+        }
 
-                    playerMoveScript.RotatePlayerToTarget(hit);                
-                }
+        // handle movement and rotation
+        Vector2 moveInput = inputHandlerScript.GetMovementInput();
+        Vector2 lookInput = inputHandlerScript.GetLookInput();
+        if ( moveInput.magnitude > 0.1f )
+        {
+            playerMoveScript.MovePlayer(moveInput);
+        }
+
+        //handle shooting from the hip
+        if(inputHandlerScript.GetShootFromTheHipInput()) {playerShootScript.ShootFromTheHip();}
+        
+        //handle autoshooting (click-to-shoot at target)
+        else if (inputHandlerScript.GetShootAtTargetInput())
+        { 
+            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+            // the object identified by hit.transform was clicked
+            if (Physics.Raycast(ray, out hit))
+            {
+                // ignore clicks on water/floor
+                if(hit.transform.tag == "Water") { return; }  
+
+                playerMoveScript.RotatePlayerToTarget(hit);                
             }
         }
+
+
     }
 
     private string CheckForGround(out RaycastHit hitData)
@@ -100,23 +104,13 @@ public class PlayerMaster : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if(other.tag == "Ammo")
-        {            
-            ReloadGun(other);
-            assetManagerScript.RemoveGameObject(other.gameObject);            
-        }
-        else
-        {
-            Debug.Log("Player is unexpectedly colliding with " + other.tag + ".  Fix this in Physics Layers!!");
-        }
+        Debug.Log("Player is unexpectedly colliding with " + other.tag + ".  Fix this in Physics Layers!!");        
     }
 
-    void ReloadGun(Collider ammo)
+    public void ReloadGun(List<string> bulletTypes)
     {
         // track bullet types as strings in the player's clip.
-        // these are instantiated as a 'type' when shooting
-
-        //eventually, get the script on the ammoPrefeb param, read the 'type' (maybe 4-5 multiple types?) and pass in below.
+        // these are instantiated as a 'type' when shooting        
 
         // add bullets to the chamber until full
         // add whatever type is desired.  needs to have a matching string in AssetManager.GetPlayerBullet() and prefab for spawning that type.
@@ -124,7 +118,7 @@ public class PlayerMaster : MonoBehaviour
         Debug.Log("Current clip count: " + playerAmmoClip.Count);        
         for (int i = 0; i < numToAdd; i++)
         {
-            playerAmmoClip.Enqueue("normal");
+            playerAmmoClip.Enqueue(bulletTypes[i]);
         }
         Debug.Log("Player found ammo.  Loading " + numToAdd + " bullets.  Player now has " + playerAmmoClip.Count + " total.");
     }

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEditor.Animations;
 using UnityEngine;
 
 public class AssetManager : MonoBehaviour
@@ -19,7 +20,7 @@ public class AssetManager : MonoBehaviour
         
     private LevelManager     levelManager;
     private List<GameObject> allIceSheets     = new List<GameObject>();
-    private List<GameObject> allHexTiles      = new List<GameObject>();
+    private List<GameObject> playerFloor      = new List<GameObject>();
     private List<GameObject> allEnemies       = new List<GameObject>();
     private List<GameObject> allPlayerBullets = new List<GameObject>();
     private List<GameObject> allEnemyBullets  = new List<GameObject>();
@@ -40,9 +41,15 @@ public class AssetManager : MonoBehaviour
 
     public GameObject GetAmmoSpawnPrefab(Vector3 spawnPos)
     {
-        Vector3 pos = spawnPos;
         Quaternion rot = ammoSpawnPrefab.transform.rotation;
-        GameObject thisAmmo = GameObject.Instantiate(ammoSpawnPrefab, pos, rot);
+        GameObject thisAmmo = GameObject.Instantiate(ammoSpawnPrefab, spawnPos, rot);
+
+        AmmoSpawnPrefab ammoScript = thisAmmo.GetComponent<AmmoSpawnPrefab>();
+        
+        //set the types of ammo available in this spawn package (this should be dictated by the Game/Level/Pickup manager when ready)
+        List<string> types = new List<string> { "normal", "normal", "normal", "normal" };
+        ammoScript.SetAmmoTypes(types);
+
         allPlayerAmmos.Add(thisAmmo);
         return thisAmmo;
     }    
@@ -66,14 +73,19 @@ public class AssetManager : MonoBehaviour
         return thisBullet;
     }
 
-    public void GetHexTiles(List<Vector3> positions)
+    public void BuildPlayerFloor(List<Vector3> positions)
     {
         //spawn the hex tiles at each position
         foreach (Vector3 pos in positions)
         {
             GameObject thisHexTile = Instantiate(hexTile, pos, Quaternion.identity, transform);
-            allHexTiles.Add(thisHexTile);
+            playerFloor.Add(thisHexTile);
         }
+    }
+
+    public List<GameObject> GetPlayerFloor()
+    {
+        return playerFloor;
     }
 
     public GameObject GetIceSheet()
@@ -135,46 +147,17 @@ public class AssetManager : MonoBehaviour
         return thisTreasure;
     }
 
-    public void RemoveGameObject(GameObject taggedObject)
+    public void RemoveGameObject(GameObject taggedObject, float delay)
     {
         // set this up to use a pooling system
 
         if (taggedObject.tag == "Ammo")
         {
-            //remove current ammo prefab, call for a new one to be spawned in a random short time interval
-            GameObject.Destroy(taggedObject, 0.1f);
-            SpawnNewPlayerAmmo();
+            //remove current ammo prefab
+            GameObject.Destroy(taggedObject, delay);
         }
     }
 
-    public void SpawnNewPlayerAmmo()
-    {
-        //fix this!   set the playerGround someother way.
-        if (playerGround == null)
-        {
-            // using this to help spawn ammo.  
-            Vector3 rayStart = player.transform.position;
-            Vector3 rayDir = transform.up * -1;
-            Ray ray = new Ray(rayStart, rayDir);        
-            float rayLength = 10f;
-            RaycastHit hitData;
-            if (Physics.Raycast(ray, out hitData, rayLength))
-            {            
-                string tag = hitData.collider.tag;
-                if(tag == "Ground")
-                {
-                    //we hit a tile, get the parent container
-                    playerGround = hitData.transform.parent;
-                    Debug.Log("Level found " + playerGround.name + " as player ground container.");
-                }
-            }
-            else { Debug.Log(gameObject.name + " could not find the player ground!"); }
-
-        }
-
-        Vector3 spawnPos = playerGround.GetChild(Random.Range(0, playerGround.childCount)).position;
-        spawnPos.y += 1;
-        GetAmmoSpawnPrefab(spawnPos);
-    }
+    
 
 }
