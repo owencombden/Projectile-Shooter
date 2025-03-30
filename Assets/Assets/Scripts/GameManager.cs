@@ -13,9 +13,7 @@ public class GameManager : MonoBehaviour
          // Confines the cursor to the game window
         Cursor.lockState = CursorLockMode.Confined;        
         //Cursor.visible = false; 
-        //Cursor.lockState = CursorLockMode.Locked;
-
-        Level currentLevelScript = assetManager.LoadLevel();       
+        //Cursor.lockState = CursorLockMode.Locked;  
 
     }
 

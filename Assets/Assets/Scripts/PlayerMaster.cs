@@ -11,11 +11,12 @@ public class PlayerMaster : MonoBehaviour
     
     GameManager gameManagerScript;
     AssetManager assetManagerScript;
-    CameraLook cameraLookScript;
     PlayerInputHandler inputHandlerScript; 
     PlayerMove playerMoveScript;
     PlayerShoot playerShootScript;
+    CharacterController playerController;
     Queue<string> playerAmmoClip = new Queue<string>();
+    Transform lastGoodTile;
     
     
 
@@ -24,10 +25,10 @@ public class PlayerMaster : MonoBehaviour
     {
         gameManagerScript = GameObject.Find("GameManager").GetComponent<GameManager>();
         assetManagerScript = GameObject.Find("AssetManager").GetComponent<AssetManager>();
-        cameraLookScript = mainCamera.GetComponent<CameraLook>();
         inputHandlerScript = gameObject.GetComponent<PlayerInputHandler>();
         playerMoveScript = gameObject.GetComponent<PlayerMove>();
         playerShootScript = gameObject.GetComponent<PlayerShoot>();
+        playerController = gameObject.GetComponent<CharacterController>();
 
         //start with some ammo
         for (int i = 0; i < 4; i++)
@@ -42,83 +43,78 @@ public class PlayerMaster : MonoBehaviour
     {
         if (playerDead) { return; }
 
-        // get current ground
-        RaycastHit groundHit;
-        string tag = CheckForGround(out groundHit);
-
-        // check for kill player
-        if(tag == "Water")
-        {            
-            KillPlayer(groundHit.point, Vector3.Cross(playerMoveScript.controller.velocity, transform.up));
-            return;
-        }
-
-        // if player is tweening a rotation, no further movement or shooting
+        // if player is tweening (edge avoidance, rotation), no further movement or shooting
         if(LeanTween.isTweening(gameObject)){ return;}
 
-        
-        if(tag == "Ground")
-        {
-            // handle movement and rotation
-            Vector2 moveInput = inputHandlerScript.GetMovementInput();
-            Vector2 lookInput = inputHandlerScript.GetLookInput();
-            if ( moveInput.magnitude > 0.1f )
-            {
-                playerMoveScript.MovePlayer(moveInput);
-            }
-
-            //handle shooting from the hip
-            if(inputHandlerScript.GetShootFromTheHipInput()) {playerShootScript.ShootFromTheHip();}
-            
-            //handle autoshooting (click-to-shoot at target)
-            else if (inputHandlerScript.GetShootAtTargetInput())
-            { 
-                Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-                RaycastHit hit;
-                // the object identified by hit.transform was clicked
-                if (Physics.Raycast(ray, out hit))
-                {
-                    // ignore clicks on water/floor
-                    if(hit.transform.tag == "Water") { return; }  
-
-                    playerMoveScript.RotatePlayerToTarget(hit);                
-                }
-            }
-        }
-    }
-
-    private string CheckForGround(out RaycastHit hitData)
-    {
-        //check for ground
+        // get current ground
+        RaycastHit hitData;              
         Vector3 rayStart = transform.position;
-        Vector3 rayDir = transform.up * -1;
-        Ray ray = new Ray(rayStart, rayDir);        
-        float rayLength = playerMoveScript.controller.height/2 + 5;
+        Vector3 rayDir   = transform.up * -1;               
+        float  rayLength = playerMoveScript.controller.height/2 + 5;
+        Ray    ray       = new Ray(rayStart, rayDir);
+        string tag       = "";
         
-        //RaycastHit hitInfo;
-        Physics.Raycast(ray, out hitData, rayLength);
-        return hitData.transform.tag;
-    }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        if(other.tag == "Ammo")
-        {            
-            ReloadGun(other);
-            assetManagerScript.RemoveGameObject(other.gameObject);            
+        if(Physics.Raycast(ray, out hitData, rayLength))
+        {
+            tag = hitData.transform.tag;
         }
         else
         {
-            Debug.Log("Player is unexpectedly colliding with " + other.tag + ".  Fix this in Physics Layers!!");
+            Debug.Log("Could not find ground!");
+            return;
         }
+
+        if(tag == "Ground")
+        {
+            lastGoodTile = hitData.transform;
+        }
+
+        // check for kill player
+        if(tag == "Water")
+        {
+            TweenBackFromEdge();            
+            //KillPlayer(groundHit.point, Vector3.Cross(playerMoveScript.controller.velocity, transform.up));
+            return;
+        }
+
+        // handle movement and rotation
+        Vector2 moveInput = inputHandlerScript.GetMovementInput();
+        Vector2 lookInput = inputHandlerScript.GetLookInput();
+        if ( moveInput.magnitude > 0.1f )
+        {
+            playerMoveScript.MovePlayer(moveInput);
+        }
+
+        //handle shooting from the hip
+        if(inputHandlerScript.GetShootFromTheHipInput()) {playerShootScript.ShootFromTheHip();}
+        
+        //handle autoshooting (click-to-shoot at target)
+        else if (inputHandlerScript.GetShootAtTargetInput())
+        { 
+            Ray cameraRay = mainCamera.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+            // the object identified by hit.transform was clicked
+            if (Physics.Raycast(cameraRay, out hit))
+            {
+                // ignore clicks on water/floor
+                if(hit.transform.tag == "Water") { return; }  
+
+                playerMoveScript.RotatePlayerToTarget(hit);                
+            }
+        }
+
+
+    }    
+
+    private void OnTriggerEnter(Collider other)
+    {
+        Debug.Log("Player is unexpectedly colliding with " + other.tag + ".  Fix this in Physics Layers!!");        
     }
 
-    void ReloadGun(Collider ammo)
+    public void ReloadGun(List<string> bulletTypes)
     {
         // track bullet types as strings in the player's clip.
-        // these are instantiated as a 'type' when shooting
-
-        //eventually, get the script on the ammoPrefeb param, read the 'type' (maybe 4-5 multiple types?) and pass in below.
+        // these are instantiated as a 'type' when shooting        
 
         // add bullets to the chamber until full
         // add whatever type is desired.  needs to have a matching string in AssetManager.GetPlayerBullet() and prefab for spawning that type.
@@ -126,7 +122,7 @@ public class PlayerMaster : MonoBehaviour
         Debug.Log("Current clip count: " + playerAmmoClip.Count);        
         for (int i = 0; i < numToAdd; i++)
         {
-            playerAmmoClip.Enqueue("normal");
+            playerAmmoClip.Enqueue(bulletTypes[i]);
         }
         Debug.Log("Player found ammo.  Loading " + numToAdd + " bullets.  Player now has " + playerAmmoClip.Count + " total.");
     }
@@ -148,13 +144,41 @@ public class PlayerMaster : MonoBehaviour
         }
     }
 
+    private void TweenBackFromEdge()
+    {
+        Vector3 currentVelocity = playerController.velocity.normalized;
+        currentVelocity.y = 0f;
+        Vector3 destination = lastGoodTile.position;
+        destination.y = transform.position.y;
+        LeanTween.move(gameObject, destination, 0.2f).setOnComplete(CheckIfGrounded);
+    }
+
+    private void CheckIfGrounded()
+    {
+        // if the target tile has been destroyed beneath the player, kill the player
+        // get current ground
+        RaycastHit hitData;              
+        Vector3 rayStart = transform.position;
+        Vector3 rayDir   = transform.up * -1;               
+        float  rayLength = playerMoveScript.controller.height/2 + 5;
+        Ray    ray       = new Ray(rayStart, rayDir);
+        string tag       = "";
+        
+        if(Physics.Raycast(ray, out hitData, rayLength))
+        {
+            tag = hitData.transform.tag;
+            if(tag != "Ground")
+            {
+                KillPlayer(hitData.point, Vector3.Cross(playerMoveScript.controller.velocity, transform.up));
+            }
+        }
+    }
+
     public void KillPlayer(Vector3 feetPosition, Vector3 tippingAxis)
     {
         // flag the player as dead.  Uncouple and deactivate the camera
         playerDead = true;
-        mainCamera.transform.parent = null;
-        
-        //cameraLookScript.IsFollowing(false);  //need this ?
+        mainCamera.transform.parent = null;  //needed?
 
         //tip the player towards the water in the direction of player velocity        
         LeanTween.rotateAround(gameObject, tippingAxis, -120, 0.4f);

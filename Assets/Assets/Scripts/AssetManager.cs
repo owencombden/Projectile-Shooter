@@ -1,34 +1,36 @@
 using System.Collections.Generic;
+using UnityEditor.Animations;
 using UnityEngine;
 
 public class AssetManager : MonoBehaviour
 {
     [SerializeField]private Camera mainCamera;
-    [SerializeField]private GameObject levelPrefab;
     [SerializeField]private GameObject player;
     [SerializeField]private GameObject enemy;
     [SerializeField]private GameObject iceSheet;
-    [SerializeField]private GameObject tile;
+    [SerializeField]private GameObject squareTile;
+    [SerializeField]private GameObject hexTile;
     [SerializeField]private GameObject playerBullet;
     [SerializeField]private GameObject enemyBullet;
     [SerializeField]private GameObject rangeMarker;
     [SerializeField]private GameObject treasure;
     [SerializeField]private GameObject ammoSpawnPrefab;
 
-    
-    private GameObject currentLevel;
-    private Level currentLevelScript;
-    private List<GameObject> allIceSheets = new List<GameObject>();
-    private List<GameObject> allEnemies   = new List<GameObject>();
+    private Transform playerGround; 
+        
+    private LevelManager     levelManager;
+    private List<GameObject> allIceSheets     = new List<GameObject>();
+    private List<GameObject> playerFloor      = new List<GameObject>();
+    private List<GameObject> allEnemies       = new List<GameObject>();
     private List<GameObject> allPlayerBullets = new List<GameObject>();
-    private List<GameObject> allEnemyBullets = new List<GameObject>();
-    private List<GameObject> allTreasures = new List<GameObject>();
-    private List<GameObject> allPlayerAmmos = new List<GameObject>();
+    private List<GameObject> allEnemyBullets  = new List<GameObject>();
+    private List<GameObject> allTreasures     = new List<GameObject>();
+    private List<GameObject> allPlayerAmmos   = new List<GameObject>();
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        
+        levelManager = GameObject.Find("LevelManager").GetComponent<LevelManager>();
     }
 
     // Update is called once per frame
@@ -39,9 +41,15 @@ public class AssetManager : MonoBehaviour
 
     public GameObject GetAmmoSpawnPrefab(Vector3 spawnPos)
     {
-        Vector3 pos = spawnPos;
         Quaternion rot = ammoSpawnPrefab.transform.rotation;
-        GameObject thisAmmo = GameObject.Instantiate(ammoSpawnPrefab, pos, rot);
+        GameObject thisAmmo = GameObject.Instantiate(ammoSpawnPrefab, spawnPos, rot);
+
+        AmmoSpawnPrefab ammoScript = thisAmmo.GetComponent<AmmoSpawnPrefab>();
+        
+        //set the types of ammo available in this spawn package (this should be dictated by the Game/Level/Pickup manager when ready)
+        List<string> types = new List<string> { "normal", "normal", "normal", "normal" };
+        ammoScript.SetAmmoTypes(types);
+
         allPlayerAmmos.Add(thisAmmo);
         return thisAmmo;
     }    
@@ -63,6 +71,21 @@ public class AssetManager : MonoBehaviour
         thisBullet.GetComponent<Bullet>().SetStartPos(pos);
         allEnemyBullets.Add(thisBullet);
         return thisBullet;
+    }
+
+    public void BuildPlayerFloor(List<Vector3> positions)
+    {
+        //spawn the hex tiles at each position
+        foreach (Vector3 pos in positions)
+        {
+            GameObject thisHexTile = Instantiate(hexTile, pos, Quaternion.identity, transform);
+            playerFloor.Add(thisHexTile);
+        }
+    }
+
+    public List<GameObject> GetPlayerFloor()
+    {
+        return playerFloor;
     }
 
     public GameObject GetIceSheet()
@@ -110,9 +133,9 @@ public class AssetManager : MonoBehaviour
         return thisRangeMarker;
     }
 
-    public GameObject GetTile()
+    public GameObject GetSquareTile()
     {
-        return tile;
+        return squareTile;
     }
     
     public GameObject GetTreasure(Vector3 spawnPos)
@@ -122,28 +145,19 @@ public class AssetManager : MonoBehaviour
         GameObject thisTreasure = GameObject.Instantiate(treasure, pos, rot);
         allTreasures.Add(thisTreasure);
         return thisTreasure;
-    }    
-
-    public Level LoadLevel()
-    {
-        Vector3 pos = Vector3.zero;
-        Quaternion rot = levelPrefab.transform.rotation;
-        //GameObject level = GameObject.Instantiate(level, pos, rot, parent);
-        currentLevel = GameObject.Instantiate(levelPrefab, pos, rot);
-        currentLevelScript = currentLevel.GetComponent<Level>();
-        return currentLevelScript;
     }
 
-    public void RemoveGameObject(GameObject taggedObject)
+    public void RemoveGameObject(GameObject taggedObject, float delay)
     {
         // set this up to use a pooling system
 
         if (taggedObject.tag == "Ammo")
         {
-            //remove current ammo prefab, call for a new one to be spawned in a random short time interval
-            GameObject.Destroy(taggedObject, 0.1f);
-            currentLevelScript.SpawnNewPlayerAmmo();
+            //remove current ammo prefab
+            GameObject.Destroy(taggedObject, delay);
         }
     }
+
+    
 
 }
