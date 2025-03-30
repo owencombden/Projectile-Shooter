@@ -59,7 +59,7 @@ public class HexTile : MonoBehaviour
     void DestroyTile()
     {
         //print("Tile " + gameObject.name + " has been destroyed.");
-        Destroy(gameObject);
+        Destroy(transform.parent.gameObject);
     }
     
 }

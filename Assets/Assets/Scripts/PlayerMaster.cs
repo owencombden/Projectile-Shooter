@@ -14,7 +14,9 @@ public class PlayerMaster : MonoBehaviour
     PlayerInputHandler inputHandlerScript; 
     PlayerMove playerMoveScript;
     PlayerShoot playerShootScript;
+    CharacterController playerController;
     Queue<string> playerAmmoClip = new Queue<string>();
+    Transform lastGoodTile;
     
     
 
@@ -26,6 +28,7 @@ public class PlayerMaster : MonoBehaviour
         inputHandlerScript = gameObject.GetComponent<PlayerInputHandler>();
         playerMoveScript = gameObject.GetComponent<PlayerMove>();
         playerShootScript = gameObject.GetComponent<PlayerShoot>();
+        playerController = gameObject.GetComponent<CharacterController>();
 
         //start with some ammo
         for (int i = 0; i < 4; i++)
@@ -40,24 +43,38 @@ public class PlayerMaster : MonoBehaviour
     {
         if (playerDead) { return; }
 
-        // get current ground
-        RaycastHit groundHit;
-        string tag = CheckForGround(out groundHit);
+        // if player is tweening (edge avoidance, rotation), no further movement or shooting
+        if(LeanTween.isTweening(gameObject)){ return;}
 
-        // check for kill player
-        if(tag == "Water")
-        {            
-            KillPlayer(groundHit.point, Vector3.Cross(playerMoveScript.controller.velocity, transform.up));
+        // get current ground
+        RaycastHit hitData;              
+        Vector3 rayStart = transform.position;
+        Vector3 rayDir   = transform.up * -1;               
+        float  rayLength = playerMoveScript.controller.height/2 + 5;
+        Ray    ray       = new Ray(rayStart, rayDir);
+        string tag       = "";
+        
+        if(Physics.Raycast(ray, out hitData, rayLength))
+        {
+            tag = hitData.transform.tag;
+        }
+        else
+        {
+            Debug.Log("Could not find ground!");
             return;
         }
 
-        // if player is tweening a rotation, no further movement or shooting
-        if(LeanTween.isTweening(gameObject)){ return;}
-
-        
         if(tag == "Ground")
         {
-            
+            lastGoodTile = hitData.transform;
+        }
+
+        // check for kill player
+        if(tag == "Water")
+        {
+            TweenBackFromEdge();            
+            //KillPlayer(groundHit.point, Vector3.Cross(playerMoveScript.controller.velocity, transform.up));
+            return;
         }
 
         // handle movement and rotation
@@ -74,10 +91,10 @@ public class PlayerMaster : MonoBehaviour
         //handle autoshooting (click-to-shoot at target)
         else if (inputHandlerScript.GetShootAtTargetInput())
         { 
-            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+            Ray cameraRay = mainCamera.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
             // the object identified by hit.transform was clicked
-            if (Physics.Raycast(ray, out hit))
+            if (Physics.Raycast(cameraRay, out hit))
             {
                 // ignore clicks on water/floor
                 if(hit.transform.tag == "Water") { return; }  
@@ -87,20 +104,7 @@ public class PlayerMaster : MonoBehaviour
         }
 
 
-    }
-
-    private string CheckForGround(out RaycastHit hitData)
-    {
-        //check for ground
-        Vector3 rayStart = transform.position;
-        Vector3 rayDir = transform.up * -1;
-        Ray ray = new Ray(rayStart, rayDir);        
-        float rayLength = playerMoveScript.controller.height/2 + 5;
-        
-        //RaycastHit hitInfo;
-        Physics.Raycast(ray, out hitData, rayLength);
-        return hitData.transform.tag;
-    }
+    }    
 
     private void OnTriggerEnter(Collider other)
     {
@@ -137,6 +141,36 @@ public class PlayerMaster : MonoBehaviour
         {
             bullet = null; 
             return false; 
+        }
+    }
+
+    private void TweenBackFromEdge()
+    {
+        Vector3 currentVelocity = playerController.velocity.normalized;
+        currentVelocity.y = 0f;
+        Vector3 destination = lastGoodTile.position;
+        destination.y = transform.position.y;
+        LeanTween.move(gameObject, destination, 0.2f).setOnComplete(CheckIfGrounded);
+    }
+
+    private void CheckIfGrounded()
+    {
+        // if the target tile has been destroyed beneath the player, kill the player
+        // get current ground
+        RaycastHit hitData;              
+        Vector3 rayStart = transform.position;
+        Vector3 rayDir   = transform.up * -1;               
+        float  rayLength = playerMoveScript.controller.height/2 + 5;
+        Ray    ray       = new Ray(rayStart, rayDir);
+        string tag       = "";
+        
+        if(Physics.Raycast(ray, out hitData, rayLength))
+        {
+            tag = hitData.transform.tag;
+            if(tag != "Ground")
+            {
+                KillPlayer(hitData.point, Vector3.Cross(playerMoveScript.controller.velocity, transform.up));
+            }
         }
     }
 
