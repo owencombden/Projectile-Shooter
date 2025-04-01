@@ -154,9 +154,9 @@ public class AssetManager : MonoBehaviour
     {
         if (platforms.Count == 0) return null; // Prevent errors if the dictionary is empty
 
-        int randomPlatformIndex = random.Next(platforms.Count); 
-        int randomTileIndex = random.Next(platforms[randomPlatformIndex].Count);
-        return platforms[randomPlatformIndex].Values.ElementAt(randomTileIndex); // Fetch the random script        
+        int playerPlatformIndex = 0;
+        int randomTileIndex = random.Next(platforms[playerPlatformIndex].Count);
+        return platforms[playerPlatformIndex].Values.ElementAt(randomTileIndex); // Fetch the random script        
     }
 
     public GameObject GetIceSheet()
