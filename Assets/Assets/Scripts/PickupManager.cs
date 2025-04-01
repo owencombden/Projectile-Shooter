@@ -28,14 +28,9 @@ public class PickupManager : MonoBehaviour
 
     private void DropAmmo()
     {
-        List<GameObject> playerFloor = assetManager.GetPlayerFloor();
-        if(playerFloor.Count > 0)
-        {
-            Vector3 spawnPos = playerFloor[Random.Range(0, playerFloor.Count)].transform.position;
-            spawnPos.y += 0.86f;
-            assetManager.GetAmmoSpawnPrefab(spawnPos);            
-        }
-        
+        Vector3 spawnPos = assetManager.GetRandomPlayerHexScript().transform.position;
+        spawnPos.y += 0.86f;
+        assetManager.GetAmmoSpawnPrefab(spawnPos);
     }
 
     public void RemoveAmmoDrop()

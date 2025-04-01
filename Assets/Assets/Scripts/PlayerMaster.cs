@@ -47,14 +47,14 @@ public class PlayerMaster : MonoBehaviour
         if(LeanTween.isTweening(gameObject)){ return;}
 
         // get current ground
-        RaycastHit hitData;              
-        Vector3 rayStart = transform.position;
-        Vector3 rayDir   = transform.up * -1;               
-        float  rayLength = playerMoveScript.controller.height/2 + 5;
-        Ray    ray       = new Ray(rayStart, rayDir);
-        string tag       = "";
-        
-        if(Physics.Raycast(ray, out hitData, rayLength))
+        // use SphereCast so we can ignore tiny gaps in the floor tiles                   
+        Vector3 rayStart  = transform.position;
+        float   rayRadius = 0.1f;
+        Vector3 rayDir    = transform.up * -1;                      
+        float   rayLength = playerMoveScript.controller.height/2 + 5f;        
+        string  tag       = "";
+        RaycastHit hitData;        
+        if (Physics.SphereCast(rayStart, rayRadius, rayDir, out hitData, rayLength))
         {
             tag = hitData.transform.tag;
         }

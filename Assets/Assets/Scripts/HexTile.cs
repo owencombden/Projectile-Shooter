@@ -1,10 +1,15 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class HexTile : MonoBehaviour
 {
+
     public int hitPoints;
 
-    public Renderer tileRenderer;  
+    public Renderer tileRenderer;
+
+    public Vector2Int    gridCoords; // Axial or offset grid coordinates
+    public List<HexTile> neighbors = new List<HexTile>();
     
     void Start()
     {
@@ -21,6 +26,10 @@ public class HexTile : MonoBehaviour
             Debug.LogWarning("No MeshCollider found on this object!");
         }
         */
+    
+        tileRenderer = transform.GetChild(0).GetComponent<Renderer>();
+    
+    
     }
 
     // Update is called once per frame
@@ -29,9 +38,8 @@ public class HexTile : MonoBehaviour
         
     }
 
-    private void OnTriggerEnter(Collider other)
+    public void HandleCollision(Collider other)
     {
-        //Debug.Log("Tile " + gameObject.name + " was hit");
         ApplyDamage(50);
     }
 
@@ -39,16 +47,8 @@ public class HexTile : MonoBehaviour
     public void ApplyDamage(int damage)
     {
         hitPoints -= damage;
-        //print(gameObject.name + " was hit. " + hitPoints + " hitPoints remaining.");
-        if (hitPoints <= 0)
-        {
-            DestroyTile();
-        }
-        else
-        {
-            UpdateColor();
-        }
-
+        if (hitPoints <= 0){DestroyTile();}
+        else {UpdateColor();}
     }
 
     void UpdateColor()
@@ -59,7 +59,7 @@ public class HexTile : MonoBehaviour
     void DestroyTile()
     {
         //print("Tile " + gameObject.name + " has been destroyed.");
-        Destroy(transform.parent.gameObject);
+        Destroy(gameObject);
     }
     
 }
