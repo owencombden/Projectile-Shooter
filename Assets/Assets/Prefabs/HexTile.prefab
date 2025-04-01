@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 306256324801936877}
-  - component: {fileID: 8887437791778154558}
+  - component: {fileID: 3515300203582977311}
   - component: {fileID: 8845546270095580567}
   - component: {fileID: 5107463532484631487}
   - component: {fileID: 4809649107371973380}
@@ -35,7 +35,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 6664934244478251060}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &8887437791778154558
+--- !u!114 &3515300203582977311
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -44,11 +44,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 5913896566896535777}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d36621fd8b4de9f4688d517dca528950, type: 3}
+  m_Script: {fileID: 11500000, guid: ae1c39455820b7843a9ab91b10d388a7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  hitPoints: 100
-  tileRenderer: {fileID: 5107463532484631487}
 --- !u!33 &8845546270095580567
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -133,6 +131,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6664934244478251060}
+  - component: {fileID: 1761376313914644265}
   m_Layer: 0
   m_Name: HexTile
   m_TagString: Untagged
@@ -156,3 +155,19 @@ Transform:
   - {fileID: 306256324801936877}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1761376313914644265
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7540964941088420545}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d36621fd8b4de9f4688d517dca528950, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hitPoints: 100
+  tileRenderer: {fileID: 0}
+  gridCoords: {x: 0, y: 0}
+  neighbors: []

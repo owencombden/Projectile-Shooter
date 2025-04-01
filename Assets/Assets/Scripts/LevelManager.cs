@@ -22,39 +22,54 @@ public class LevelManager : MonoBehaviour
     {
         assetManager = GameObject.Find("AssetManager").GetComponent<AssetManager>();
 
-        BuildPlayerFloor();
+        Vector3[] platformPositions = new Vector3[]
+        {
+            new Vector3(3, 0, -1),
+            new Vector3(40, 0, 55),
+            new Vector3(-30, 0, 57),
+            new Vector3(6, 0, 90)
+        };
+
+        foreach (Vector3 platformPos in platformPositions)
+        {
+            BuildPlatform(platformPos);
+        }
+        
     }
 
-    private void BuildPlayerFloor()
+    private void BuildPlatform(Vector3 startPos)
     {
         List<Vector3> hexPositions = new List<Vector3>();
+        List<Vector2Int> hexGridCoords = new List<Vector2Int>();
 
         if (spawnMode == SpawnMode.Grid)
         {
-            hexPositions = GenerateGridPositions();
+            (hexPositions, hexGridCoords) = GenerateGridPositions();
         }
         else if (spawnMode == SpawnMode.Circle)
         {
-            hexPositions = GenerateCirclePositions(circleRadius, edgeRaggedness);
+            (hexPositions, hexGridCoords) = GenerateCirclePositions(circleRadius, edgeRaggedness);
         }
         else if (spawnMode == SpawnMode.Pinwheel)
         {
-            hexPositions = GeneratePinwheelPositions(circleRadius);
+            (hexPositions, hexGridCoords) = GeneratePinwheelPositions(circleRadius);
         }
         else if (spawnMode == SpawnMode.Hexagon)
         {
-            hexPositions = GenerateHexagonPositions(circleRadius);
+            (hexPositions, hexGridCoords) = GenerateHexagonPositions(circleRadius);
         }
 
+        // move the positions to the startPos param
+        for (int i=0; i < hexPositions.Count; i++) { hexPositions[i] += startPos; }
+
         //spawn the hex tiles at each position
-        assetManager.BuildPlayerFloor(hexPositions); 
+        assetManager.BuildHexMap(hexPositions, hexGridCoords); 
     }
 
-    List<Vector3> GenerateGridPositions()
+    private (List<Vector3>, List<Vector2Int>) GenerateGridPositions()
     {
         List<Vector3> positions = new List<Vector3>();
-        float hexWidth = isFlatTop ? (2 * hexSize) : (Mathf.Sqrt(3) * hexSize);
-        float hexHeight = isFlatTop ? (Mathf.Sqrt(3) * hexSize) : (2 * hexSize);
+        List<Vector2Int> gridCoords = new List<Vector2Int>();
 
         for (int row = 0; row < numRows; row++)
         {
@@ -63,28 +78,30 @@ public class LevelManager : MonoBehaviour
                 Vector3 pos = isFlatTop ? GetFlatTopHexPosition(row, col, hexSize)
                                         : GetPointedTopHexPosition(row, col, hexSize);
                 positions.Add(pos);
+                gridCoords.Add(new Vector2Int(row, col));
             }
         }
-        return positions;
+        return (positions, gridCoords);
     }
 
-    Vector3 GetFlatTopHexPosition(int row, int col, float size)
+    private Vector3 GetFlatTopHexPosition(int row, int col, float size)
     {
         float x = col * (1.5f * size);
         float z = row * (Mathf.Sqrt(3) * size) + (col % 2) * (Mathf.Sqrt(3) / 2 * size);
         return new Vector3(x, 0, z);
     }
 
-    Vector3 GetPointedTopHexPosition(int row, int col, float size)
+    private Vector3 GetPointedTopHexPosition(int row, int col, float size)
     {
         float x = col * (Mathf.Sqrt(3) * size) + (row % 2) * (Mathf.Sqrt(3) / 2 * size);
         float z = row * (1.5f * size);
         return new Vector3(x, 0, z);
     }
 
-    List<Vector3> GeneratePinwheelPositions(float radius)
+    private (List<Vector3>, List<Vector2Int>) GeneratePinwheelPositions(float radius)
     {
         List<Vector3> positions = new List<Vector3>();
+        List<Vector2Int> gridCoords = new List<Vector2Int>();
 
         int maxRings = Mathf.CeilToInt(radius / (1.5f * hexSize)); // Approximate ring count
         positions.Add(Vector3.zero); // Center hex
@@ -99,15 +116,17 @@ public class LevelManager : MonoBehaviour
                     float x = ring * hexSize * Mathf.Cos(angle) + j * hexSize * Mathf.Cos(angle + Mathf.PI / 3);
                     float z = ring * hexSize * Mathf.Sin(angle) + j * hexSize * Mathf.Sin(angle + Mathf.PI / 3);
                     positions.Add(new Vector3(x, 0, z));
+                    gridCoords.Add(new Vector2Int(i, j));
                 }
             }
         }
-        return positions;
+        return (positions, gridCoords);
     }
 
-    List<Vector3> GenerateCirclePositions(float radius, float roughness)
+    private (List<Vector3>, List<Vector2Int>) GenerateCirclePositions(float radius, float roughness)
     {
         List<Vector3> positions = new List<Vector3>();
+        List<Vector2Int> gridCoords = new List<Vector2Int>();
         int maxRings = Mathf.CeilToInt(radius / hexSize) + 1;
 
         System.Random rand = new System.Random(); // Seeded RNG for consistency
@@ -130,15 +149,17 @@ public class LevelManager : MonoBehaviour
                     }
                     
                     positions.Add(worldPos);
+                    gridCoords.Add(new Vector2Int(q, r));
                 }
             }
         }
-        return positions;
+        return (positions, gridCoords);
     }
     
-    List<Vector3> GenerateHexagonPositions(float radius)
+    private (List<Vector3>, List<Vector2Int>) GenerateHexagonPositions(float radius)
     {
         List<Vector3> positions = new List<Vector3>();
+        List<Vector2Int> gridCoords = new List<Vector2Int>();
 
         // Center hex
         positions.Add(Vector3.zero);
@@ -152,13 +173,14 @@ public class LevelManager : MonoBehaviour
                 int s = -q - r; // The third axial coordinate (q + r + s = 0)
                 Vector3 pos = AxialToWorld(q, r);
                 positions.Add(pos);
+                gridCoords.Add(new Vector2Int(q, r));
             }
         }
-        return positions;
+        return (positions, gridCoords);
     }
 
     // Convert axial coordinates (q, r) to world-space positions
-    Vector3 AxialToWorld(int q, int r)
+    private Vector3 AxialToWorld(int q, int r)
     {
         float x, z;
         if (isFlatTop)

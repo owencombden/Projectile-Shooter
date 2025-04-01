@@ -35,7 +35,7 @@ public class EnemyMove : MonoBehaviour
             if(tag == "Ground")
             {
                 //we hit a tile, get the parent container
-                groundContainer = hitData.transform.parent;
+                groundContainer = hitData.transform.parent.parent;
             }
         }
         else

@@ -12,7 +12,7 @@ public class EnemyMaster : MonoBehaviour
 
     public void KillEnemy(Vector3 feetPosition, Vector3 tippingAxis)
     {
-        // flag the player as dead.  Uncouple and deactivate the camera
+        // flag the player as dead.  
         enemyDead = true;        
 
         //tip the player towards the water in the direction of player velocity        
