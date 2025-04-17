@@ -5,7 +5,7 @@ public class PlayerMaster : MonoBehaviour
 {   
     public Camera mainCamera;
     public Transform floor;
-    public int maxClipSize;
+    public int maxClipSize = 4;
     public bool playerDead = false;
 
     
@@ -23,6 +23,7 @@ public class PlayerMaster : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        mainCamera = GameObject.FindWithTag("MainCamera").GetComponent<Camera>();
         gameManagerScript = GameObject.Find("GameManager").GetComponent<GameManager>();
         assetManagerScript = GameObject.Find("AssetManager").GetComponent<AssetManager>();
         inputHandlerScript = gameObject.GetComponent<PlayerInputHandler>();
@@ -77,20 +78,27 @@ public class PlayerMaster : MonoBehaviour
             return;
         }
 
+                
         // handle movement and rotation
-        Vector2 moveInput = inputHandlerScript.GetMovementInput();
-        Vector2 lookInput = inputHandlerScript.GetLookInput();
+        Vector2 moveInput = inputHandlerScript.MoveInput;
+        //Vector2 lookInput = inputHandlerScript.LookInput;
         if ( moveInput.magnitude > 0.1f )
         {
             playerMoveScript.MovePlayer(moveInput);
         }
 
         //handle shooting from the hip
-        if(inputHandlerScript.GetShootFromTheHipInput()) {playerShootScript.ShootFromTheHip();}
+        if(inputHandlerScript.ShootFromTheHip) 
+        {
+            playerShootScript.ShootFromTheHip();
+            inputHandlerScript.ResetShootHip();  //ensure we only shoot once-per-click
+        }
         
         //handle autoshooting (click-to-shoot at target)
-        else if (inputHandlerScript.GetShootAtTargetInput())
+        else if (inputHandlerScript.ShootAtTarget)
         { 
+            inputHandlerScript.ResetShootTarget();  //ensure we only shoot once-per-click
+
             Ray cameraRay = mainCamera.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
             // the object identified by hit.transform was clicked
@@ -102,8 +110,6 @@ public class PlayerMaster : MonoBehaviour
                 playerMoveScript.RotatePlayerToTarget(hit);                
             }
         }
-
-
     }    
 
     private void OnTriggerEnter(Collider other)
@@ -189,6 +195,6 @@ public class PlayerMaster : MonoBehaviour
 
     private void restartGame()
     {
-        gameManagerScript.reloadScene();
+        gameManagerScript.ReloadScene();
     }    
 }

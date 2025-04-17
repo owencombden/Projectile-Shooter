@@ -1,6 +1,5 @@
-using System.Linq;
-using System.Collections.Generic;
 using UnityEngine;
+using System.Collections.Generic;
 
 public class AssetManager : MonoBehaviour
 {
@@ -27,23 +26,7 @@ public class AssetManager : MonoBehaviour
     private List<GameObject> allTreasures     = new List<GameObject>();
     private List<GameObject> allPlayerAmmos   = new List<GameObject>();
 
-    private System.Random random = new System.Random();
     
-    Vector2Int[] neighborOffsets = {new Vector2Int(+1, 0), new Vector2Int(+1, -1), new Vector2Int(0, -1), new Vector2Int(-1, 0), new Vector2Int(-1, +1), new Vector2Int(0, +1)};
-
-    // store all platforms in a dictionary of dictionaries
-    // outer dictionary stores all the platforms, indexable by platform ID
-    // inner dictionary stores all of the hexTiles for that platform, indexable by grid-coord    
-    // platforms[platformID]                 -> get all tiles for that platform
-    // platforms[platformID][gridPos]        -> get any tile in O(1)
-    // platforms[platformID].Remove(gridPos) -> remove tile from dictionary
-    private int platformCounter = 0;
-    private Dictionary<int, Dictionary<Vector2Int, HexTile>> platforms = new();
-    
-    // could also implement this HashSet if things get slow
-    // an inner hashset is faster, could be good if wanted to apply something across all tiles (ie: collision detection?)
-    // would have to keep the Dict(Dict) and maintain two collections when adding/removing tiles and platforms
-    // private Dictionary<int, HashSet<HexTile>> activeTiles = new();
     
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -74,12 +57,8 @@ public class AssetManager : MonoBehaviour
     }    
     
     public GameObject GetEnemy()
-    {
-        Vector3 pos = Vector3.zero;
-        Quaternion rot = enemy.transform.rotation;
-        //GameObject ice = GameObject.Instantiate(iceSheet, pos, rot, parent);
-        GameObject e = GameObject.Instantiate(enemy, pos, rot);
-        return e;
+    {        
+        return enemy;
     }
 
     public GameObject GetEnemyBullet(Vector3 spawnPos)
@@ -92,72 +71,11 @@ public class AssetManager : MonoBehaviour
         return thisBullet;
     }
 
-    public void BuildHexMap(List<Vector3> positions, List<Vector2Int> gridCoords)
+    public GameObject GetHexTile()
     {
-        if (positions.Count != gridCoords.Count)
-        {
-            Debug.Log("BuildHexMap error!  Mismatched positions and gridcoords.");
-            return;
-        }
-
-        // get a parent object (platform) that will hold all of the tiles we're about to spawn
-        GameObject thisPlatform = Instantiate(platform, Vector3.zero, Quaternion.identity, transform);
-
-        // build one hex platform (a dictionary of grid-coords to hexTileScripts) and add it to the platforms (outer) dictionary with an ID.
-        Dictionary<Vector2Int, HexTile> hexMap = new Dictionary<Vector2Int, HexTile>();
-
-        //spawn the hex tiles at each position, store coords, and add to dictionary
-        for (int i=0; i <positions.Count; i++)
-        {
-            GameObject thisHexTile = Instantiate(hexTile, positions[i], Quaternion.identity, thisPlatform.transform);
-            HexTile hexScript = thisHexTile.GetComponent<HexTile>();
-            hexScript.gridCoords = gridCoords[i];
-            hexMap[gridCoords[i]] = hexScript;
-        }
-
-        //update the neighbours for each tile
-        UpdateHexMapNeighbours(hexMap);
-
-        // add the new hexMap to the collection of platforms.
-        platforms[platformCounter] = hexMap;
-        platformCounter += 1;        
-
+        return hexTile;
     }
-
-    public void UpdateHexMapNeighbours(Dictionary<Vector2Int, HexTile> tileMap)
-    {
-        foreach (HexTile tile in tileMap.Values)
-        {
-            foreach (Vector2Int offset in neighborOffsets)
-            {
-                Vector2Int neighborCoords = tile.gridCoords + offset;
-                if (tileMap.TryGetValue(neighborCoords, out HexTile neighborTile))
-                {
-                    tile.neighbors.Add(neighborTile);
-                }
-            }
-        }
-    }
-
-    public Dictionary<Vector2Int, HexTile> GetHexMap(int platformId)
-    {        
-        if(platformId >= platforms.Count || platformId < 0)
-        {
-            Debug.Log("GetHexMap is trying to access a platform ID that does not exist!");
-            return null;
-        } 
-
-        return platforms[platformId];
-    }
-
-    public HexTile GetRandomPlayerHexScript()
-    {
-        if (platforms.Count == 0) return null; // Prevent errors if the dictionary is empty
-
-        int playerPlatformIndex = 0;
-        int randomTileIndex = random.Next(platforms[playerPlatformIndex].Count);
-        return platforms[playerPlatformIndex].Values.ElementAt(randomTileIndex); // Fetch the random script        
-    }
+    
 
     public GameObject GetIceSheet()
     {
@@ -175,8 +93,13 @@ public class AssetManager : MonoBehaviour
     }
 
     public GameObject GetPlayer()
-    {
+    {        
         return player;
+    }
+
+    public GameObject GetPlatform()
+    {
+        return platform;
     }
 
     public GameObject GetPlayerBullet(Vector3 spawnPos, string bulletType)

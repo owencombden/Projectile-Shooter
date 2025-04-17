@@ -5,7 +5,6 @@ public class PlayerMove : MonoBehaviour
     public CharacterController controller;
     public Transform cameraTransform;
     public float mouseSensitivity = 200f;
-    //public Transform mainCamera;
     public float movementSpeed;
     public float movementSmooth = 0.1f;
     public float rotationSpeed;
@@ -27,6 +26,7 @@ public class PlayerMove : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        cameraTransform = GameObject.FindWithTag("MainCamera").transform;
         controller = gameObject.GetComponent<CharacterController>();
         playerMasterScript = gameObject.GetComponent<PlayerMaster>();
         playerShootScript = gameObject.GetComponent<PlayerShoot>();

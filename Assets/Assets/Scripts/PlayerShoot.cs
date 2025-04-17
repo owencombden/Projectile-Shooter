@@ -11,11 +11,8 @@ public class PlayerShoot : MonoBehaviour
     public float minAngle = 0;
     public float minInterceptTime;
     public float maxInterceptTime;
-    public Transform cameraTransform;
     public Transform gun;
     public Transform spawnpoint;
-    public GameObject treasure;  //delete this.  debugging.  using for marking screen pos
-    public GameObject ammoSpawn;
     
     private PlayerMaster playerMasterScript;
 
@@ -87,7 +84,7 @@ public class PlayerShoot : MonoBehaviour
             Rigidbody bulletRb = bullet.GetComponent<Rigidbody>();
             bulletRb.AddForce(calculatedLaunchVelocity * spawnpoint.forward, ForceMode.Impulse);
         }
-        else { Debug.Log("Shooting from the ground -> No Ammo! "); }
+        else { Debug.Log("Shooting at clicked target -> No Ammo! "); }
     }
 
     public void AimAtEnemyBullet(object hitParam)

@@ -5,6 +5,7 @@ public class PickupManager : MonoBehaviour
 {
     public int maxAmmoDrops = 1;
     private AssetManager assetManager;
+    private LevelManager levelManager;
     
     private Transform[] playerTiles;
     private int currentAmmoDrops = 0;
@@ -13,6 +14,7 @@ public class PickupManager : MonoBehaviour
     void Start()
     {
         assetManager = GameObject.Find("AssetManager").GetComponent<AssetManager>();
+        levelManager = GameObject.Find("LevelManager").GetComponent<LevelManager>();
             
     }
 
@@ -28,7 +30,7 @@ public class PickupManager : MonoBehaviour
 
     private void DropAmmo()
     {
-        Vector3 spawnPos = assetManager.GetRandomPlayerHexScript().transform.position;
+        Vector3 spawnPos = levelManager.GetRandomPlayerHexScript().transform.position;
         spawnPos.y += 0.86f;
         assetManager.GetAmmoSpawnPrefab(spawnPos);
     }
