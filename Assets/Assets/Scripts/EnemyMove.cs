@@ -2,6 +2,7 @@ using UnityEngine;
 
 public class EnemyMove : MonoBehaviour
 {
+    /*
     public float speed;
     public float maxHeight = 10f;
     public float rotateSpeed;
@@ -57,9 +58,7 @@ public class EnemyMove : MonoBehaviour
         Vector3 rayStart = transform.position;
         Vector3 rayDir = transform.up * -1;
         Ray ray = new Ray(rayStart, rayDir);        
-        float rayLength = 10f;
-        //Debug.DrawRay(ray.origin, ray.direction.normalized * rayLength, Color.red);
-        
+        float rayLength = 10f;        
         RaycastHit hitData;
         if (Physics.Raycast(ray, out hitData, rayLength))
         {   
@@ -146,4 +145,5 @@ public class EnemyMove : MonoBehaviour
         gun.transform.eulerAngles = tweenedRotationVector;
     }
 
+    */
 }

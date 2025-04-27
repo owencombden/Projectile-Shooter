@@ -2,34 +2,60 @@ using UnityEngine;
 
 public class Bullet : MonoBehaviour
 {
-    private Vector3 startPos;
+    public float maxLifetime = 7f;
+    public enum BulletType { Normal, Fire, Ice, Rock }
+    public BulletType bulletType = BulletType.Normal;
+    public Vector3 startPos { get; private set; }    
+    public string ownerId   { get; set; }  
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    private Rigidbody rb;
+    private TrailRenderer trailRenderer;
+    private float lifetime = 0f;
+
+    // called only once when instantiated!
+    private void Awake()
     {
-        DestroyBullet();
+        rb = GetComponent<Rigidbody>();
+        trailRenderer = GetComponent<TrailRenderer>();         
+    }
+
+    private void OnEnable()
+    {
+        startPos = transform.position;
+    }
+
+    // reset the bullet when it's deactivated (returned to the pool)
+    private void OnDisable()
+    {
+        startPos = Vector3.zero;        
+        ownerId = null;
+        rb.linearVelocity = Vector3.zero;
+        trailRenderer.Clear();
+        lifetime = 0f;        
     }
 
     // Update is called once per frame
     void Update()
     {
-        //Debug.Log("Bullet Height: " +transform.position.y);
-        
-    }
+        lifetime += Time.deltaTime;
 
-    public void SetStartPos(Vector3 spawnedPos)
-    {
-        startPos = spawnedPos;
+        if(!isAlive())
+        {
+            DestroyBullet();
+        }        
     }
+    
+    public Vector3 GetVelocity() => rb.linearVelocity;    
 
-    public Vector3 GetStartPos()
-    {
-        return startPos;
+    private bool isAlive()
+    {        
+        return transform.position.y > -1f && lifetime < maxLifetime;
     }
 
     void DestroyBullet()
     {
-        //need to move this to the asset manager!
-        GameObject.Destroy(gameObject, 10f);
+        // return object to the pool, OnDisable will be called to reset the bullet when disabled
+        AssetManager.Instance.ReturnBullet(gameObject);
     }
+    
 }

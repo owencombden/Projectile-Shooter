@@ -4,7 +4,6 @@ using UnityEngine;
 public class PickupManager : MonoBehaviour
 {
     public int maxAmmoDrops = 1;
-    private AssetManager assetManager;
     private LevelManager levelManager;
     
     private Transform[] playerTiles;
@@ -13,9 +12,7 @@ public class PickupManager : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        assetManager = GameObject.Find("AssetManager").GetComponent<AssetManager>();
-        levelManager = GameObject.Find("LevelManager").GetComponent<LevelManager>();
-            
+        levelManager = GameObject.Find("LevelManager").GetComponent<LevelManager>();            
     }
 
     // Update is called once per frame
@@ -32,7 +29,7 @@ public class PickupManager : MonoBehaviour
     {
         Vector3 spawnPos = levelManager.GetRandomPlayerHexScript().transform.position;
         spawnPos.y += 0.86f;
-        assetManager.GetAmmoSpawnPrefab(spawnPos);
+        AssetManager.Instance.GetAmmoSpawn(spawnPos, Quaternion.identity);
     }
 
     public void RemoveAmmoDrop()

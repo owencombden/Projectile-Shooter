@@ -3,155 +3,137 @@ using System.Collections.Generic;
 
 public class AssetManager : MonoBehaviour
 {
-    [SerializeField]private Camera     mainCamera;
-    [SerializeField]private GameObject player;
-    [SerializeField]private GameObject enemy;
-    [SerializeField]private GameObject iceSheet;
-    [SerializeField]private GameObject squareTile;
-    [SerializeField]private GameObject platform;
-    [SerializeField]private GameObject hexTile;
-    [SerializeField]private GameObject playerBullet;
-    [SerializeField]private GameObject enemyBullet;
-    [SerializeField]private GameObject rangeMarker;
-    [SerializeField]private GameObject treasure;
+    public static AssetManager Instance;
+
+    [Header("Prefabs")]
+    [SerializeField]private GameObject playerPrefab;
+    [SerializeField]private GameObject aiPrefab;
+    [SerializeField]private GameObject platformPrefab;
+    [SerializeField]private GameObject hexTilePrefab;
+    [SerializeField]private GameObject bulletPrefab;
     [SerializeField]private GameObject ammoSpawnPrefab;
-
-    private Transform playerGround; 
+    
+    private Dictionary<string, Queue<GameObject>> poolDict = new();
+    
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+            Destroy(gameObject);
+        else
+            Instance = this;
         
-    private LevelManager     levelManager;
-    private List<GameObject> allIceSheets     = new List<GameObject>();
-    private List<GameObject> allEnemies       = new List<GameObject>();
-    private List<GameObject> allPlayerBullets = new List<GameObject>();
-    private List<GameObject> allEnemyBullets  = new List<GameObject>();
-    private List<GameObject> allTreasures     = new List<GameObject>();
-    private List<GameObject> allPlayerAmmos   = new List<GameObject>();
-
-    
-    
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        levelManager = GameObject.Find("LevelManager").GetComponent<LevelManager>();                
+        Instance.PrewarmPool("player", playerPrefab, 4);
+        Instance.PrewarmPool("ai", aiPrefab, 4);
+        Instance.PrewarmPool("platform", platformPrefab, 10);
+        Instance.PrewarmPool("hextile", hexTilePrefab, 1500);
+        Instance.PrewarmPool("bullet", bulletPrefab, 5);
+        Instance.PrewarmPool("ammospawn", ammoSpawnPrefab, 10);
     }
 
-    // Update is called once per frame
-    void Update()
+    // Convenience wrappers
+    public GameObject GetAI(Vector3 position, Quaternion rotation)
     {
-        
+        return GetFromPool("ai", aiPrefab, position, rotation);
     }
 
-    public GameObject GetAmmoSpawnPrefab(Vector3 spawnPos)
+    public void ReturnAI(GameObject ai)
     {
-        Quaternion rot = ammoSpawnPrefab.transform.rotation;
-        GameObject thisAmmo = GameObject.Instantiate(ammoSpawnPrefab, spawnPos, rot);
-
-        AmmoSpawnPrefab ammoScript = thisAmmo.GetComponent<AmmoSpawnPrefab>();
-        
-        //set the types of ammo available in this spawn package (this should be dictated by the Game/Level/Pickup manager when ready)
-        List<string> types = new List<string> { "normal", "normal", "normal", "normal" };
-        ammoScript.SetAmmoTypes(types);
-
-        allPlayerAmmos.Add(thisAmmo);
-        return thisAmmo;
-    }    
-    
-    public GameObject GetEnemy()
-    {        
-        return enemy;
+        ReturnToPool("ai", ai);
     }
 
-    public GameObject GetEnemyBullet(Vector3 spawnPos)
+    public GameObject GetAmmoSpawn(Vector3 position, Quaternion rotation)
     {
-        Vector3 pos = spawnPos;
-        Quaternion rot = enemyBullet.transform.rotation;
-        GameObject thisBullet = GameObject.Instantiate(enemyBullet, pos, rot);
-        thisBullet.GetComponent<Bullet>().SetStartPos(pos);
-        allEnemyBullets.Add(thisBullet);
-        return thisBullet;
+        return GetFromPool("ammospawn", ammoSpawnPrefab, position, rotation);
     }
 
-    public GameObject GetHexTile()
+    public void ReturnAmmoSpawn(GameObject ammoSpawn)
     {
-        return hexTile;
-    }
-    
-
-    public GameObject GetIceSheet()
-    {
-        Vector3 pos = Vector3.zero;
-        Quaternion rot = iceSheet.transform.rotation;
-        //GameObject ice = GameObject.Instantiate(iceSheet, pos, rot, parent);
-        GameObject ice = GameObject.Instantiate(iceSheet, pos, rot);
-        allIceSheets.Add(ice);
-        return ice;
+        ReturnToPool("ammospawn", ammoSpawn);
     }
 
-    public Camera GetMainCamera()
+    public GameObject GetBullet(Vector3 position, Quaternion rotation)
     {
-        return mainCamera;
+        return GetFromPool("bullet", bulletPrefab, position, rotation);
     }
 
-    public GameObject GetPlayer()
-    {        
-        return player;
+    public void ReturnBullet(GameObject bullet)
+    {
+        ReturnToPool("bullet", bullet);
     }
 
-    public GameObject GetPlatform()
+    public GameObject GetHexTile(Vector3 position, Quaternion rotation)
     {
-        return platform;
+        return GetFromPool("hextile", platformPrefab, position, rotation);
     }
 
-    public GameObject GetPlayerBullet(Vector3 spawnPos, string bulletType)
+    public void ReturnHexTile(GameObject hextile)
     {
-        if (bulletType == "normal")
+        ReturnToPool("hextile", hextile);
+    }
+
+    public GameObject GetPlatform(Vector3 position, Quaternion rotation)
+    {
+        return GetFromPool("platform", platformPrefab, position, rotation);
+    }
+
+    public void ReturnPlatform(GameObject platform)
+    {
+        ReturnToPool("platform", platform);
+    }
+
+    public GameObject GetPlayer(Vector3 position, Quaternion rotation)
+    {
+        return GetFromPool("player", playerPrefab, position, rotation);
+    }
+
+    public void ReturnPlayer(GameObject player)
+    {
+        ReturnToPool("player", player);
+    }
+
+    public void PrewarmPool(string key, GameObject prefab, int count)
+    {
+        if (!poolDict.ContainsKey(key))
+            poolDict[key] = new Queue<GameObject>();
+
+        for (int i = 0; i < count; i++)
         {
-            Vector3 pos = spawnPos;
-            Quaternion rot = playerBullet.transform.rotation;
-            GameObject thisBullet = GameObject.Instantiate(playerBullet, pos, rot);
-            allPlayerBullets.Add(thisBullet);
-            return thisBullet;
+            var obj = Instantiate(prefab);
+            obj.SetActive(false);
+            poolDict[key].Enqueue(obj);
+            obj.transform.name = obj.transform.name + "_" + i;
+            obj.transform.parent = transform;
+        }
+    }
+
+    private GameObject GetFromPool(string key, GameObject prefab, Vector3 position, Quaternion rotation)
+    {
+        if (!poolDict.ContainsKey(key))
+        {
+            poolDict[key] = new Queue<GameObject>();
+        }
+
+        GameObject obj;
+        if (poolDict[key].Count > 0)
+        {
+            obj = poolDict[key].Dequeue();
+            obj.transform.SetPositionAndRotation(position, rotation);
+            obj.SetActive(true);
+            obj.transform.parent = null;
         }
         else
         {
-            Debug.Log("Bullet Type -- " + bulletType + " -- not found!!");
-            return null;
+            obj = Instantiate(prefab, position, rotation);
         }
-        
+
+        return obj;
     }
 
-    public GameObject GetRangeMarker()
+    private void ReturnToPool(string key, GameObject obj)
     {
-        transform.GetPositionAndRotation(out Vector3 pos, out Quaternion rot);
-        GameObject thisRangeMarker = GameObject.Instantiate(rangeMarker, pos, rot);
-        return thisRangeMarker;
-    }
-
-    public GameObject GetSquareTile()
-    {
-        return squareTile;
-    }
-    
-    public GameObject GetTreasure(Vector3 spawnPos)
-    {
-        Vector3 pos = spawnPos;
-        Quaternion rot = treasure.transform.rotation;
-        GameObject thisTreasure = GameObject.Instantiate(treasure, pos, rot);
-        allTreasures.Add(thisTreasure);
-        return thisTreasure;
-    }
-
-    public void RemoveGameObject(GameObject taggedObject, float delay)
-    {
-        // set this up to use a pooling system
-
-        if (taggedObject.tag == "Ammo")
-        {
-            //remove current ammo prefab
-            GameObject.Destroy(taggedObject, delay);
-        }
-    }
-
-    
-
+        obj.SetActive(false);
+        obj.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+        obj.transform.parent = transform;        
+        poolDict[key].Enqueue(obj);        
+    }    
 }

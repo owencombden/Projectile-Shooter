@@ -2,6 +2,7 @@ using UnityEngine;
 
 public class EnemyMaster : MonoBehaviour
 {
+    /*
     public bool enemyDead = false;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -27,4 +28,5 @@ public class EnemyMaster : MonoBehaviour
         // move this to asset manager when pooling is implemented
         GameObject.Destroy(gameObject, 1f);
     }
+    */
 }

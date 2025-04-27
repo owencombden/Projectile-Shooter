@@ -2,6 +2,7 @@ using UnityEngine;
 
 public class EnemyShoot : MonoBehaviour
 {
+    /*
     public Transform spawnpoint;
 
     float launchVelocity;
@@ -27,8 +28,9 @@ public class EnemyShoot : MonoBehaviour
         if (prob < 50) { return; }
 
         // shoot in forward direction, at calculated angle
-        bullet = assetManager.GetEnemyBullet(spawnpoint.transform.position);        
+        bullet = assetManager.GetBullet(spawnpoint.position);        
         Rigidbody bulletRb = bullet.GetComponent<Rigidbody>();
         bulletRb.AddForce(launchVelocity * spawnpoint.forward, ForceMode.Impulse);
     }
+    */
 }

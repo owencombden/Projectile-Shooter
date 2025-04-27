@@ -1,9 +1,8 @@
 using UnityEngine;
-using UnityEngine.Rendering.Universal;
 
 public class PlayerShoot : MonoBehaviour
 {
-    
+    /*
     
     public float shootFromTheHipLaunchVelocity = 25f;
     public float maxHeight = 10f;  //make this a range, map it to distance
@@ -155,7 +154,7 @@ public class PlayerShoot : MonoBehaviour
     }
 
     
-    /* Old Way, calculating the angle.  It's optimal, but the angle is too low...would like a shot with more height.
+    //Old Way, calculating the angle.  It's optimal, but the angle is too low...would like a shot with more height.
     void ShootAtSelected()
     {
         // assuming bullet starts and ends at same elevation (no height diff between origin and hitpoint)
@@ -192,10 +191,13 @@ public class PlayerShoot : MonoBehaviour
         Debug.Log("Target Camera Rot: " + mainCamera.transform.eulerAngles.x);
         //Time.timeScale = 0;
 
-    }*/
+    }
 
     public static float MapValueToRange(float value, float fromMin, float fromMax, float toMin, float toMax)
     {
         return (value - fromMin) * (toMax - toMin) / (fromMax - fromMin) + toMin;
     }
+
+    
+    */
 }

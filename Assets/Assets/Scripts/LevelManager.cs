@@ -5,7 +5,6 @@ using System.Collections.Generic;
 public class LevelManager : MonoBehaviour
 {
     public enum SpawnMode { Grid, Circle, Pinwheel, Hexagon }
-    public GameObject hexPrefab;
     public int numRows = 5;
     public int numCols = 6;
     public float hexSize = 1f;  // Assumes hex ratio is 2 x Sqrt(3).  2f = twice as big.  0.5f = 1/2 as big.
@@ -52,12 +51,12 @@ public class LevelManager : MonoBehaviour
         // spawn all platforms
         foreach (Vector3 platformPos in platformPositions)
         {
-            BuildPlatform(platformPos);
+            Debug.Log("Building a platform...");
+            BuildPlatform(platformPos);            
         }
 
         // spawn all the characters
-        Debug.Log($"Calling GameManager.Instance.SpawnAllCharacters(); Instance is: {GameManager.Instance}");
-        GameManager.Instance.SpawnAllCharacters();
+        GameManager.Instance.SpawnAllCharacters(platforms);
         
     }
 
@@ -85,10 +84,7 @@ public class LevelManager : MonoBehaviour
 
         // move the positions to the startPos param
         for (int i=0; i < hexPositions.Count; i++) { hexPositions[i] += startPos; }
-
-        //spawn the hex tiles at each position
-        //assetManager.BuildHexMap(hexPositions, hexGridCoords); 
-
+        
         if (hexPositions.Count != hexGridCoords.Count)
         {
             Debug.Log("BuildHexMap error!  Mismatched positions and gridcoords.");
@@ -96,22 +92,29 @@ public class LevelManager : MonoBehaviour
         }
 
         // get an empty parent object (platform) that will hold all of the tiles we're about to spawn
-        GameObject thisPlatform = Instantiate(assetManager.GetPlatform(), Vector3.zero, Quaternion.identity, transform);
+        GameObject thisPlatform = AssetManager.Instance.GetPlatform(startPos, Quaternion.identity);     // PASS HEXTILEPOSITIONS & GRID COORDS HERE, AND BUILD A FULL PLATFORM IN AM.
+
+        Debug.Log("...built a parent");
 
         // build one hex platform (a dictionary of grid-coords to hexTileScripts) and add it to the platforms (outer) dictionary with an ID.
         Dictionary<Vector2Int, HexTile> hexMap = new Dictionary<Vector2Int, HexTile>();
 
         //spawn the hex tiles at each position, store coords, and add to dictionary
         for (int i=0; i <hexPositions.Count; i++)
-        {
-            GameObject thisHexTile = Instantiate(assetManager.GetHexTile(), hexPositions[i], Quaternion.identity, thisPlatform.transform);
+        {   
+            GameObject thisHexTile = AssetManager.Instance.GetHexTile(hexPositions[i], Quaternion.identity);
+            thisHexTile.transform.parent = thisPlatform.transform;
             HexTile hexScript = thisHexTile.GetComponent<HexTile>();
             hexScript.gridCoords = hexGridCoords[i];
             hexMap[hexGridCoords[i]] = hexScript;
         }
 
+        Debug.Log("...built all the tiles");
+
         //update the neighbours for each tile
         UpdateHexMapNeighbours(hexMap);
+
+        Debug.Log("...updated the neighbours");
 
         // add the new hexMap to the collection of platforms.
         platforms[platformCounter] = hexMap;

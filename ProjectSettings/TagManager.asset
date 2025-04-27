@@ -6,9 +6,9 @@ TagManager:
   tags:
   - Water
   - Ground
-  - PlayerBullet
-  - EnemyBullet
   - Ammo
+  - Bullet
+  - AI_Player
   layers:
   - Default
   - TransparentFX

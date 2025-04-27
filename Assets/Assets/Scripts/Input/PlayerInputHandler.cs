@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerInputHandler : MonoBehaviour
+public class PlayerInputHandler : MonoBehaviour, ICharacterInputProvider
 {
     public Vector2 MoveInput { get; private set; }
     public Vector2 LookInput { get; private set; }
@@ -11,14 +11,7 @@ public class PlayerInputHandler : MonoBehaviour
     public void OnMove(InputAction.CallbackContext context) => MoveInput = context.ReadValue<Vector2>();
     public void OnLook(InputAction.CallbackContext context) => LookInput = context.ReadValue<Vector2>();    
     
-    public void OnShootHip(InputAction.CallbackContext context)
-    {
-        if (context.started)  // only when button is first pressed down
-            ShootFromTheHip = true;
-        else if (context.canceled)
-            ShootFromTheHip = false;
-    }
-    public void ResetShootHip() => ShootFromTheHip = false;
+    
 
     public void OnShootTarget(InputAction.CallbackContext context)
     {
@@ -27,7 +20,7 @@ public class PlayerInputHandler : MonoBehaviour
         else if (context.canceled)
             ShootAtTarget = false;
     }
-    public void ResetShootTarget() => ShootAtTarget = false;
+    public void ResetShootTarget() => ShootAtTarget = false;  //need this anymore?  there's a timer on player TryShoot
 
     
 }

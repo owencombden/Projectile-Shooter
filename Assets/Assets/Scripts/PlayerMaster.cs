@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class PlayerMaster : MonoBehaviour
 {   
+    /*
     public Camera mainCamera;
     public Transform floor;
     public int maxClipSize = 4;
@@ -11,8 +12,8 @@ public class PlayerMaster : MonoBehaviour
     
     GameManager gameManagerScript;
     AssetManager assetManagerScript;
-    PlayerInputHandler inputHandlerScript; 
-    PlayerMove playerMoveScript;
+    private ICharacterInputProvider input;
+    CharacterMotor characterMotorScript;
     PlayerShoot playerShootScript;
     CharacterController playerController;
     Queue<string> playerAmmoClip = new Queue<string>();
@@ -26,8 +27,7 @@ public class PlayerMaster : MonoBehaviour
         mainCamera = GameObject.FindWithTag("MainCamera").GetComponent<Camera>();
         gameManagerScript = GameObject.Find("GameManager").GetComponent<GameManager>();
         assetManagerScript = GameObject.Find("AssetManager").GetComponent<AssetManager>();
-        inputHandlerScript = gameObject.GetComponent<PlayerInputHandler>();
-        playerMoveScript = gameObject.GetComponent<PlayerMove>();
+        characterMotorScript = gameObject.GetComponent<CharacterMotor>();
         playerShootScript = gameObject.GetComponent<PlayerShoot>();
         playerController = gameObject.GetComponent<CharacterController>();
 
@@ -52,7 +52,7 @@ public class PlayerMaster : MonoBehaviour
         Vector3 rayStart  = transform.position;
         float   rayRadius = 0.1f;
         Vector3 rayDir    = transform.up * -1;                      
-        float   rayLength = playerMoveScript.controller.height/2 + 5f;        
+        float   rayLength = 5f;        
         string  tag       = "";
         RaycastHit hitData;        
         if (Physics.SphereCast(rayStart, rayRadius, rayDir, out hitData, rayLength))
@@ -76,39 +76,6 @@ public class PlayerMaster : MonoBehaviour
             TweenBackFromEdge();            
             //KillPlayer(groundHit.point, Vector3.Cross(playerMoveScript.controller.velocity, transform.up));
             return;
-        }
-
-                
-        // handle movement and rotation
-        Vector2 moveInput = inputHandlerScript.MoveInput;
-        //Vector2 lookInput = inputHandlerScript.LookInput;
-        if ( moveInput.magnitude > 0.1f )
-        {
-            playerMoveScript.MovePlayer(moveInput);
-        }
-
-        //handle shooting from the hip
-        if(inputHandlerScript.ShootFromTheHip) 
-        {
-            playerShootScript.ShootFromTheHip();
-            inputHandlerScript.ResetShootHip();  //ensure we only shoot once-per-click
-        }
-        
-        //handle autoshooting (click-to-shoot at target)
-        else if (inputHandlerScript.ShootAtTarget)
-        { 
-            inputHandlerScript.ResetShootTarget();  //ensure we only shoot once-per-click
-
-            Ray cameraRay = mainCamera.ScreenPointToRay(Input.mousePosition);
-            RaycastHit hit;
-            // the object identified by hit.transform was clicked
-            if (Physics.Raycast(cameraRay, out hit))
-            {
-                // ignore clicks on water/floor
-                if(hit.transform.tag == "Water") { return; }  
-
-                playerMoveScript.RotatePlayerToTarget(hit);                
-            }
         }
     }    
 
@@ -140,7 +107,7 @@ public class PlayerMaster : MonoBehaviour
             // get and remove the bullet-type(string) from the clip
             // spawn and return a bullet of that type to the Shoot script
             string bulletType = playerAmmoClip.Dequeue();
-            bullet = assetManagerScript.GetPlayerBullet(spawnPos, bulletType); 
+            bullet = assetManagerScript.GetBullet(spawnPos); 
             return true; 
         }
         else
@@ -166,7 +133,7 @@ public class PlayerMaster : MonoBehaviour
         RaycastHit hitData;              
         Vector3 rayStart = transform.position;
         Vector3 rayDir   = transform.up * -1;               
-        float  rayLength = playerMoveScript.controller.height/2 + 5;
+        float  rayLength = 5;
         Ray    ray       = new Ray(rayStart, rayDir);
         string tag       = "";
         
@@ -175,7 +142,7 @@ public class PlayerMaster : MonoBehaviour
             tag = hitData.transform.tag;
             if(tag != "Ground")
             {
-                KillPlayer(hitData.point, Vector3.Cross(playerMoveScript.controller.velocity, transform.up));
+                //KillPlayer(hitData.point, Vector3.Cross(characterMotorScript.controller.velocity, transform.up));
             }
         }
     }
@@ -197,4 +164,6 @@ public class PlayerMaster : MonoBehaviour
     {
         gameManagerScript.ReloadScene();
     }    
+
+    */
 }

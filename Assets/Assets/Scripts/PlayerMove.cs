@@ -2,6 +2,7 @@ using UnityEngine;
 
 public class PlayerMove : MonoBehaviour
 {
+    /*
     public CharacterController controller;
     public Transform cameraTransform;
     public float mouseSensitivity = 200f;
@@ -87,6 +88,6 @@ public class PlayerMove : MonoBehaviour
         }
     }
 
-    
+    */
      
 }

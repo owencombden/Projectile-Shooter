@@ -6,13 +6,9 @@ using UnityEngine.SceneManagement;
 public class GameManager : MonoBehaviour
 {
     public AssetManager assetManager;
+    public static GameManager Instance;   
 
-    private List<Vector3> playerSpawnPoints = new List<Vector3>();
-    private List<Vector3> enemySpawnPoints = new List<Vector3>();
-
-
-    public static GameManager Instance;    
-
+    
     private Dictionary<int, PlayerMove> playerControllers = new();
     private Dictionary<int, EnemyMove> enemyControllers = new();
 
@@ -21,7 +17,7 @@ public class GameManager : MonoBehaviour
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
 
-        Cursor.lockState = CursorLockMode.Confined;        
+        //Cursor.lockState = CursorLockMode.Confined;        
         //Cursor.visible = false; 
         //Cursor.lockState = CursorLockMode.Locked;
     }
@@ -29,7 +25,6 @@ public class GameManager : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {        
-        
 
     }
 
@@ -82,32 +77,47 @@ public class GameManager : MonoBehaviour
             enemyControllers.Remove(id);
     }
 
-    public void SpawnAllCharacters()
+    public void SpawnAllCharacters(Dictionary<int, Dictionary<Vector2Int, HexTile>> platforms)
     {
-        Debug.Log($"SpawnAllCharacters called on {gameObject.name}, array length: {playerSpawnPoints.Count}");
+        // put the player on platform 0.   random hex tile
+        Vector3 randomTilePos = HexUtils.GetRandomHexTile(platforms[0]).transform.position;
+        randomTilePos.y = 2.33f;        
+        GameObject player0 = AssetManager.Instance.GetPlayer(randomTilePos, Quaternion.identity);
+        player0.GetComponent<PlayerController>().SetPlayerHexMap(platforms[0]);
+        PlayerMove playerMoveScript = player0.GetComponent<PlayerMove>();        
+        RegisterPlayer(0, playerMoveScript);  //can pass a playerID here when ready for multiplayer
 
-        // hardcoding spawnpoints for now.  fix this later
-        playerSpawnPoints.Add(new Vector3(3, 2.63f, -1));
-        enemySpawnPoints.Add (new Vector3(40, 2.8f, 55));
-        enemySpawnPoints.Add (new Vector3(-30, 2.8f, 57));
-        enemySpawnPoints.Add (new Vector3(6, 2.8f, 90));
-
-        for (int i = 0; i < playerSpawnPoints.Count; i++)
-        {
-            GameObject playerGO = Instantiate(assetManager.GetPlayer(), playerSpawnPoints[i], Quaternion.identity);
-            PlayerMove moveScript = playerGO.GetComponent<PlayerMove>();
-
-            RegisterPlayer(i, moveScript);
-        }
-
-        for (int i = 0; i < enemySpawnPoints.Count; i++)
-        {
-            GameObject enemyGO = Instantiate(assetManager.GetEnemy(), enemySpawnPoints[i], Quaternion.identity);
-            EnemyMove moveScript = enemyGO.GetComponent<EnemyMove>();
-            //ensure all enemies/players have unique IDs
-            RegisterEnemy(i + 1000, moveScript);
-        }
-
-        Debug.Log($"Spawned {playerControllers.Count} players and {enemyControllers.Count} enemies");
-    }
+        // set up the camera on Player0.
+        // when implementing multiplayer, we can use isLocal to enable logic for input, attach cameras, etc.
+        bool isLocal = player0.GetComponent<PlayerController>().isLocalPlayer;
+        if (isLocal) { Camera.main.GetComponent<CameraLook>().SetTarget(player0.transform, player0.transform.Find("CameraLookHere")); }
+        
+        // put an enemy AI on platform 1.  random hex tile
+        randomTilePos = HexUtils.GetRandomHexTile(platforms[1]).transform.position;
+        randomTilePos.y = 2.77f;
+        GameObject ai0 = AssetManager.Instance.GetAI(randomTilePos, Quaternion.identity);
+        ai0.transform.name = "AI_0";
+        ai0.GetComponent<AIController>().SetAIHexMap(platforms[1]);
+        EnemyMove enemyMoveScript = ai0.GetComponent<EnemyMove>();        
+        RegisterEnemy(0 + 1000, enemyMoveScript);  //can pass a enemyID here when ready for multiplayer
+                
+        // put an enemy AI on platform 2.  random hex tile
+        randomTilePos = HexUtils.GetRandomHexTile(platforms[2]).transform.position;
+        randomTilePos.y = 2.77f;
+        GameObject ai1 = AssetManager.Instance.GetAI(randomTilePos, Quaternion.identity);
+        ai1.transform.name = "AI_1";
+        ai1.GetComponent<AIController>().SetAIHexMap(platforms[2]);
+        enemyMoveScript = ai1.GetComponent<EnemyMove>();        
+        RegisterEnemy(1 + 1000, enemyMoveScript);  //can pass a enemyID here when ready for multiplayer
+        /*
+        // put an enemy AI on platform 3.  random hex tile
+        randomTilePos = HexUtils.GetRandomHexTile(platforms[3]).transform.position;
+        randomTilePos.y = 2.77f;
+        GameObject ai2 = AssetManager.Instance.GetAI(randomTilePos, Quaternion.identity);
+        ai2.transform.name = "AI_2";
+        ai2.GetComponent<AIController>().SetAIHexMap(platforms[3]);
+        enemyMoveScript = ai2.GetComponent<EnemyMove>();        
+        RegisterEnemy(2 + 1000, enemyMoveScript);  //can pass a enemyID here when ready for multiplayer   
+          */
+    }    
 }
