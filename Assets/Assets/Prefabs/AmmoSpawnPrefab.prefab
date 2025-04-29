@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 1937484401874445796}
   - component: {fileID: 5612516239182047901}
   - component: {fileID: 9003799511480424588}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Bullet1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -97,7 +97,7 @@ GameObject:
   - component: {fileID: 8608270585980309806}
   - component: {fileID: 6036084624206393557}
   - component: {fileID: 8535187128522893625}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Bullet4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -181,7 +181,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2881246687093713205}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: GFX
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -218,7 +218,7 @@ GameObject:
   - component: {fileID: 4457489323442319897}
   - component: {fileID: 7455722290004040095}
   - component: {fileID: 8345427159885573456}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Bullet3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -304,7 +304,7 @@ GameObject:
   - component: {fileID: 3188909297202430240}
   - component: {fileID: 1635209677312096084}
   - component: {fileID: 851263131104113429}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Bullet2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -390,7 +390,7 @@ GameObject:
   - component: {fileID: 1581927146402409800}
   - component: {fileID: 8383846411154780986}
   - component: {fileID: 3714334086812439433}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: AmmoSpawnPrefab
   m_TagString: Ammo
   m_Icon: {fileID: 0}

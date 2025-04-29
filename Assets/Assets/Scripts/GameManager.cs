@@ -1,25 +1,37 @@
 
 using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
-    public AssetManager assetManager;
-    public static GameManager Instance;   
+    public enum GameState
+    {
+        Setup,
+        Gameplay,
+        Win,
+        Loss,
+        Restarting
+    }
 
+    public AssetManager assetManager;
+    public static GameManager Instance; 
+
+    [Header("Game Settings")]
+    [Range(1, 5)]
+    [Tooltip("Number of AI bots to spawn (1 to 5).")]
+    public int numberOfAIBots = 3;
     
-    private Dictionary<int, PlayerMove> playerControllers = new();
-    private Dictionary<int, EnemyMove> enemyControllers = new();
+    private Dictionary<int, PlayerController> playerControllers = new();
+    private Dictionary<int, AIController> aiControllers = new();
+
+    private GameState currentState = GameState.Setup;    
 
     private void Awake()
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
-
-        //Cursor.lockState = CursorLockMode.Confined;        
-        //Cursor.visible = false; 
-        //Cursor.lockState = CursorLockMode.Locked;
     }
     
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -31,93 +43,125 @@ public class GameManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        MoveCharacters();
-    }
-    
-    public void ReloadScene()
-    {
-        SceneManager.LoadScene("SampleScene");
+       
     }
 
-    private void MoveCharacters()
+    public void SpawnAllCharacters(Dictionary<int, Dictionary<Vector2Int, HexTile>> platforms)
     {
-        foreach (var kvp in playerControllers)
+        // Spawn the human player on platform 0
+        Vector3 playerTilePos = HexUtils.GetRandomHexTile(platforms[0]).transform.position;
+        playerTilePos.y = 2.33f;
+        GameObject player0 = AssetManager.Instance.GetPlayer(playerTilePos, Quaternion.identity);
+        PlayerController playerControllerScript = player0.GetComponent<PlayerController>();
+        playerControllerScript.SetPlayerHexMap(platforms[0]);
+        int playerID = 0; // fix this when ready for multiplayer.
+        playerControllerScript.Set_ID(playerID);  
+        RegisterPlayer(playerID, playerControllerScript);
+
+        // Set up the camera for the local player
+        if (playerControllerScript.isLocalPlayer)
         {
-            int playerID = kvp.Key;
-            PlayerMove playerMove = kvp.Value;
-
-            //Vector2 input = InputManager.Instance.GetInputForPlayer(playerID);  // however you’ve set this up
-            //playerMove.Move(input);
+            Camera.main.GetComponent<CameraLook>().SetTarget(player0.transform, player0.transform.Find("CameraLookHere"));
         }
 
-        foreach (var kvp in enemyControllers)
+        // Spawn AI bots on subsequent platforms
+        for (int i = 0; i < numberOfAIBots; i++)
         {
-            EnemyMove enemyMove = kvp.Value;
+            int platformIndex = i + 1;
+            if (!platforms.ContainsKey(platformIndex))
+            {
+                Debug.LogWarning($"Platform {platformIndex} not found. Skipping AI spawn.");
+                continue;
+            }
 
-            //Vector2 aiInput = enemyMove.DecideNextMove(); // Or from an AIManager
-            //enemyMove.Move(aiInput);
+            Vector3 aiTilePos = HexUtils.GetRandomHexTile(platforms[platformIndex]).transform.position;
+            aiTilePos.y = 2.77f;
+            GameObject ai = AssetManager.Instance.GetAI(aiTilePos, Quaternion.identity);
+            ai.name = $"AI_{i}";
+            AIController aiControllerScript = ai.GetComponent<AIController>();
+            aiControllerScript.SetAIHexMap(platforms[platformIndex]);
+            int ai_id = 1000 + i; // fix this when ready for multiplayer.
+            aiControllerScript.Set_ID(ai_id);
+            RegisterAI(ai_id, aiControllerScript);
         }
+        
+        TransitionToGameplay();
     }
 
-    public void RegisterPlayer(int playerID, PlayerMove moveScript)
+    private void TransitionToGameplay()
     {
-        playerControllers[playerID] = moveScript;
+        currentState = GameState.Gameplay;
+        Debug.Log("Game has started!");
+    } 
+
+    public void RegisterPlayer(int player_ID, PlayerController controllerScript)
+    {
+        playerControllers[player_ID] = controllerScript;
     }
 
-    public void RegisterEnemy(int enemyID, EnemyMove moveScript)
+    public void RegisterAI(int ai_ID, AIController controllerScript)
     {
-        enemyControllers[enemyID] = moveScript;
+        aiControllers[ai_ID] = controllerScript;
     }
 
     public void RemoveCharacter(int id, bool isPlayer)
     {
         if (isPlayer)
+        {
             playerControllers.Remove(id);
+            OnPlayerDefeated();
+        }
         else
-            enemyControllers.Remove(id);
+        {
+            aiControllers.Remove(id);
+            CheckIfAllAIsDefeated();
+        }
     }
 
-    public void SpawnAllCharacters(Dictionary<int, Dictionary<Vector2Int, HexTile>> platforms)
+    private void OnPlayerDefeated()
     {
-        // put the player on platform 0.   random hex tile
-        Vector3 randomTilePos = HexUtils.GetRandomHexTile(platforms[0]).transform.position;
-        randomTilePos.y = 2.33f;        
-        GameObject player0 = AssetManager.Instance.GetPlayer(randomTilePos, Quaternion.identity);
-        player0.GetComponent<PlayerController>().SetPlayerHexMap(platforms[0]);
-        PlayerMove playerMoveScript = player0.GetComponent<PlayerMove>();        
-        RegisterPlayer(0, playerMoveScript);  //can pass a playerID here when ready for multiplayer
+        if (currentState != GameState.Gameplay) return;
 
-        // set up the camera on Player0.
-        // when implementing multiplayer, we can use isLocal to enable logic for input, attach cameras, etc.
-        bool isLocal = player0.GetComponent<PlayerController>().isLocalPlayer;
-        if (isLocal) { Camera.main.GetComponent<CameraLook>().SetTarget(player0.transform, player0.transform.Find("CameraLookHere")); }
-        
-        // put an enemy AI on platform 1.  random hex tile
-        randomTilePos = HexUtils.GetRandomHexTile(platforms[1]).transform.position;
-        randomTilePos.y = 2.77f;
-        GameObject ai0 = AssetManager.Instance.GetAI(randomTilePos, Quaternion.identity);
-        ai0.transform.name = "AI_0";
-        ai0.GetComponent<AIController>().SetAIHexMap(platforms[1]);
-        EnemyMove enemyMoveScript = ai0.GetComponent<EnemyMove>();        
-        RegisterEnemy(0 + 1000, enemyMoveScript);  //can pass a enemyID here when ready for multiplayer
-                
-        // put an enemy AI on platform 2.  random hex tile
-        randomTilePos = HexUtils.GetRandomHexTile(platforms[2]).transform.position;
-        randomTilePos.y = 2.77f;
-        GameObject ai1 = AssetManager.Instance.GetAI(randomTilePos, Quaternion.identity);
-        ai1.transform.name = "AI_1";
-        ai1.GetComponent<AIController>().SetAIHexMap(platforms[2]);
-        enemyMoveScript = ai1.GetComponent<EnemyMove>();        
-        RegisterEnemy(1 + 1000, enemyMoveScript);  //can pass a enemyID here when ready for multiplayer
-        /*
-        // put an enemy AI on platform 3.  random hex tile
-        randomTilePos = HexUtils.GetRandomHexTile(platforms[3]).transform.position;
-        randomTilePos.y = 2.77f;
-        GameObject ai2 = AssetManager.Instance.GetAI(randomTilePos, Quaternion.identity);
-        ai2.transform.name = "AI_2";
-        ai2.GetComponent<AIController>().SetAIHexMap(platforms[3]);
-        enemyMoveScript = ai2.GetComponent<EnemyMove>();        
-        RegisterEnemy(2 + 1000, enemyMoveScript);  //can pass a enemyID here when ready for multiplayer   
-          */
-    }    
+        Debug.Log("Player defeated!");
+        currentState = GameState.Loss;
+        HandleLoss();
+    }
+
+    private void CheckIfAllAIsDefeated()
+    {
+        if (currentState != GameState.Gameplay) return;
+
+        if (aiControllers.Count == 0)
+        {
+            Debug.Log("All AI defeated!");
+            currentState = GameState.Win;
+            HandleWin();
+        }
+    }
+
+    private void HandleWin()
+    {
+        Debug.Log("Player wins! Restarting...");
+        StartCoroutine(RestartLevelAfterDelay(2f));
+    }
+
+    private void HandleLoss()
+    {
+        Debug.Log("Player loses! Restarting...");
+        StartCoroutine(RestartLevelAfterDelay(2f));
+    }
+
+    private IEnumerator RestartLevelAfterDelay(float delay)
+    {
+        currentState = GameState.Restarting;
+        yield return new WaitForSeconds(delay);
+        ReloadScene();
+    }
+
+    public void ReloadScene()
+    {
+        SceneManager.LoadScene("SampleScene");
+    }  
+
+    
 }

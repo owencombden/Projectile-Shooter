@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 2408896636244495194}
   - component: {fileID: 8594630190226192582}
   - component: {fileID: 5630200111661433966}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: BulletPrefab
   m_TagString: Bullet
   m_Icon: {fileID: 0}
@@ -50,7 +50,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0634b0eb6b1cef8438dc5ca494575b20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  IsAlive: 1
+  currentHealth: 0
 --- !u!114 &-5702647241767488984
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -63,6 +63,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 40c9099249bb8274eaf43442ecba1c2e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  maxLifetime: 7
+  bulletType: 0
 --- !u!33 &7318560568985611680
 MeshFilter:
   m_ObjectHideFlags: 0

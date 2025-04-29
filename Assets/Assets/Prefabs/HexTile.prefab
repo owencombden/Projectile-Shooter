@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 8845546270095580567}
   - component: {fileID: 5107463532484631487}
   - component: {fileID: 4809649107371973380}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Hex
   m_TagString: Ground
   m_Icon: {fileID: 0}
@@ -132,7 +132,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6664934244478251060}
   - component: {fileID: 1761376313914644265}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: HexTile
   m_TagString: Untagged
   m_Icon: {fileID: 0}

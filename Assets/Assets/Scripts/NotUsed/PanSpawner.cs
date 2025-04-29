@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class PanSpawner : MonoBehaviour
 {
+    /*
     public GameObject tile;
     public Transform parent;
     
@@ -40,4 +41,5 @@ public class PanSpawner : MonoBehaviour
     {
         
     }
+    */
 }

@@ -29,7 +29,7 @@ public class TargetManager : MonoBehaviour
 
     public List<Targetable> GetTargets()
     {
-        PrintAllTargets();
+        // PrintAllTargets();
         // Optionally filter dead/inactive targets
         return targets.FindAll(t => t != null && t.isActiveAndEnabled);
     }

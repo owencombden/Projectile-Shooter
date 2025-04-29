@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 2967991435525808929}
   - component: {fileID: 1147881477230567344}
   - component: {fileID: 319128382044622293}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: BarrelGFX
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -95,7 +95,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5692634147816642995}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: CameraLookHere
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -128,7 +128,7 @@ GameObject:
   - component: {fileID: 8256401071514824167}
   - component: {fileID: 347055806535948650}
   - component: {fileID: 433690049603954559}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: BodyGFX
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -213,7 +213,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3481322925320270664}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Gun
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -247,7 +247,7 @@ GameObject:
   m_Component:
   - component: {fileID: 152809226324175837}
   - component: {fileID: 8309257487957464878}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: SpawnPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -288,7 +288,7 @@ GameObject:
   - component: {fileID: 7584758197466960685}
   - component: {fileID: 3345751936473319237}
   - component: {fileID: 1937255321968325241}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Head
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -379,7 +379,7 @@ GameObject:
   - component: {fileID: 1757134797827736894}
   - component: {fileID: 3830162681761490747}
   - component: {fileID: -8930157636212942930}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Player
   m_TagString: Player
   m_Icon: {fileID: 0}
@@ -629,7 +629,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0634b0eb6b1cef8438dc5ca494575b20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  CurrentHealth: 0
+  currentHealth: 0
 --- !u!114 &-8930157636212942930
 MonoBehaviour:
   m_ObjectHideFlags: 0
