@@ -45,8 +45,6 @@ public class CharacterShooter : MonoBehaviour
 
         Transform target = (Transform) target_obj;  //LeanTween requires that this param be passed as an obj.  Cast back to Transform here.
 
-        Debug.Log(transform.name + " is trying to shoot at " + target.name + " with tag: " + target.tag);
-
         if (target.tag == "Ground" || target.tag == "Player" || target.tag == "AI_Player") { ShootAtPosition(target.position); }
 
         // short tween to rotate/aim, then ShootAtEnemyBullet()
@@ -103,20 +101,15 @@ public class CharacterShooter : MonoBehaviour
         float maxPossibleDist = Vector3.Distance(transform.position, shotOrigin);        
 
         interceptTime = MapValueToRange(currentDistToTarget, 1, maxPossibleDist, minInterceptTime, maxInterceptTime);
-
-        Debug.Log("Current Distance to Target: "+currentDistToTarget+ "       Intercept Time is: " + interceptTime);
         
         // calc where the incoming projectile will be in interceptTime seconds
         futurePos = target.position + (targetRB.linearVelocity * interceptTime);
         gravityCompensation = new Vector3(0, 0.5f * 9.81f * interceptTime * interceptTime, 0);
         futurePos -= gravityCompensation;
 
-        Debug.Log("Have intercept.  Target future position will be: " + futurePos);
-
         // if futurePos is out-of-play, cancel the shot
         if (futurePos.y < 2f || futurePos.y > 30f)
         {
-            Debug.Log("Target future position is out of play.  cancelling shot");
             return;
         }  
 

@@ -117,9 +117,10 @@ public class AssetManager : MonoBehaviour
         if (poolDict[key].Count > 0)
         {
             obj = poolDict[key].Dequeue();
+            obj.transform.parent = null;
             obj.transform.SetPositionAndRotation(position, rotation);
             obj.SetActive(true);
-            obj.transform.parent = null;
+            
         }
         else
         {

@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 5601915609876627265}
   - component: {fileID: 4061442377884872049}
   - component: {fileID: 4327008548005379310}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -96,7 +96,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4700488143650427085}
   - component: {fileID: 7921854186327302019}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: SpawnPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -144,7 +144,7 @@ GameObject:
   - component: {fileID: -9213242722325407228}
   - component: {fileID: -7401599072625062516}
   - component: {fileID: 9067310580479264826}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: AI
   m_TagString: AI_Player
   m_Icon: {fileID: 0}
@@ -160,7 +160,7 @@ Transform:
   m_GameObject: {fileID: 5472986952595126378}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0.38268343, z: 0, w: 0.92387956}
-  m_LocalPosition: {x: 20, y: 0, z: 20}
+  m_LocalPosition: {x: 20, y: 2.77, z: 20}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -259,7 +259,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0634b0eb6b1cef8438dc5ca494575b20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  CurrentHealth: 0
+  currentHealth: 0
 --- !u!114 &-7401599072625062516
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -298,13 +298,13 @@ CharacterController:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Height: 4.06
-  m_Radius: 0.71
+  m_Height: 3.89
+  m_Radius: 0.86
   m_SlopeLimit: 45
   m_StepOffset: 0.3
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
-  m_Center: {x: 0, y: -0.46, z: 0}
+  m_Center: {x: 0, y: -0.28, z: 0}
 --- !u!1 &6034363745513730595
 GameObject:
   m_ObjectHideFlags: 0
@@ -316,7 +316,7 @@ GameObject:
   - component: {fileID: 4317695314779417035}
   - component: {fileID: 2070093582818041083}
   - component: {fileID: 2912535504954988203}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: BarrelGFX
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -402,7 +402,7 @@ GameObject:
   - component: {fileID: 2489432691437045878}
   - component: {fileID: 7160385844474903895}
   - component: {fileID: 4109681238959169599}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: GFX
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -487,7 +487,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7450802283290010036}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Gun
   m_TagString: Untagged
   m_Icon: {fileID: 0}

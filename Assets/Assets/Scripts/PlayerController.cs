@@ -5,6 +5,7 @@ using System.Collections.Generic;
 public class PlayerController : MonoBehaviour
 {
     // this will be used later during multiplayer.
+    public int id { get; private set; }
     public bool isLocalPlayer = true;
 
     public bool playerDead = false;
@@ -129,22 +130,21 @@ public class PlayerController : MonoBehaviour
         hexMap = platform;
     }
 
-    
+    public void Set_ID(int character_id)
+    {
+        id = character_id;        
+    }
 
     public void KillPlayer(Vector3 feetPosition, Vector3 tippingAxis)
     {
         // flag the player as dead.
         playerDead = true;
 
+        gameMgr.RemoveCharacter(id, true);
+
         //tip the player towards the water in the direction of player velocity        
         LeanTween.rotateAround(gameObject, tippingAxis, -120, 0.4f);
         Vector3 fallDestination = new Vector3(transform.position.x, transform.position.y - 2f, transform.position.z);
-        LeanTween.move(gameObject, fallDestination, 0.8f)
-                 .setOnComplete(restartGame);
-    }
-
-    private void restartGame()
-    {
-        gameMgr.ReloadScene();
-    }   
+        LeanTween.move(gameObject, fallDestination, 0.8f);
+    }      
 }

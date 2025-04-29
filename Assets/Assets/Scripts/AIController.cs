@@ -10,6 +10,8 @@ public class AIController : MonoBehaviour
     [SerializeField] private float waypointThreshold = 0.5f;
     [SerializeField] private float shootCooldown = 2f;
 
+    public int id { get; private set; }
+    
     private CharacterMotor motor;
     private CharacterShooter shooter;
     private AIInputHandler input;
@@ -22,6 +24,7 @@ public class AIController : MonoBehaviour
 
     private void Awake()
     {
+        //Debug.Log("AI was added to pool with position: " + transform.position);
         motor = GetComponent<CharacterMotor>();
         shooter = GetComponent<CharacterShooter>();
         input = GetComponent<AIInputHandler>();
@@ -32,15 +35,17 @@ public class AIController : MonoBehaviour
 
         if (enemyDead) return;
 
-        //ground check and movement
-        Vector3 rayStart = transform.position;
-        Vector3 rayDir = transform.up * -1;
-        Ray ray = new Ray(rayStart, rayDir);        
-        float rayLength = 10f;        
-        RaycastHit hitData;
-        if (Physics.Raycast(ray, out hitData, rayLength))
+        // get current ground
+        // use SphereCast so we can ignore tiny gaps in the floor tiles                   
+        Vector3 rayStart  = transform.position;
+        float   rayRadius = 0.1f;
+        Vector3 rayDir    = transform.up * -1;                      
+        float   rayLength = 5f;        
+        string  tag       = "";
+        RaycastHit hitData;        
+        if (Physics.SphereCast(rayStart, rayRadius, rayDir, out hitData, rayLength))
         {   
-            string tag = hitData.collider.tag;
+            tag = hitData.collider.tag;
             if(tag == "Water")
             {
                 //enemy has fallen in the water
@@ -68,6 +73,11 @@ public class AIController : MonoBehaviour
 
         input.ClearMoveTarget();
         StartCoroutine(ShootThenMove());
+    }
+
+    void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        Debug.Log($"{transform.name} hit {hit.gameObject.name} at {hit.point}");
     }
 
     private bool ReachedDestination()
@@ -145,7 +155,6 @@ public class AIController : MonoBehaviour
 
         int index = Random.Range(0, potentialTargets.Count);
         
-        Debug.Log(transform.name + " has selected random target: " + potentialTargets[index].transform.name + " (" + potentialTargets[index].transform.position + ")");
         return potentialTargets[index].transform;
     }
 
@@ -157,10 +166,17 @@ public class AIController : MonoBehaviour
         currentDestination = GetRandomPosition(hexMap);
     }
 
+    public void Set_ID(int character_id)
+    {
+        id = character_id;        
+    }
+
     public void KillEnemy(Vector3 feetPosition, Vector3 tippingAxis)
     {
         // flag the player as dead.  
         enemyDead = true;        
+
+        GameManager.Instance.RemoveCharacter(id, false);
 
         //tip the player towards the water in the direction of player velocity        
         LeanTween.rotateAround(gameObject, tippingAxis, -120, 0.4f);

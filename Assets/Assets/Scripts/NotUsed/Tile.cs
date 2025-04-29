@@ -2,6 +2,7 @@ using UnityEngine;
 
 public class Tile : MonoBehaviour
 {
+    /*
     public int hitPoints;
 
     public Renderer tileRenderer;  
@@ -49,4 +50,5 @@ public class Tile : MonoBehaviour
         //print("Tile " + gameObject.name + " has been destroyed.");
         Destroy(gameObject);
     }
+    */
 }

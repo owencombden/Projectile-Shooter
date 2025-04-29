@@ -17,7 +17,9 @@ public class HexTileCollision : MonoBehaviour
     }
 
     private void OnTriggerEnter(Collider other)
-    {
+    {        
+        //Debug.Log("Hextile was hit by: " + other.name);
+
         parentScript?.HandleCollision(other);
     }
 }
