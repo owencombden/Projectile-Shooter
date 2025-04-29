@@ -24,7 +24,7 @@ public class AIController : MonoBehaviour
 
     private void Awake()
     {
-        Debug.Log("AI was spawned at: " + transform.position);
+        //Debug.Log("AI was added to pool with position: " + transform.position);
         motor = GetComponent<CharacterMotor>();
         shooter = GetComponent<CharacterShooter>();
         input = GetComponent<AIInputHandler>();

@@ -13,9 +13,6 @@ public class LevelManager : MonoBehaviour
     public float circleRadius = 5f; // Used only for circle mode
     public float edgeRaggedness = 0;  // 0 = perfect cirle, 0.5f pretty ragged, 0.8f very ragged.
 
-
-    private AssetManager assetManager;
-
     private System.Random random = new System.Random();
     
     Vector2Int[] neighborOffsets = {new Vector2Int(+1, 0), new Vector2Int(+1, -1), new Vector2Int(0, -1), new Vector2Int(-1, 0), new Vector2Int(-1, +1), new Vector2Int(0, +1)};
@@ -37,9 +34,9 @@ public class LevelManager : MonoBehaviour
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
-    {
-        assetManager = GameObject.Find("AssetManager").GetComponent<AssetManager>();
-
+    {   
+        int numPlatforms = GameManager.Instance.numberOfAIBots + 1;  // one platform for each AI, and an extra one for player
+        
         Vector3[] platformPositions = new Vector3[]
         {
             new Vector3(3, 0, -1),
@@ -48,12 +45,18 @@ public class LevelManager : MonoBehaviour
             new Vector3(6, 0, 90)
         };
 
-        // spawn all platforms
-        foreach (Vector3 platformPos in platformPositions)
+        if(numPlatforms > platformPositions.Count())
         {
-            BuildPlatform(platformPos);            
+            Debug.Log("Not enough platforms!!!");
+            return;
         }
 
+        // spawn all platforms
+        for (int i = 0; i < numPlatforms; i++)
+        {
+            BuildPlatform(platformPositions[i]);
+        }
+        
         // spawn all the characters
         GameManager.Instance.SpawnAllCharacters(platforms);
         
