@@ -1,21 +1,50 @@
 using UnityEngine;
+using System.Collections;
 
 [RequireComponent(typeof(CharacterController))]
 public class CharacterMotor : MonoBehaviour
 {
     [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private float turnSmoothTime = 0.1f;
     [SerializeField] private float rotateSpeed = 360f;
+    [SerializeField] private float aimAngleThreshold = 0.5f;
+    [SerializeField] private float maxAimTime = 1f;
+    [SerializeField] private float facingOverrideDuration = 1f;
     [SerializeField] private Transform cameraTransform; // Set this for player only
 
     private CharacterController controller;
     private CharacterShooter shooter;
     private float turnSmoothVelocity;
+    private Vector3? desiredFacing = null;
+    private float facingOverrideTimer = 0f;
 
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
         shooter = GetComponent<CharacterShooter>();
+    }
+
+    private void Update()
+    {
+        HandleRotation();   
+    }
+
+    private void HandleRotation()
+    {
+        if (desiredFacing.HasValue)
+        {
+            Vector3 faceDir = desiredFacing.Value;
+            faceDir.y = 0f;
+            if (faceDir != Vector3.zero)
+            {
+                Quaternion targetRotation = Quaternion.LookRotation(faceDir);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotateSpeed * Time.deltaTime);
+            }
+        }
+
+        if (facingOverrideTimer > 0f)
+        {
+            facingOverrideTimer -= Time.deltaTime;
+        }
     }
 
     // Called for Player input
@@ -31,11 +60,14 @@ public class CharacterMotor : MonoBehaviour
             targetAngle += cameraTransform.eulerAngles.y;
         }
 
-        float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
-        transform.rotation = Quaternion.Euler(0f, angle, 0f);
-
         Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
         controller.Move(moveDir * moveSpeed * Time.deltaTime);
+
+        // Update desired facing direction unless we're overriding it for shooting
+        if (facingOverrideTimer <= 0f)
+        {
+            desiredFacing = moveDir;
+        }
     }
 
     // Called for AI movement
@@ -56,25 +88,47 @@ public class CharacterMotor : MonoBehaviour
     {
         Vector3 direction = targetPosition - transform.position;
         direction.y = 0f;
-
         if (direction == Vector3.zero) return;
 
         Quaternion targetRotation = Quaternion.LookRotation(direction);
         transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotateSpeed * Time.deltaTime);
+        
+        // Optional: update facing direction to match current rotation
+        desiredFacing = direction.normalized;
     }
 
-    public void RotateToTargetAndShoot(Transform target)
+    public IEnumerator RotateTowardTargetAndShoot(Transform target)
     {
-        //rotate the player to look at eye-level towards the target
-        Vector3 lookAt = new Vector3(target.position.x, transform.position.y, target.position.z);
-        Vector3 lookDir = Quaternion.LookRotation(lookAt-transform.position).eulerAngles;
-        
-        //calc the time needed to animate the rotation, based on how far we need to turn (t = d/speed)
-        Vector3 targetLookDir = lookAt - transform.position;
-        float angleDist = Vector3.Angle(transform.forward, targetLookDir);
-        float rotateTime = angleDist / rotateSpeed * 0.5f;
+        if (target == null) yield break;
 
-        LeanTween.rotate(gameObject, lookDir, rotateTime).setOnComplete(shooter.TryShoot, target);        
+        Vector3 targetDir = target.position - transform.position;
+        targetDir.y = 0f;
+
+        if (targetDir == Vector3.zero) yield break;
+
+        Vector3 targetFacing = targetDir.normalized;
+        desiredFacing = targetFacing;
+        facingOverrideTimer = facingOverrideDuration;
+
+                
+        float elapsed = 0f;
+
+        while (elapsed < maxAimTime)
+        {
+            float angle = Vector3.Angle(transform.forward, targetFacing);
+
+            if (angle < aimAngleThreshold)
+            {
+                shooter.TryShoot(target);
+                break;
+            }
+
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        desiredFacing = null;
+        facingOverrideTimer  = 0f;
     }
 
     //called at Start from the PlayerController script (only needed for player)

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 public class LevelManager : MonoBehaviour
 {
+    public static LevelManager Instance; 
     public enum SpawnMode { Grid, Circle, Pinwheel, Hexagon }
     public int numRows = 5;
     public int numCols = 6;
@@ -24,13 +25,19 @@ public class LevelManager : MonoBehaviour
     // platforms[platformID][gridPos]        -> get any tile in O(1)
     // platforms[platformID].Remove(gridPos) -> remove tile from dictionary
     private int platformCounter = 0;
-    private Dictionary<int, Dictionary<Vector2Int, HexTile>> platforms = new();
+    private Dictionary<int, Dictionary<Vector2Int, HexTile>> platforms = new();  // 2D hexmaps
+    private Dictionary<int, GameObject> platformGameObjects = new();             // gameobjs  
     
     // could also implement this HashSet if things get slow
     // an inner hashset is faster, could be good if wanted to apply something across all tiles (ie: collision detection?)
     // would have to keep the Dict(Dict) and maintain two collections when adding/removing tiles and platforms
     // private Dictionary<int, HashSet<HexTile>> activeTiles = new();
 
+    private void Awake()
+    {
+        if (Instance == null) Instance = this;
+        else Destroy(gameObject);
+    }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -39,7 +46,7 @@ public class LevelManager : MonoBehaviour
         
         Vector3[] platformPositions = new Vector3[]
         {
-            new Vector3(3, 0, -1),
+            new Vector3(3, 0, 20),
             new Vector3(40, 0, 55),
             new Vector3(-30, 0, 57),
             new Vector3(6, 0, 90)
@@ -54,7 +61,7 @@ public class LevelManager : MonoBehaviour
         // spawn all platforms
         for (int i = 0; i < numPlatforms; i++)
         {
-            BuildPlatform(platformPositions[i]);
+            BuildPlatform(platformPositions[i], i);
         }
         
         // spawn all the characters
@@ -62,7 +69,7 @@ public class LevelManager : MonoBehaviour
         
     }
 
-    private void BuildPlatform(Vector3 startPos)
+    private void BuildPlatform(Vector3 startPos, int id)
     {
         List<Vector3>     hexPositions = new List<Vector3>();
         List<Vector2Int> hexGridCoords = new List<Vector2Int>();
@@ -95,9 +102,15 @@ public class LevelManager : MonoBehaviour
 
         // get an empty parent object (platform) that will hold all of the tiles we're about to spawn
         GameObject thisPlatform = AssetManager.Instance.GetPlatform(startPos, Quaternion.identity);     // PASS HEXTILEPOSITIONS & GRID COORDS HERE, AND BUILD A FULL PLATFORM IN AM.
-
+        
         // build one hex platform (a dictionary of grid-coords to hexTileScripts) and add it to the platforms (outer) dictionary with an ID.
         Dictionary<Vector2Int, HexTile> hexMap = new Dictionary<Vector2Int, HexTile>();
+
+        // give the platform script to handle pickups (ammo, health, etc)
+        PickupPlatformData pickupScript = thisPlatform.AddComponent<PickupPlatformData>();
+        pickupScript.platformId = id;
+        pickupScript.nextSpawnTime = 5f;
+        pickupScript.hexMap = hexMap;
 
         //spawn the hex tiles at each position, store coords, and add to dictionary
         for (int i=0; i <hexPositions.Count; i++)
@@ -114,6 +127,7 @@ public class LevelManager : MonoBehaviour
 
         // add the new hexMap to the collection of platforms.
         platforms[platformCounter] = hexMap;
+        platformGameObjects[platformCounter] = thisPlatform;
         platformCounter += 1;
     }
 
@@ -143,14 +157,22 @@ public class LevelManager : MonoBehaviour
         return platforms[platformId];
     }
 
-    public HexTile GetRandomPlayerHexScript()
+    public Dictionary<int, Dictionary<Vector2Int, HexTile>> GetAllPlatformHexMaps()
     {
-        if (platforms.Count == 0) return null; // Prevent errors if the dictionary is empty
-
-        int playerPlatformIndex = 0;
-        int randomTileIndex = random.Next(platforms[playerPlatformIndex].Count);
-        return platforms[playerPlatformIndex].Values.ElementAt(randomTileIndex); // Fetch the random script        
+        return platforms;  
     }
+
+    public Dictionary<int, GameObject> GetAllPlatformObjects()
+    {
+        return platformGameObjects;
+    }
+
+    public void RemovePlatform()
+    {
+        // to do
+        // remove from both hexmap dict and gameobj dict
+    }
+    
 
     private (List<Vector3>, List<Vector2Int>) GenerateGridPositions()
     {

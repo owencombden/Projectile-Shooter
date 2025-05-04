@@ -2740,6 +2740,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   assetManager: {fileID: 289987654}
+  numberOfAIBots: 3
 --- !u!4 &1266648210
 Transform:
   m_ObjectHideFlags: 0
@@ -4042,6 +4043,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c730c08b012295645af33287d33457df, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  targets: []
 --- !u!4 &1958787279
 Transform:
   m_ObjectHideFlags: 0

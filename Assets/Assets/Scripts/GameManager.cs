@@ -15,8 +15,8 @@ public class GameManager : MonoBehaviour
         Restarting
     }
 
-    public AssetManager assetManager;
     public static GameManager Instance; 
+    public AssetManager assetManager;    
 
     [Header("Game Settings")]
     [Range(1, 5)]

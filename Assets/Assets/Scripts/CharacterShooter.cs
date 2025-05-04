@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class CharacterShooter : MonoBehaviour
 {
@@ -19,7 +20,9 @@ public class CharacterShooter : MonoBehaviour
     private Vector3 futurePos;
     private Vector3 gravityCompensation;
 
-    private float shootCooldown = 0.5f;
+    [SerializeField] private int currentAmmo = 0;
+    [SerializeField] private int maxAmmo = 3;  
+    private float shootCooldown = 0.2f;
     private float lastShootTime;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -29,6 +32,9 @@ public class CharacterShooter : MonoBehaviour
         // gun and spawnpoint must be children of the character
         gun = transform.Find("Gun");
         spawnpoint = transform.Find("Gun/SpawnPoint");
+
+        //start with a full clip
+        //currentAmmo = maxAmmo;
     }
 
     // Update is called once per frame
@@ -37,18 +43,34 @@ public class CharacterShooter : MonoBehaviour
                
     }
 
-    // target_obj param should be a Transform
-    public void TryShoot(object target_obj)
+    public void AddAmmo(int amount)
+    {
+        currentAmmo += amount;
+        currentAmmo = Mathf.Min(currentAmmo, maxAmmo);
+        Debug.Log($"{gameObject.name} picked up ammo. Current ammo: {currentAmmo}"); 
+    }
+
+    public int GetCurrentAmmo()
+    {
+        return currentAmmo;
+    }
+    
+    public void TryShoot(Transform target)
     {   
+        // check ammo
+        if(currentAmmo <= 0) return;
+
         if (Time.time - lastShootTime < shootCooldown) return;
-        lastShootTime = Time.time;        
+        lastShootTime = Time.time;             
 
-        Transform target = (Transform) target_obj;  //LeanTween requires that this param be passed as an obj.  Cast back to Transform here.
-
-        if (target.tag == "Ground" || target.tag == "Player" || target.tag == "AI_Player") { ShootAtPosition(target.position); }
+        if (target.tag == "Ground" || target.tag == "Player" || target.tag == "AI_Player") 
+        { 
+            ShootAtPosition(target.position);
+        }
 
         // short tween to rotate/aim, then ShootAtEnemyBullet()
         if (target.tag == "Bullet") { AimAtEnemyBullet(target); }
+        
     }
     
     public void ShootAtPosition(Vector3 targetPosition)
@@ -72,7 +94,7 @@ public class CharacterShooter : MonoBehaviour
         // set the required gun angle 
         Vector3 currentGunRot = gun.transform.rotation.eulerAngles;
         Vector3 gunRot = new Vector3(targetAngle,currentGunRot.y,currentGunRot.z);
-        gun.transform.eulerAngles = gunRot;        
+        gun.transform.eulerAngles = gunRot;   
        
         // shoot in forward direction, at calculated angle
         GameObject bullet = AssetManager.Instance.GetBullet(spawnpoint.position, Quaternion.identity);
@@ -80,48 +102,69 @@ public class CharacterShooter : MonoBehaviour
         bulletScript.ownerId = GetComponent<Targetable>().myId; 
         Rigidbody bulletRb = bullet.GetComponent<Rigidbody>();
         bulletRb.AddForce(calculatedLaunchVelocity * spawnpoint.forward, ForceMode.Impulse);
+        currentAmmo--; 
+
+        Debug.Log($"{gameObject.name} just fired. Current ammo: {currentAmmo}");
 
     }
 
 
     public void AimAtEnemyBullet(Transform target)
     {
+        if (target == null) return;
+
         targetRB   = target.GetComponent<Rigidbody>();
         shotOrigin = target.GetComponent<Bullet>().startPos;
 
-        // choose a time (from now) in which we want to intercept the bullet
-        // far away targets = more time, closer targets = less time (close to immediate)
-        // use the time to calculate where the enemey bullet will be, adjust the raw position by subtracting the gravity force
-        // then calculate a shot, to that future position
-        // the speed of our projectile will be determined by the intercept time (lower time, faster shot required)
-        // we shoot in the direction of the future pos, but also account for gravity resulting in a shot that's a little higher than futurePos
+        // Projected horizontal distance to target (ignore height)
+        Vector3 flatTargetPos = new Vector3(target.position.x, transform.position.y, target.position.z);
+        float currentDistToTarget = Vector3.Distance(transform.position, flatTargetPos);
 
-        // map interceptTime to distance-to-target
-        float currentDistToTarget = Vector3.Distance(transform.position, new Vector3(target.position.x, transform.position.y, target.position.z));
-        float maxPossibleDist = Vector3.Distance(transform.position, shotOrigin);        
+        float maxPossibleDist = Mathf.Max(1f, Vector3.Distance(transform.position, shotOrigin)); // Prevent divide-by-zero
 
-        interceptTime = MapValueToRange(currentDistToTarget, 1, maxPossibleDist, minInterceptTime, maxInterceptTime);
-        
-        // calc where the incoming projectile will be in interceptTime seconds
+        // Map the distance to an intercept time, clamped to the desired range
+        interceptTime = MapValueToRange(
+            currentDistToTarget,
+            1f, maxPossibleDist,
+            minInterceptTime, maxInterceptTime
+        );
+
+        // Clamp the result just to be safe (in case input values or ranges shift)
+        interceptTime = Mathf.Clamp(interceptTime, minInterceptTime, maxInterceptTime);
+
+        // Predict future position with gravity compensation
         futurePos = target.position + (targetRB.linearVelocity * interceptTime);
-        gravityCompensation = new Vector3(0, 0.5f * 9.81f * interceptTime * interceptTime, 0);
+        gravityCompensation = 0.5f * Physics.gravity * interceptTime * interceptTime;
         futurePos -= gravityCompensation;
 
-        // if futurePos is out-of-play, cancel the shot
-        if (futurePos.y < 2f || futurePos.y > 30f)
-        {
-            return;
-        }  
+        if (futurePos.y < 2f || futurePos.y > 30f) return;
 
-        // rotate the player body to face the futurePos
+        // Rotate to face the futurePos
         Vector3 lookDir = futurePos - transform.position;
-        lookDir.y = 0; // Keep it level on the y-axis
+        lookDir.y = 0;
         Vector3 lookDirAngle = Quaternion.LookRotation(lookDir).eulerAngles;
-        //calc the time needed to animate the rotation, based on how far we need to turn (t = d/speed)
+
         float angleDist = Vector3.Angle(transform.forward, lookDir);
-        float rotateTime = angleDist / (2 * 200);
+        float rotateTime = angleDist / (2f * 200f);
         
-        LeanTween.rotate(gameObject, lookDirAngle, rotateTime).setOnComplete(ShootAtEnemyBullet);        
+        StartCoroutine(RotateThenShoot(lookDir, rotateTime));       
+    }
+
+    private IEnumerator RotateThenShoot(Vector3 lookDir, float duration)
+    {
+        Quaternion startRotation = transform.rotation;
+        Quaternion endRotation = Quaternion.LookRotation(lookDir);
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            transform.rotation = Quaternion.Slerp(startRotation, endRotation, elapsed / duration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        transform.rotation = endRotation;
+        ShootAtEnemyBullet();
     }
 
 
@@ -140,6 +183,9 @@ public class CharacterShooter : MonoBehaviour
         bulletScript.ownerId = GetComponent<Targetable>().myId; 
         Rigidbody bulletRb = bullet.GetComponent<Rigidbody>();
         bulletRb.AddForce(requiredSpeed * shotDir, ForceMode.Impulse);
+        currentAmmo--;
+
+        Debug.Log($"{gameObject.name} just fired at an enemy bullet. Current ammo: {currentAmmo}"); 
     }
 
 

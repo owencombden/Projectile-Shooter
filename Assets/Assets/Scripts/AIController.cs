@@ -9,6 +9,9 @@ public class AIController : MonoBehaviour
 
     [SerializeField] private float waypointThreshold = 0.5f;
     [SerializeField] private float shootCooldown = 2f;
+    [SerializeField] private float pickupCheckInterval = 1.0f; // seconds between pickup scans
+    private float pickupCheckCooldown = 0f;
+    private GameObject cachedNearestAmmo = null;
 
     public int id { get; private set; }
     
@@ -20,7 +23,7 @@ public class AIController : MonoBehaviour
 
     private Vector3 currentDestination;
     private bool isWaiting = false;
-    bool enemyDead = false;
+    bool isDead = false;
 
     private void Awake()
     {
@@ -32,38 +35,59 @@ public class AIController : MonoBehaviour
 
     private void Update()
     {
+        if (isDead) return;
 
-        if (enemyDead) return;
+        // Check ground
+        Vector3 rayStart = transform.position;
+        float rayRadius = 0.1f;
+        Vector3 rayDir = Vector3.down;
+        float rayLength = 5f;
+        RaycastHit hitData;
+        string tag = "";
 
-        // get current ground
-        // use SphereCast so we can ignore tiny gaps in the floor tiles                   
-        Vector3 rayStart  = transform.position;
-        float   rayRadius = 0.1f;
-        Vector3 rayDir    = transform.up * -1;                      
-        float   rayLength = 5f;        
-        string  tag       = "";
-        RaycastHit hitData;        
         if (Physics.SphereCast(rayStart, rayRadius, rayDir, out hitData, rayLength))
-        {   
+        {
             tag = hitData.collider.tag;
-            if(tag == "Water")
+            if (tag == "Water")
             {
-                //enemy has fallen in the water
                 Vector3 currentVelocity = (currentDestination - transform.position).normalized;
                 KillEnemy(hitData.point, Vector3.Cross(currentVelocity, transform.up));
                 return;
             }
-            else if(tag == "Ground")
+            else if (tag == "Ground")
             {
-                motor.Move(input.MoveInput);           
+                motor.Move(input.MoveInput);
             }
-            else
-            {
-                Debug.Log("Unknown tag!");
-            }
-        }        
+        }
 
-        if (isWaiting || hexMap.Count ==0 || hexMap == null) return;
+        if (isWaiting || hexMap == null || hexMap.Count == 0) return;
+
+        //  prioritize ammo seeking if empty
+        if (shooter != null && shooter.GetCurrentAmmo() <= 0)
+        {
+            pickupCheckCooldown -= Time.deltaTime;
+            if (pickupCheckCooldown <= 0f)
+            {
+                pickupCheckCooldown = pickupCheckInterval;
+                cachedNearestAmmo = FindClosestPickup("Ammo");
+            }
+
+            if (cachedNearestAmmo != null)
+            {
+                float distToAmmo = Vector3.Distance(transform.position, cachedNearestAmmo.transform.position);
+                if (distToAmmo > waypointThreshold)
+                {
+                    currentDestination = cachedNearestAmmo.transform.position;
+                    input.SetMoveTarget(currentDestination);
+                    return;
+                }
+                else
+                {
+                    input.ClearMoveTarget();
+                    return;
+                }
+            }
+        }
 
         if (!ReachedDestination())
         {
@@ -75,9 +99,31 @@ public class AIController : MonoBehaviour
         StartCoroutine(ShootThenMove());
     }
 
+    private GameObject FindClosestPickup(string tag)
+    {
+        Debug.Log($"{gameObject.name} is looking for a {tag} pickup.");
+        GameObject[] pickups = GameObject.FindGameObjectsWithTag(tag);
+        GameObject closest = null;
+        float minDist = Mathf.Infinity;
+        Vector3 currentPos = transform.position;
+
+        foreach (GameObject pickup in pickups)
+        {
+            float dist = Vector3.Distance(currentPos, pickup.transform.position);
+            if (dist < minDist)
+            {
+                closest = pickup;
+                minDist = dist;
+            }
+        }
+
+        return closest;
+    }
+
+    // for debug only right now
     void OnControllerColliderHit(ControllerColliderHit hit)
     {
-        Debug.Log($"{transform.name} hit {hit.gameObject.name} at {hit.point}");
+        Debug.Log($"AIController reported: {transform.name} hit {hit.gameObject.name} at {hit.point}");
     }
 
     private bool ReachedDestination()
@@ -88,47 +134,30 @@ public class AIController : MonoBehaviour
     }
 
     private IEnumerator ShootThenMove()
+{
+    isWaiting = true;
+
+    Transform target = GetRandomTarget();        
+    if (target != null)
     {
-        isWaiting = true;
-
-        Transform target = GetRandomTarget();
-
-        if (target != null)
-        {
-            // Step 1: Rotate to face the target
-            yield return StartCoroutine(RotateTowards(target.position));
-
-            // Step 1.5: Pause before shooting
-            //yield return new WaitForSeconds(Random.Range(0.5f, 1.75f));
-
-            // Step 2: Shoot
-            input.SetShootTarget(target.position);
-            shooter.TryShoot(target);
-
-            // Step 3: Cooldown wait
-            yield return new WaitForSeconds(shootCooldown);
-
-            input.ClearShootTarget();
-        }
-
-        // Step 4: Move to new destination
-        currentDestination = GetRandomPosition(hexMap);
-        isWaiting = false;
+        yield return StartCoroutine(motor.RotateTowardTargetAndShoot(target));
     }
 
-    private IEnumerator RotateTowards(Vector3 targetPosition)
-    {        
-        Vector3 direction = (targetPosition - transform.position).normalized;
-        direction.y = 0f;
+    // Pick a new destination
+    currentDestination = GetRandomPosition(hexMap);
 
-        Quaternion targetRotation = Quaternion.LookRotation(direction);
-
-        while (Quaternion.Angle(transform.rotation, targetRotation) > 1f)
-        {
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
-            yield return null;
-        }
+    // Move while waiting
+    input.SetMoveTarget(currentDestination);
+    float elapsed = 0f;
+    while (elapsed < shootCooldown && !ReachedDestination())
+    {
+        elapsed += Time.deltaTime;
+        yield return null;
     }
+
+    input.ClearMoveTarget();
+    isWaiting = false;
+}
 
     private Vector3 GetRandomPosition(Dictionary<Vector2Int, HexTile> map)
     {
@@ -149,7 +178,7 @@ public class AIController : MonoBehaviour
 
         if (potentialTargets.Count == 0)
         {
-            Debug.Log("..............." + transform.name + " could not find a target!!  Null returned!");
+            Debug.Log(transform.name + " could not find a target!!  Null returned!");
             return null;
         } 
 
@@ -173,21 +202,50 @@ public class AIController : MonoBehaviour
 
     public void KillEnemy(Vector3 feetPosition, Vector3 tippingAxis)
     {
-        // flag the player as dead.  
-        enemyDead = true;        
-
+        isDead = true;
         GameManager.Instance.RemoveCharacter(id, false);
+        StartCoroutine(TipAndFall(tippingAxis));
+    }
 
-        //tip the player towards the water in the direction of player velocity        
-        LeanTween.rotateAround(gameObject, tippingAxis, -120, 0.4f);
-        Vector3 fallDestination = new Vector3(transform.position.x, transform.position.y - 5f, transform.position.z);
-        LeanTween.move(gameObject, fallDestination, 0.8f).setOnComplete(DestroyEnemy);
+    private IEnumerator TipAndFall(Vector3 tippingAxis)
+    {
+        // Rotate over 0.4 seconds
+        float duration = 0.4f;
+        float elapsed = 0f;
+        Quaternion startRot = transform.rotation;
+        Quaternion endRot = Quaternion.AngleAxis(-120, tippingAxis) * startRot;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            transform.rotation = Quaternion.Slerp(startRot, endRot, elapsed / duration);
+            yield return null;
+        }
+
+        // Move down over 0.8 seconds
+        Vector3 startPos = transform.position;
+        Vector3 endPos = startPos + Vector3.down * 5f;
+        float moveDuration = 0.8f;
+        float moveElapsed = 0f;
+
+        while (moveElapsed < moveDuration)
+        {
+            moveElapsed += Time.deltaTime;
+            transform.position = Vector3.Lerp(startPos, endPos, moveElapsed / moveDuration);
+            yield return null;
+        }
+
+        DestroyEnemy();
     }
 
     void DestroyEnemy()
     {
-        LeanTween.cancel(gameObject);
         // move this to asset manager when pooling is implemented
-        AssetManager.Instance.ReturnAI(gameObject);
+        if (AssetManager.Instance)
+        {
+            AssetManager.Instance.ReturnAI(gameObject);
+        }
+        else { Debug.Log("DestroyEnemy cannot find AssetManager!!"); }
+        
     }
 }

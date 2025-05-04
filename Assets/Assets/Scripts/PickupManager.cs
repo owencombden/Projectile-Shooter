@@ -1,39 +1,53 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PickupManager : MonoBehaviour
 {
-    public int maxAmmoDrops = 1;
-    private LevelManager levelManager;
-    
-    private Transform[] playerTiles;
-    private int currentAmmoDrops = 0;
+    public float globalSpawnCooldown = 5f;    // Time between spawn checks
+    public int maxPickupsPerPlatform = 2;     // Max active pickups allowed per platform
+    public int pickupAmmoAmount = 3;          // How much ammo a pickup gives
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        levelManager = GameObject.Find("LevelManager").GetComponent<LevelManager>();            
-    }
+    private float spawnTimer = 0f;
 
-    // Update is called once per frame
     void Update()
     {
-        if(currentAmmoDrops < maxAmmoDrops)
+        spawnTimer -= Time.deltaTime;
+
+        if (spawnTimer <= 0f)
         {
-            currentAmmoDrops += 1;
-            Invoke("DropAmmo", 1f);
-        }        
+            TrySpawnPickups();
+            spawnTimer = globalSpawnCooldown;
+        }
     }
 
-    private void DropAmmo()
+    private void TrySpawnPickups()
     {
-        Vector3 spawnPos = levelManager.GetRandomPlayerHexScript().transform.position;
-        spawnPos.y += 0.86f;
-        AssetManager.Instance.GetAmmoSpawn(spawnPos, Quaternion.identity);
-    }
+        var allPlatformObjects = LevelManager.Instance.GetAllPlatformObjects();
 
-    public void RemoveAmmoDrop()
-    {
-        currentAmmoDrops -= 1;
+        foreach (var kvp in allPlatformObjects)
+        {
+            GameObject platformGO = kvp.Value;
+            PickupPlatformData platformData = platformGO.GetComponent<PickupPlatformData>();
+
+            if (platformData == null || platformData.hexMap == null || platformData.hexMap.Count == 0)
+                continue;
+
+            if (platformData.activePickups.Count >= maxPickupsPerPlatform)
+                continue;
+
+            Vector3 spawnPos = platformData.GetRandomSpawnPoint();
+            spawnPos.y = 0.96f; // Ensure Y height is correct for pickups
+
+            GameObject pickup = AssetManager.Instance.GetAmmoSpawn(spawnPos, Quaternion.identity);
+
+            pickup.GetComponent<Pickup>().Initialize(
+                PickupType.Ammo,
+                pickupAmmoAmount,
+                onCollected: null, // Optional: you could still hook score logic here
+                lifetimeSeconds: 10f,
+                ownerPlatform: platformData
+            );
+
+            platformData.RegisterPickup(pickup);
+        }
     }
 }

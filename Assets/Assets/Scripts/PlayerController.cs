@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Collections;
 using System.Collections.Generic;
 
 public class PlayerController : MonoBehaviour
@@ -22,32 +23,19 @@ public class PlayerController : MonoBehaviour
         motor = GetComponent<CharacterMotor>();
         motor.SetCamera(Camera.main.transform);   // Only needed for player
         input = GetComponent<ICharacterInputProvider>();
-
-       
-    }
-
-    private void Start()
-    {
         gameMgr = GameObject.Find("GameManager").GetComponent<GameManager>();
         shooter = GetComponent<CharacterShooter>();   
     }
+    
 
     private void Update()
     {
-        if (playerDead) { return; }
-
-        // if player is tweening (edge avoidance, rotation), no further movement or shooting
-        if(LeanTween.isTweening(gameObject)){ return;}
+        if (playerDead) { return; }        
 
         // get current ground
-        // use SphereCast so we can ignore tiny gaps in the floor tiles                   
-        Vector3 rayStart  = transform.position;
-        float   rayRadius = 0.1f;
-        Vector3 rayDir    = transform.up * -1;                      
-        float   rayLength = 5f;        
-        string  tag       = "";
-        RaycastHit hitData;        
-        if (Physics.SphereCast(rayStart, rayRadius, rayDir, out hitData, rayLength))
+        // use SphereCast so we can ignore tiny gaps in the floor tiles
+        string tag = "";
+        if (TryGetGroundHit(out RaycastHit hitData))
         {
             tag = hitData.transform.tag;
         }
@@ -83,7 +71,11 @@ public class PlayerController : MonoBehaviour
                 // ignore clicks on water/floor
                 if(clickedTarget.tag == "Water") { return; }  
 
-                motor.RotateToTargetAndShoot(clickedTarget); 
+                // Shoot!
+                StartCoroutine(Shoot(clickedTarget));
+                
+                // Cooldown wait
+                //yield return new WaitForSeconds(shootCooldown);  // this is being done in tryshoot
             }
         }
     }
@@ -94,28 +86,52 @@ public class PlayerController : MonoBehaviour
         currentVelocity.y = 0f;
         Vector3 destination = lastGoodTile.position;
         destination.y = transform.position.y;
-        LeanTween.move(gameObject, destination, 0.2f).setOnComplete(CheckIfGrounded);
+        StartCoroutine(MoveToPosition(destination, 0.2f));
+    }
+
+    private IEnumerator MoveToPosition(Vector3 destination, float duration)
+    {
+        Vector3 start = transform.position;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            transform.position = Vector3.Lerp(start, destination, elapsed / duration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        transform.position = destination;
+        CheckIfGrounded();
+    }
+
+    private IEnumerator Shoot(Transform target)
+    {
+        Debug.Log("this ran");
+        yield return StartCoroutine(motor.RotateTowardTargetAndShoot(target));
     }
 
     private void CheckIfGrounded()
     {
         // if the target tile has been destroyed beneath the player, kill the player
         // get current ground
-        RaycastHit hitData;              
-        Vector3 rayStart = transform.position;
-        Vector3 rayDir   = transform.up * -1;               
-        float  rayLength = 5;
-        Ray    ray       = new Ray(rayStart, rayDir);
-        string tag       = "";
-        
-        if(Physics.Raycast(ray, out hitData, rayLength))
+        // use SphereCast so we can ignore tiny gaps in the floor tiles
+        //RaycastHit hitData;        
+        if (TryGetGroundHit(out RaycastHit hitData))
         {
-            tag = hitData.transform.tag;
-            if(tag != "Ground")
+            if(hitData.transform.tag != "Ground")
             {
                 KillPlayer(hitData.point, Vector3.Cross(motor.GetVelocity(false), transform.up));
             }
         }
+    }
+
+    private bool TryGetGroundHit(out RaycastHit hitData)
+    {
+        Vector3 rayStart = transform.position;
+        float rayRadius = 0.1f;
+        Vector3 rayDir = Vector3.down;
+        float rayLength = 5f;
+
+        return Physics.SphereCast(rayStart, rayRadius, rayDir, out hitData, rayLength);
     }
 
     private Transform GetMouseClickTarget()
@@ -143,8 +159,35 @@ public class PlayerController : MonoBehaviour
         gameMgr.RemoveCharacter(id, true);
 
         //tip the player towards the water in the direction of player velocity        
-        LeanTween.rotateAround(gameObject, tippingAxis, -120, 0.4f);
+        StartCoroutine(FallOver(tippingAxis));
+    }
+
+    private IEnumerator FallOver(Vector3 tippingAxis)
+    {
+        float duration = 0.4f;
+        float angle = -120f;
+        Quaternion startRot = transform.rotation;
+        Quaternion endRot = Quaternion.AngleAxis(angle, tippingAxis) * startRot;
+
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            transform.rotation = Quaternion.Slerp(startRot, endRot, elapsed / duration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        transform.rotation = endRot;
+
         Vector3 fallDestination = new Vector3(transform.position.x, transform.position.y - 2f, transform.position.z);
-        LeanTween.move(gameObject, fallDestination, 0.8f);
+        float fallDuration = 0.8f;
+        elapsed = 0f;
+        Vector3 startPos = transform.position;
+        while (elapsed < fallDuration)
+        {
+            transform.position = Vector3.Lerp(startPos, fallDestination, elapsed / fallDuration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        transform.position = fallDestination;
     }      
 }

@@ -112,7 +112,7 @@ Transform:
   m_GameObject: {fileID: 532101800482814807}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
-  m_LocalPosition: {x: 0, y: -0, z: -1.2}
+  m_LocalPosition: {x: -0, y: -0, z: -1.548}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -231,6 +231,7 @@ MonoBehaviour:
   rotationSpeed: 360
   waypointThreshold: 0.5
   shootCooldown: 2
+  pickupCheckInterval: 1
 --- !u!114 &-8486201669556992624
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -244,8 +245,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   moveSpeed: 8
-  turnSmoothTime: 0.05
   rotateSpeed: 360
+  aimAngleThreshold: 0.5
+  maxAimTime: 1
+  facingOverrideDuration: 1
   cameraTransform: {fileID: 0}
 --- !u!114 &-9213242722325407228
 MonoBehaviour:
@@ -280,6 +283,8 @@ MonoBehaviour:
   maxInterceptTime: 1
   gun: {fileID: 0}
   spawnpoint: {fileID: 0}
+  currentAmmo: 0
+  maxAmmo: 3
 --- !u!143 &9067310580479264826
 CharacterController:
   m_ObjectHideFlags: 0
@@ -503,7 +508,7 @@ Transform:
   m_GameObject: {fileID: 6848535640744472553}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.9063079, z: -0.42261827, w: 0}
-  m_LocalPosition: {x: 1.04, y: 0.36, z: 0}
+  m_LocalPosition: {x: 1.12, y: 0.36, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:

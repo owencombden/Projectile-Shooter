@@ -388,7 +388,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1581927146402409800}
-  - component: {fileID: 8383846411154780986}
+  - component: {fileID: -2370928120627217949}
   - component: {fileID: 3714334086812439433}
   m_Layer: 11
   m_Name: AmmoSpawnPrefab
@@ -413,7 +413,7 @@ Transform:
   - {fileID: 2881246687093713205}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &8383846411154780986
+--- !u!114 &-2370928120627217949
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -422,9 +422,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 5240445054071135159}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 576052904f086914ba9603c88869a8d4, type: 3}
+  m_Script: {fileID: 11500000, guid: 7bdb27b4217d2fa4b879834eed7d4a80, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  type: 0
+  amount: 0
 --- !u!65 &3714334086812439433
 BoxCollider:
   m_ObjectHideFlags: 0
