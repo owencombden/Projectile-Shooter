@@ -10,7 +10,7 @@ public class Pickup : MonoBehaviour
     private float lifetime;
     private float spawnTime;
 
-    private PickupPlatformData platformData; 
+    private PlatformPickupData platformData; 
 
     private void OnEnable()
     {
@@ -28,7 +28,7 @@ public class Pickup : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        Debug.Log($"Pickup reported: {transform.name} hit {other.gameObject.name} at {other.transform.position}");
+        //Debug.Log($"Pickup reported: {transform.name} hit {other.gameObject.name} at {other.transform.position}");
 
         if (other.CompareTag("Player") || other.CompareTag("AI_Player"))
         {
@@ -46,7 +46,7 @@ public class Pickup : MonoBehaviour
         int pickupAmount,
         Action<GameObject> onCollected,
         float lifetimeSeconds,
-        PickupPlatformData ownerPlatform
+        PlatformPickupData ownerPlatform
     )
     {
         this.type = pickupType;

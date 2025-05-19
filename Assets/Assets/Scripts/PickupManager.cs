@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class PickupManager : MonoBehaviour
 {
@@ -10,13 +11,19 @@ public class PickupManager : MonoBehaviour
 
     void Update()
     {
+        /* taking this out while working on multiplayer
+        
         spawnTimer -= Time.deltaTime;
 
         if (spawnTimer <= 0f)
         {
             TrySpawnPickups();
+            
             spawnTimer = globalSpawnCooldown;
         }
+
+        */
+        
     }
 
     private void TrySpawnPickups()
@@ -25,10 +32,11 @@ public class PickupManager : MonoBehaviour
 
         foreach (var kvp in allPlatformObjects)
         {
-            GameObject platformGO = kvp.Value;
-            PickupPlatformData platformData = platformGO.GetComponent<PickupPlatformData>();
+            GameObject platformGO           = kvp.Value;
+            int platformId                  = platformGO.GetComponent<Platform>().platformId;
+            PlatformPickupData platformData = platformGO.GetComponent<PlatformPickupData>();
 
-            if (platformData == null || platformData.hexMap == null || platformData.hexMap.Count == 0)
+            if (platformData == null || LevelManager.Instance.GetHexMap(platformId) == null || LevelManager.Instance.GetHexMap(platformId).Count == 0)
                 continue;
 
             if (platformData.activePickups.Count >= maxPickupsPerPlatform)

@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Linq;
 using System.Collections.Generic;
+using Unity.Netcode;
 
 public class LevelManager : MonoBehaviour
 {
@@ -14,10 +15,8 @@ public class LevelManager : MonoBehaviour
     public float circleRadius = 5f; // Used only for circle mode
     public float edgeRaggedness = 0;  // 0 = perfect cirle, 0.5f pretty ragged, 0.8f very ragged.
 
-    private System.Random random = new System.Random();
-    
-    Vector2Int[] neighborOffsets = {new Vector2Int(+1, 0), new Vector2Int(+1, -1), new Vector2Int(0, -1), new Vector2Int(-1, 0), new Vector2Int(-1, +1), new Vector2Int(0, +1)};
-
+    private System.Random random = new System.Random();    
+   
     // store all platforms in a dictionary of dictionaries
     // outer dictionary stores all the platforms, indexable by platform ID
     // inner dictionary stores all of the hexTiles for that platform, indexable by grid-coord    
@@ -61,15 +60,36 @@ public class LevelManager : MonoBehaviour
         // spawn all platforms
         for (int i = 0; i < numPlatforms; i++)
         {
-            BuildPlatform(platformPositions[i], i);
+            BuildPlatform(platformPositions[i]);
         }
-        
+
         // spawn all the characters
-        GameManager.Instance.SpawnAllCharacters(platforms);
+
+        //GameManager.Instance.SpawnAllCharacters(platforms, platformGameObjects); //old way
+        //GameManager.Instance.SpawnAllCharacters(platforms);
+
+        // make sure the server is actually listening before spawning characters
+
+        NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected; 
         
     }
 
-    private void BuildPlatform(Vector3 startPos, int id)
+    private void OnClientConnected(ulong clientId)
+    {
+        // The host itself always connects with clientId == 0
+        // Only the server should spawn everyone
+        if (NetworkManager.Singleton.IsServer && clientId == 0)
+        {
+            NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
+            
+            int playerCount = GameObject.FindGameObjectsWithTag("Player").Length;
+            //Debug.Log($"Level Manager has received OnClientConnected callback.  There are {playerCount} players in the scene.");
+
+            GameManager.Instance.SpawnAllCharacters(platforms);
+        }
+    }
+
+    private void BuildPlatform(Vector3 startPos)
     {
         List<Vector3>     hexPositions = new List<Vector3>();
         List<Vector2Int> hexGridCoords = new List<Vector2Int>();
@@ -100,52 +120,46 @@ public class LevelManager : MonoBehaviour
             return;
         }
 
+        // PLATFORM
         // get an empty parent object (platform) that will hold all of the tiles we're about to spawn
-        GameObject thisPlatform = AssetManager.Instance.GetPlatform(startPos, Quaternion.identity);     // PASS HEXTILEPOSITIONS & GRID COORDS HERE, AND BUILD A FULL PLATFORM IN AM.
-        
-        // build one hex platform (a dictionary of grid-coords to hexTileScripts) and add it to the platforms (outer) dictionary with an ID.
+        GameObject thisPlatform = AssetManager.Instance.GetPlatform(startPos, Quaternion.identity);
+        Platform platformScript = thisPlatform.GetComponent<Platform>();
+        platformScript.platformId = platformCounter; 
+
+        // build one hex map (a dictionary of grid-coords to hexTileScripts)
         Dictionary<Vector2Int, HexTile> hexMap = new Dictionary<Vector2Int, HexTile>();
 
-        // give the platform script to handle pickups (ammo, health, etc)
-        PickupPlatformData pickupScript = thisPlatform.AddComponent<PickupPlatformData>();
-        pickupScript.platformId = id;
-        pickupScript.nextSpawnTime = 5f;
-        pickupScript.hexMap = hexMap;
 
+        // HEXTILES
         //spawn the hex tiles at each position, store coords, and add to dictionary
         for (int i=0; i <hexPositions.Count; i++)
-        {   
+        {
+            // get a hexTile, set the platform as the parent   
             GameObject thisHexTile = AssetManager.Instance.GetHexTile(hexPositions[i], Quaternion.identity);
             thisHexTile.transform.parent = thisPlatform.transform;
-            HexTile hexScript = thisHexTile.GetComponent<HexTile>();
-            hexScript.gridCoords = hexGridCoords[i];
+            thisHexTile.name = "Hex Tile 1 " + hexGridCoords[i];
+
+            // initialize the hexScript
+            // should fix this with an Initialize and callback, similar to PickupManager/Pickup.
+            // when tile is destroyed, do a callback here for LevelManager to remove the tile from Dict collections.
+            HexTile hexScript      = thisHexTile.GetComponent<HexTile>();            
+            hexScript.ownerId      = platformCounter;
+            hexScript.gridCoords   = hexGridCoords[i];
+
+            // add this tile (script) to the hexMap
             hexMap[hexGridCoords[i]] = hexScript;
         }
 
         //update the neighbours for each tile
-        UpdateHexMapNeighbours(hexMap);
+        HexUtils.UpdateHexMapNeighbours(hexMap);
 
-        // add the new hexMap to the collection of platforms.
+        // add the new hexMap to the collection of platforms
         platforms[platformCounter] = hexMap;
         platformGameObjects[platformCounter] = thisPlatform;
         platformCounter += 1;
     }
 
-    private void UpdateHexMapNeighbours(Dictionary<Vector2Int, HexTile> tileMap)
-    {
-        foreach (HexTile tile in tileMap.Values)
-        {
-            foreach (Vector2Int offset in neighborOffsets)
-            {
-                Vector2Int neighborCoords = tile.gridCoords + offset;
-                if (tileMap.TryGetValue(neighborCoords, out HexTile neighborTile))
-                {
-                    tile.neighbors.Add(neighborTile);
-                }
-            }
-        }
-    }
-
+    
     public Dictionary<Vector2Int, HexTile> GetHexMap(int platformId)
     {        
         if(platformId >= platforms.Count || platformId < 0)
@@ -157,7 +171,7 @@ public class LevelManager : MonoBehaviour
         return platforms[platformId];
     }
 
-    public Dictionary<int, Dictionary<Vector2Int, HexTile>> GetAllPlatformHexMaps()
+    public Dictionary<int, Dictionary<Vector2Int, HexTile>> GetAllHexMaps()
     {
         return platforms;  
     }
@@ -170,7 +184,31 @@ public class LevelManager : MonoBehaviour
     public void RemovePlatform()
     {
         // to do
-        // remove from both hexmap dict and gameobj dict
+        // remove platforms from both hexmap dict and gameobj dict
+        // make sure they are empty?      
+    }
+
+    public void RemoveHexTile(int platformID, Vector2Int gridPos)
+    {
+        // get the script on this tile
+        HexTile thisHexTile = platforms[platformID][gridPos];
+
+        // get the neighbours of the tile that will be removed (they will need their 'neighbours' updated after removal)
+        List<HexTile> neighbours = HexUtils.GetHexTileNeighbours(thisHexTile, platforms[platformID]);
+
+        // reset the tile being destroyed
+        thisHexTile.startPos = Vector3.zero;
+        thisHexTile.gridCoords = Vector2Int.zero;
+        thisHexTile.neighbors.Clear();
+
+        // remove it from the LevelManager collection
+        platforms[platformID].Remove(gridPos);
+
+        // update the neighbours of the removed tile
+        foreach (HexTile neighbour in neighbours)
+        {
+            HexUtils.UpdateHexTileNeighbours(neighbour, platforms[platformID]);
+        }
     }
     
 

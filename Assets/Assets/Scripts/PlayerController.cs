@@ -2,35 +2,40 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 
-public class PlayerController : MonoBehaviour
-{
-    // this will be used later during multiplayer.
-    public int id { get; private set; }
-    public bool isLocalPlayer = true;
-
+public class PlayerController : NetworkBehaviour
+{    
+    public int id;
     public bool playerDead = false;
     
     private CharacterMotor motor;
     private CharacterShooter shooter;
     private ICharacterInputProvider input;
-    Transform lastGoodTile;
-    GameManager gameMgr;
+    private Vector3 lastGroundPos;
+    private bool isAvoidingWater = false;
     Dictionary<Vector2Int, HexTile> hexMap;  // the collection of tiles that the Player is standing on
 
-    private void Awake()
+    public override void OnNetworkSpawn()
     {
+        
+        if (!IsOwner) return;  //isOwner is provided by NetCode import
+
         motor = GetComponent<CharacterMotor>();
         motor.SetCamera(Camera.main.transform);   // Only needed for player
         input = GetComponent<ICharacterInputProvider>();
-        gameMgr = GameObject.Find("GameManager").GetComponent<GameManager>();
-        shooter = GetComponent<CharacterShooter>();   
+        shooter = GetComponent<CharacterShooter>();
+        lastGroundPos = transform.position;   
     }
     
+    void Awake()
+    {
+        //Debug.Log($"Player prefab instantiated at runtime! Scene: {gameObject.scene.name} | Time: {Time.time}");
+    }
 
     private void Update()
     {
-        if (playerDead) { return; }        
+        if (!IsOwner || playerDead) return;
 
         // get current ground
         // use SphereCast so we can ignore tiny gaps in the floor tiles
@@ -46,51 +51,53 @@ public class PlayerController : MonoBehaviour
         }
 
         // check for player over water
-        if(tag == "Water")
+        if (tag == "Water")
         {
-            TweenBackFromEdge();            
-            //KillPlayer(groundHit.point, Vector3.Cross(playerMoveScript.controller.velocity, transform.up));
+            if (!isAvoidingWater)
+            {
+                isAvoidingWater = true;
+                lastGroundPos.y = transform.position.y;
+                Debug.Log($"Player is about to step in water!  Moving back to {lastGroundPos}");
+                StartCoroutine(TryToAvoidWater(lastGroundPos, 0.2f));
+            }
             return;
         }
 
-        if(tag == "Ground")
+        if (tag == "Ground")
         {
-            lastGoodTile = hitData.transform;
-        }        
+            lastGroundPos = hitData.transform.position;
+        }
 
         // check for movement.
         Vector2 moveInput = input.MoveInput;
-        if ( moveInput.magnitude > 0.1f ) { motor.Move(moveInput); }
+        if (moveInput.magnitude > 0.1f) { motor.Move(moveInput); }
 
         //check for shooting
-        if (input.ShootAtTarget) 
-        { 
+        if (input.ShootAtTarget)
+        {
             Transform clickedTarget = GetMouseClickTarget();
             if (clickedTarget != null)
             {
                 // ignore clicks on water/floor
-                if(clickedTarget.tag == "Water") { return; }  
+                if (clickedTarget.tag == "Water") { return; }
+
+                // ignore clicks on players own platform (for now...set up move to position here?)
+                if (clickedTarget.tag == "Ground" && IsOwnPlatform(clickedTarget)) { return; }
 
                 // Shoot!
                 StartCoroutine(Shoot(clickedTarget));
-                
-                // Cooldown wait
-                //yield return new WaitForSeconds(shootCooldown);  // this is being done in tryshoot
             }
         }
     }
 
-    private void TweenBackFromEdge()
+    private bool IsOwnPlatform(Transform clickedTarget)
     {
-        Vector3 currentVelocity = motor.GetVelocity(true);
-        currentVelocity.y = 0f;
-        Vector3 destination = lastGoodTile.position;
-        destination.y = transform.position.y;
-        StartCoroutine(MoveToPosition(destination, 0.2f));
+        return clickedTarget.GetComponentInParent<HexTile>().ownerId == id;
     }
 
-    private IEnumerator MoveToPosition(Vector3 destination, float duration)
+    private IEnumerator TryToAvoidWater(Vector3 destination, float duration)
     {
+        // move to position (in duration)
         Vector3 start = transform.position;
         float elapsed = 0f;
         while (elapsed < duration)
@@ -100,21 +107,8 @@ public class PlayerController : MonoBehaviour
             yield return null;
         }
         transform.position = destination;
-        CheckIfGrounded();
-    }
 
-    private IEnumerator Shoot(Transform target)
-    {
-        Debug.Log("this ran");
-        yield return StartCoroutine(motor.RotateTowardTargetAndShoot(target));
-    }
-
-    private void CheckIfGrounded()
-    {
-        // if the target tile has been destroyed beneath the player, kill the player
-        // get current ground
-        // use SphereCast so we can ignore tiny gaps in the floor tiles
-        //RaycastHit hitData;        
+        // if still not grounded, KillPlayer
         if (TryGetGroundHit(out RaycastHit hitData))
         {
             if(hitData.transform.tag != "Ground")
@@ -122,7 +116,15 @@ public class PlayerController : MonoBehaviour
                 KillPlayer(hitData.point, Vector3.Cross(motor.GetVelocity(false), transform.up));
             }
         }
+
+        // we've finished avoiding the water
+        isAvoidingWater = false;
     }
+
+    private IEnumerator Shoot(Transform target)
+    {
+        yield return StartCoroutine(motor.RotateTowardTargetAndShoot(target));
+    }    
 
     private bool TryGetGroundHit(out RaycastHit hitData)
     {
@@ -141,6 +143,17 @@ public class PlayerController : MonoBehaviour
         return null;
     }
 
+    public void ApplyBlastForce(Vector3 direction, float force)
+    {
+        if (playerDead) return;
+
+        // Optionally, cancel player movement or shooting here
+
+        // could tie duration to characterWeight and use it to adjust the knockback?
+        float duration = 1.25f;
+        motor.ApplyBlastForce(direction, force, duration);
+    }
+
     public void SetPlayerHexMap(Dictionary<Vector2Int, HexTile> platform)
     {
         hexMap = platform;
@@ -155,11 +168,20 @@ public class PlayerController : MonoBehaviour
     {
         // flag the player as dead.
         playerDead = true;
+        GameManager.Instance.RemoveCharacter(id, true);
 
-        gameMgr.RemoveCharacter(id, true);
+        // Tell Netcode to despawn this player (but we're pooling so don’t destroy the GameObject!!)
+        var netObj = GetComponent<NetworkObject>();
+        if (netObj != null && netObj.IsSpawned)
+        {
+            netObj.Despawn(destroy: false);
+        }
 
         //tip the player towards the water in the direction of player velocity        
         StartCoroutine(FallOver(tippingAxis));
+
+        // return the player to the pool
+        AssetManager.Instance.ReturnPlayer(gameObject);
     }
 
     private IEnumerator FallOver(Vector3 tippingAxis)

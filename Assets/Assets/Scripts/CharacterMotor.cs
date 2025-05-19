@@ -4,6 +4,8 @@ using System.Collections;
 [RequireComponent(typeof(CharacterController))]
 public class CharacterMotor : MonoBehaviour
 {
+    public bool isPlayer;
+
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float rotateSpeed = 360f;
     [SerializeField] private float aimAngleThreshold = 0.5f;
@@ -141,6 +143,54 @@ public class CharacterMotor : MonoBehaviour
     {
         if (normalized) { return controller.velocity.normalized;}
         else            { return controller.velocity;}
+        
+    }
+
+    public void ApplyBlastForce(Vector3 direction, float force, float duration = 0.3f)
+    {
+        StartCoroutine(BlastForceCoroutine(direction, force, duration));
+    }
+
+    private IEnumerator BlastForceCoroutine(Vector3 direction, float force, float duration)
+    {
+        direction.y = 0f;
+        Vector3 blastVelocity = direction.normalized * force;
+        float time = 0f;
+
+        while (time < duration)
+        {
+            controller.Move(blastVelocity * Time.deltaTime);
+            blastVelocity = Vector3.Lerp(blastVelocity, Vector3.zero, time / duration); // ease out
+            time += Time.deltaTime;
+
+            CheckIfWater();
+
+            yield return null;
+        }
+    }
+
+    private void CheckIfWater()
+    {
+        Vector3 rayStart = transform.position;
+        float rayRadius = 0.1f;
+        Vector3 rayDir = Vector3.down;
+        float rayLength = 5f;
+        RaycastHit hitData;
+        if(Physics.SphereCast(rayStart, rayRadius, rayDir, out hitData, rayLength))
+        {
+            if(hitData.transform.tag != null && hitData.transform.tag == "Water")
+            {
+                if (isPlayer)
+                {
+                    transform.GetComponent<PlayerController>().KillPlayer(hitData.point, Vector3.Cross(GetVelocity(false), transform.up));
+                }
+                else
+                {
+                    transform.GetComponent<AIController>().KillEnemy(hitData.point, Vector3.Cross(GetVelocity(false), transform.up));
+                }
+
+            }
+        }
         
     }
 }

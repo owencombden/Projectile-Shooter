@@ -135,10 +135,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2454867319204614087}
-  - component: {fileID: 5627528004538923126}
-  - component: {fileID: 4109290804534498453}
-  - component: {fileID: 8280117320980655542}
   - component: {fileID: -2292875530423309815}
+  - component: {fileID: -7673570436334010379}
   - component: {fileID: -3457253692510257420}
   - component: {fileID: -8486201669556992624}
   - component: {fileID: -9213242722325407228}
@@ -168,42 +166,6 @@ Transform:
   - {fileID: 7450802283290010036}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: -45, z: 0}
---- !u!114 &5627528004538923126
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5472986952595126378}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 52161df78ca490d48bf45bf1013d9ab5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &4109290804534498453
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5472986952595126378}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0db41ffde4fbdc84080651418435f7c1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &8280117320980655542
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5472986952595126378}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 897aa7cd6ee45ed4285430ec767bbc8f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &-2292875530423309815
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -216,6 +178,31 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4bd5481f431d2544e9a85564e2f111f0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &-7673570436334010379
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5472986952595126378}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GlobalObjectIdHash: 118605043
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 1
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
 --- !u!114 &-3457253692510257420
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -228,10 +215,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3fc436590cbb4ae41992dd26fc5a18bb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   rotationSpeed: 360
   waypointThreshold: 0.5
   shootCooldown: 2
   pickupCheckInterval: 1
+  id: 0
 --- !u!114 &-8486201669556992624
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -244,6 +233,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 74d8b9d88ed7fe04da7dc10c02f5f1b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  isPlayer: 0
   moveSpeed: 8
   rotateSpeed: 360
   aimAngleThreshold: 0.5
@@ -262,7 +252,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0634b0eb6b1cef8438dc5ca494575b20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  currentHealth: 0
 --- !u!114 &-7401599072625062516
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -270,7 +259,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5472986952595126378}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f2364b2f1f5f2db4197f9a3a2eadfdb7, type: 3}
   m_Name: 
@@ -283,8 +272,6 @@ MonoBehaviour:
   maxInterceptTime: 1
   gun: {fileID: 0}
   spawnpoint: {fileID: 0}
-  currentAmmo: 0
-  maxAmmo: 3
 --- !u!143 &9067310580479264826
 CharacterController:
   m_ObjectHideFlags: 0

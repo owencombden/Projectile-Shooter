@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Unity.Netcode;
 
 public class AssetManager : MonoBehaviour
 {
@@ -21,18 +22,31 @@ public class AssetManager : MonoBehaviour
             Destroy(gameObject);
         else
             Instance = this;
-        
-        Instance.PrewarmPool("player", playerPrefab, 4);
-        Instance.PrewarmPool("ai", aiPrefab, 4);
-        Instance.PrewarmPool("platform", platformPrefab, 10);
-        Instance.PrewarmPool("hextile", hexTilePrefab, 1500);
-        Instance.PrewarmPool("bullet", bulletPrefab, 5);
-        Instance.PrewarmPool("ammospawn", ammoSpawnPrefab, 10);
     }
+
+    private void Start()
+    {
+        // Pool static props immediately:
+        PrewarmPool("platform", platformPrefab, 10);
+        PrewarmPool("hextile",  hexTilePrefab, 1100);
+        
+        // Delay all networked pools until host/server is up:
+        NetworkManager.Singleton.OnClientConnectedCallback += (clientId) =>
+        {
+            if (clientId == 0 && NetworkManager.Singleton.IsServer)
+            {
+                PrewarmPool("player",    playerPrefab,    0);    // PUT THESE BACK!!  Setting 0 for multiplayer testing
+                PrewarmPool("ai",        aiPrefab,        0);
+                PrewarmPool("bullet",    bulletPrefab,    0);
+                PrewarmPool("ammospawn", ammoSpawnPrefab, 0);
+            }
+        };
+    } 
 
     // Convenience wrappers
     public GameObject GetAI(Vector3 position, Quaternion rotation)
     {
+        //Debug.Log("Getting an AI from the pool.");
         return GetFromPool("ai", aiPrefab, position, rotation);
     }
 
@@ -63,7 +77,7 @@ public class AssetManager : MonoBehaviour
 
     public GameObject GetHexTile(Vector3 position, Quaternion rotation)
     {
-        return GetFromPool("hextile", platformPrefab, position, rotation);
+        return GetFromPool("hextile", hexTilePrefab, position, rotation);
     }
 
     public void ReturnHexTile(GameObject hextile)
@@ -83,6 +97,7 @@ public class AssetManager : MonoBehaviour
 
     public GameObject GetPlayer(Vector3 position, Quaternion rotation)
     {
+        //Debug.Log("Getting a player from the pool.");
         return GetFromPool("player", playerPrefab, position, rotation);
     }
 
@@ -108,6 +123,9 @@ public class AssetManager : MonoBehaviour
 
     private GameObject GetFromPool(string key, GameObject prefab, Vector3 position, Quaternion rotation)
     {
+        
+        //Debug.Log($"Getting a {prefab.name} from the pool...");
+        
         if (!poolDict.ContainsKey(key))
         {
             poolDict[key] = new Queue<GameObject>();
@@ -116,15 +134,19 @@ public class AssetManager : MonoBehaviour
         GameObject obj;
         if (poolDict[key].Count > 0)
         {
+            //Debug.Log($"...pool has {poolDict[key].Count} available.");
             obj = poolDict[key].Dequeue();
             obj.transform.parent = null;
             obj.transform.SetPositionAndRotation(position, rotation);
             obj.SetActive(true);
             
+            
         }
         else
         {
+            //Debug.Log($"...pool has NONE available!");
             obj = Instantiate(prefab, position, rotation);
+            //Debug.Log($"......created a new {obj.name}.");
         }
 
         return obj;
@@ -132,6 +154,7 @@ public class AssetManager : MonoBehaviour
 
     private void ReturnToPool(string key, GameObject obj)
     {
+        //Debug.Log($"Deactivating {obj.name} and returning it to the pool.");
         obj.SetActive(false);
         obj.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
         obj.transform.parent = transform;        

@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using Unity.Netcode;
 
 public class CharacterShooter : MonoBehaviour
 {
@@ -20,9 +21,9 @@ public class CharacterShooter : MonoBehaviour
     private Vector3 futurePos;
     private Vector3 gravityCompensation;
 
-    [SerializeField] private int currentAmmo = 0;
-    [SerializeField] private int maxAmmo = 3;  
-    private float shootCooldown = 0.2f;
+    private int currentAmmo = 3;
+    private int maxAmmo = 3;  
+    private float shootCooldown = 0.5f;
     private float lastShootTime;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -47,7 +48,7 @@ public class CharacterShooter : MonoBehaviour
     {
         currentAmmo += amount;
         currentAmmo = Mathf.Min(currentAmmo, maxAmmo);
-        Debug.Log($"{gameObject.name} picked up ammo. Current ammo: {currentAmmo}"); 
+        //Debug.Log($"...added ammo, character now has {GetCurrentAmmo()}");
     }
 
     public int GetCurrentAmmo()
@@ -97,17 +98,11 @@ public class CharacterShooter : MonoBehaviour
         gun.transform.eulerAngles = gunRot;   
        
         // shoot in forward direction, at calculated angle
-        GameObject bullet = AssetManager.Instance.GetBullet(spawnpoint.position, Quaternion.identity);
-        Bullet bulletScript = bullet.GetComponent<Bullet>();
-        bulletScript.ownerId = GetComponent<Targetable>().myId; 
-        Rigidbody bulletRb = bullet.GetComponent<Rigidbody>();
-        bulletRb.AddForce(calculatedLaunchVelocity * spawnpoint.forward, ForceMode.Impulse);
-        currentAmmo--; 
-
-        Debug.Log($"{gameObject.name} just fired. Current ammo: {currentAmmo}");
-
-    }
-
+        Vector3 shotVelocity = calculatedLaunchVelocity * spawnpoint.forward;
+        SpawnBulletServerRpc(shotVelocity);
+        
+        currentAmmo--;
+    }    
 
     public void AimAtEnemyBullet(Transform target)
     {
@@ -178,14 +173,23 @@ public class CharacterShooter : MonoBehaviour
         // cap velocity at 'maxSpeed'
         if (requiredSpeed > maxSpeed) { requiredSpeed = maxSpeed; }
 
+        Vector3 shotVelocity = requiredSpeed * shotDir;
+        SpawnBulletServerRpc(shotVelocity);
+
+        currentAmmo--;
+    }
+
+    // NGO uses a server-authoritative model, bullets should be spawned on the server to ensure consistency across clients. 
+    [ServerRpc]
+    void SpawnBulletServerRpc(Vector3 shotVel)
+    {
         GameObject bullet = AssetManager.Instance.GetBullet(spawnpoint.position, Quaternion.identity);
         Bullet bulletScript = bullet.GetComponent<Bullet>();
-        bulletScript.ownerId = GetComponent<Targetable>().myId; 
+        bulletScript.ownerId = GetMyId();
         Rigidbody bulletRb = bullet.GetComponent<Rigidbody>();
-        bulletRb.AddForce(requiredSpeed * shotDir, ForceMode.Impulse);
-        currentAmmo--;
+        bulletRb.AddForce(shotVel, ForceMode.Impulse);                
 
-        Debug.Log($"{gameObject.name} just fired at an enemy bullet. Current ammo: {currentAmmo}"); 
+        bullet.GetComponent<NetworkObject>().Spawn();
     }
 
 
@@ -199,6 +203,21 @@ public class CharacterShooter : MonoBehaviour
         // Calculate initial velocity
         float v0 = Mathf.Sqrt((2 * g * maxHeight) / (sinTheta * sinTheta));        
         return v0;
+    }
+
+    private int GetMyId()
+    {
+        if (transform.tag == "Player")
+        {
+            return GetComponent<PlayerController>().id;
+        }
+        else if (transform.tag == "AI_Player")
+        {
+            return GetComponent<AIController>().id;
+        }
+        else{ Debug.Log("Could not set ownerID on Bullet!"); }
+
+        return -999;
     }
 
 

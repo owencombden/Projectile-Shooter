@@ -22,10 +22,8 @@ public class GameStateManager : MonoBehaviour
 
             CharacterState state = new CharacterState
             {
-                id = t.myId, // Make sure each targetable has a unique ID
                 position = t.transform.position,
                 rotation = t.transform.rotation,
-                health = t.currentHealth,
                 isAlive = t.isActiveAndEnabled
             };
             states.Add(state);

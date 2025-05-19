@@ -1,9 +1,10 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 
 [RequireComponent(typeof(CharacterMotor), typeof(CharacterShooter), typeof(AIInputHandler))]
-public class AIController : MonoBehaviour
+public class AIController : NetworkBehaviour
 {
     public float rotationSpeed = 360f; // degrees per second
 
@@ -12,9 +13,8 @@ public class AIController : MonoBehaviour
     [SerializeField] private float pickupCheckInterval = 1.0f; // seconds between pickup scans
     private float pickupCheckCooldown = 0f;
     private GameObject cachedNearestAmmo = null;
+    public int id;
 
-    public int id { get; private set; }
-    
     private CharacterMotor motor;
     private CharacterShooter shooter;
     private AIInputHandler input;
@@ -25,36 +25,34 @@ public class AIController : MonoBehaviour
     private bool isWaiting = false;
     bool isDead = false;
 
-    private void Awake()
+
+    public override void OnNetworkSpawn()
     {
-        //Debug.Log("AI was added to pool with position: " + transform.position);
+        if (!IsServer) return;   // only the server runs AI logic
+        
         motor = GetComponent<CharacterMotor>();
         shooter = GetComponent<CharacterShooter>();
         input = GetComponent<AIInputHandler>();
     }
+    
 
     private void Update()
     {
+        if (!IsServer) return;   // only the server runs AI logic
+        
         if (isDead) return;
 
         // Check ground
-        Vector3 rayStart = transform.position;
-        float rayRadius = 0.1f;
-        Vector3 rayDir = Vector3.down;
-        float rayLength = 5f;
-        RaycastHit hitData;
-        string tag = "";
-
-        if (Physics.SphereCast(rayStart, rayRadius, rayDir, out hitData, rayLength))
+        if (TryGetGroundHit(out RaycastHit hitData))
         {
-            tag = hitData.collider.tag;
-            if (tag == "Water")
+            string hitTag = hitData.collider.tag;
+            if (hitTag == "Water")
             {
                 Vector3 currentVelocity = (currentDestination - transform.position).normalized;
                 KillEnemy(hitData.point, Vector3.Cross(currentVelocity, transform.up));
                 return;
             }
-            else if (tag == "Ground")
+            else if (hitTag == "Ground")
             {
                 motor.Move(input.MoveInput);
             }
@@ -99,9 +97,18 @@ public class AIController : MonoBehaviour
         StartCoroutine(ShootThenMove());
     }
 
+    private bool TryGetGroundHit(out RaycastHit hitData)
+    {
+        Vector3 rayStart = transform.position;
+        float rayRadius = 0.1f;
+        Vector3 rayDir = Vector3.down;
+        float rayLength = 5f;
+
+        return Physics.SphereCast(rayStart, rayRadius, rayDir, out hitData, rayLength);
+    }
+
     private GameObject FindClosestPickup(string tag)
     {
-        Debug.Log($"{gameObject.name} is looking for a {tag} pickup.");
         GameObject[] pickups = GameObject.FindGameObjectsWithTag(tag);
         GameObject closest = null;
         float minDist = Mathf.Infinity;
@@ -118,13 +125,7 @@ public class AIController : MonoBehaviour
         }
 
         return closest;
-    }
-
-    // for debug only right now
-    void OnControllerColliderHit(ControllerColliderHit hit)
-    {
-        Debug.Log($"AIController reported: {transform.name} hit {hit.gameObject.name} at {hit.point}");
-    }
+    }    
 
     private bool ReachedDestination()
     {
@@ -134,30 +135,30 @@ public class AIController : MonoBehaviour
     }
 
     private IEnumerator ShootThenMove()
-{
-    isWaiting = true;
-
-    Transform target = GetRandomTarget();        
-    if (target != null)
     {
-        yield return StartCoroutine(motor.RotateTowardTargetAndShoot(target));
+        isWaiting = true;
+
+        Transform target = GetRandomTarget();        
+        if (target != null)
+        {
+            yield return StartCoroutine(motor.RotateTowardTargetAndShoot(target));
+        }
+
+        // Pick a new destination
+        currentDestination = GetRandomPosition(hexMap);
+
+        // Move while waiting
+        input.SetMoveTarget(currentDestination);
+        float elapsed = 0f;
+        while (elapsed < shootCooldown && !ReachedDestination())
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        input.ClearMoveTarget();
+        isWaiting = false;
     }
-
-    // Pick a new destination
-    currentDestination = GetRandomPosition(hexMap);
-
-    // Move while waiting
-    input.SetMoveTarget(currentDestination);
-    float elapsed = 0f;
-    while (elapsed < shootCooldown && !ReachedDestination())
-    {
-        elapsed += Time.deltaTime;
-        yield return null;
-    }
-
-    input.ClearMoveTarget();
-    isWaiting = false;
-}
 
     private Vector3 GetRandomPosition(Dictionary<Vector2Int, HexTile> map)
     {
@@ -173,9 +174,10 @@ public class AIController : MonoBehaviour
     {
         List<Targetable> potentialTargets = TargetManager.Instance.GetTargets();
 
-        // Filter out self and dead targets
-        potentialTargets.RemoveAll(t => t == null || !t.isActiveAndEnabled || t.gameObject == this.gameObject);
-
+        // Filter out self, dead targets, and own-bullets
+        potentialTargets.RemoveAll(t => t == null || !t.isActiveAndEnabled || t.gameObject == this.gameObject || (t.transform.GetComponent<Bullet>() && t.transform.GetComponent<Bullet>().ownerId == id));
+        //  || (t.transform.GetComponent<Bullet>() && t.transform.GetComponent<Bullet>().ownerId == id)
+        
         if (potentialTargets.Count == 0)
         {
             Debug.Log(transform.name + " could not find a target!!  Null returned!");
@@ -204,7 +206,18 @@ public class AIController : MonoBehaviour
     {
         isDead = true;
         GameManager.Instance.RemoveCharacter(id, false);
+
+        // Tell Netcode to despawn this player (but we're pooling so don’t destroy the GameObject!!)
+        var netObj = GetComponent<NetworkObject>();
+        if (netObj != null && netObj.IsSpawned)
+        {
+            netObj.Despawn(destroy: false);
+        }
+
         StartCoroutine(TipAndFall(tippingAxis));
+
+        // return the AI to the pool
+        AssetManager.Instance.ReturnAI(gameObject);
     }
 
     private IEnumerator TipAndFall(Vector3 tippingAxis)

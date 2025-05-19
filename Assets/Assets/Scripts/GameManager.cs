@@ -3,6 +3,7 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
+using Unity.Netcode;
 
 public class GameManager : MonoBehaviour
 {
@@ -16,22 +17,27 @@ public class GameManager : MonoBehaviour
     }
 
     public static GameManager Instance; 
-    public AssetManager assetManager;    
+    public AssetManager assetManager;
+    public bool allowEnemies = true;    
 
     [Header("Game Settings")]
-    [Range(1, 5)]
-    [Tooltip("Number of AI bots to spawn (1 to 5).")]
+    [Range(0, 5)]
+    [Tooltip("Number of AI bots to spawn (0 to 5).")]
     public int numberOfAIBots = 3;
     
     private Dictionary<int, PlayerController> playerControllers = new();
     private Dictionary<int, AIController> aiControllers = new();
 
-    private GameState currentState = GameState.Setup;    
+    private GameState currentState = GameState.Setup;
 
     private void Awake()
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
+        
+        int playerCount = GameObject.FindGameObjectsWithTag("Player").Length;
+        //Debug.Log($"GameManager is Awake.  There are {playerCount} players in the scene.");
+
     }
     
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -43,50 +49,150 @@ public class GameManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-       
+               
+    }
+    
+    public void SpawnAllCharacters(Dictionary<int, Dictionary<Vector2Int, HexTile>> platforms)
+    {
+        int totalCharacters = 4;
+        int connectedPlayers = NetworkManager.Singleton.ConnectedClientsList.Count;
+        int aiNeeded = totalCharacters - connectedPlayers;
+
+        // Assign platforms
+        List<int> platformIndices = new List<int>(platforms.Keys);
+
+        int currentPlatformIndex = 0;
+
+        // HUMAN PLAYERS (Network-spawned already, just reposition them)
+        foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
+        {
+            //Debug.Log($"There are {NetworkManager.Singleton.ConnectedClientsList.Count} connected clients");
+            GameObject playerObj = client.PlayerObject.gameObject;
+            var spawnTile = HexUtils.GetRandomHexTile(platforms[platformIndices[currentPlatformIndex]]);
+            Vector3 spawnPos = spawnTile.transform.position;
+            spawnPos.y = 2.33f;
+
+            playerObj.transform.position = spawnPos;
+
+            CharacterMotor playerMotorScript = playerObj.GetComponent<CharacterMotor>();
+            playerMotorScript.isPlayer = true;
+
+            var playerController = playerObj.GetComponent<PlayerController>();
+            playerController.Set_ID(platformIndices[currentPlatformIndex]);
+            playerController.SetPlayerHexMap(platforms[platformIndices[currentPlatformIndex]]);
+
+            RegisterPlayer(platformIndices[currentPlatformIndex], playerController);
+
+            // Set up the camera for the local player
+            if (playerController.IsOwner)       // watch this.  was using 'isLocalPlayer', but it changed during multiplayer edits.
+            {
+                Camera.main.GetComponent<CameraLook>().SetTarget(playerObj.transform, playerObj.transform.Find("CameraLookHere"));
+            }
+
+            currentPlatformIndex++;
+        }
+        
+        /*
+        int AICount = GameObject.FindGameObjectsWithTag("AI_Player").Length;
+        //Debug.Log($"SpawnAllCharacters is about to start spawning AI.  There are {AICount} AI in the scene.");
+
+        // AI PLAYERS
+        for (int i = 0; i < aiNeeded; i++)
+        {
+
+            // only the Server should spawn/handle AI
+            if (!NetworkManager.Singleton.IsServer) return;
+
+            //Debug.Log($"Spawning AI {i + 1} of {aiNeeded}.");
+            int platformIndex = platformIndices[currentPlatformIndex];
+            Vector3 aiSpawnPos = HexUtils.GetRandomHexTile(platforms[platformIndex]).transform.position;
+            aiSpawnPos.y = 2.77f;
+
+            GameObject ai = AssetManager.Instance.GetAI(aiSpawnPos, Quaternion.identity);
+
+            int AICount2 = GameObject.FindGameObjectsWithTag("AI_Player").Length;
+            //Debug.Log($"SpawnAllCharacters has instantiated an AI.  There are {AICount2} AI in the scene.");
+
+            // Ensure the AI prefab has a NetworkObject component
+            NetworkObject networkObject = ai.GetComponent<NetworkObject>();
+            if (networkObject != null)
+            {
+                networkObject.Spawn();
+
+                int AICount3 = GameObject.FindGameObjectsWithTag("AI_Player").Length;
+                //Debug.Log($"networkObject has spawned an AI.  There are {AICount3} AI in the scene.");
+            }
+            else
+            {
+                //Debug.LogError("AI prefab is missing NetworkObject component.");
+            }
+
+            var aiController = ai.GetComponent<AIController>();
+            aiController.SetAIHexMap(platforms[platformIndex]);
+            int aiID = 1000 + platformIndex;
+            aiController.Set_ID(aiID);
+
+            RegisterAI(aiID, aiController);  // this registration is local (in GameManager), NOT Network client/player registration
+
+            currentPlatformIndex++;
+        }
+        */
+
+        TransitionToGameplay();
     }
 
-    public void SpawnAllCharacters(Dictionary<int, Dictionary<Vector2Int, HexTile>> platforms)
+
+    /* OLD WAY
+    public void SpawnAllCharacters(Dictionary<int, Dictionary<Vector2Int, HexTile>> platforms, Dictionary<int, GameObject> platformGameObjects)
     {
         // Spawn the human player on platform 0
         Vector3 playerTilePos = HexUtils.GetRandomHexTile(platforms[0]).transform.position;
         playerTilePos.y = 2.33f;
         GameObject player0 = AssetManager.Instance.GetPlayer(playerTilePos, Quaternion.identity);
+        CharacterMotor playerMotorScript = player0.GetComponent<CharacterMotor>();
+        playerMotorScript.isPlayer = true;
         PlayerController playerControllerScript = player0.GetComponent<PlayerController>();
         playerControllerScript.SetPlayerHexMap(platforms[0]);
-        int playerID = 0; // fix this when ready for multiplayer.
+        int playerID = platformGameObjects[0].GetComponent<Platform>().platformId;
         playerControllerScript.Set_ID(playerID);  
         RegisterPlayer(playerID, playerControllerScript);
 
         // Set up the camera for the local player
-        if (playerControllerScript.isLocalPlayer)
+        if (playerControllerScript.IsOwner)       // watch this.  was using 'isLocalPlayer', but it changed during multiplayer edits.
         {
             Camera.main.GetComponent<CameraLook>().SetTarget(player0.transform, player0.transform.Find("CameraLookHere"));
         }
-
-        // Spawn AI bots on subsequent platforms
-        for (int i = 0; i < numberOfAIBots; i++)
+        
+        
+        if (allowEnemies)
         {
-            int platformIndex = i + 1;
-            if (!platforms.ContainsKey(platformIndex))
+            // Spawn AI bots on subsequent platforms
+        for (int i = 0; i < numberOfAIBots; i++)
             {
-                Debug.LogWarning($"Platform {platformIndex} not found. Skipping AI spawn.");
-                continue;
-            }
+                int platformIndex = i + 1;
+                if (!platforms.ContainsKey(platformIndex))
+                {
+                    Debug.LogWarning($"Platform {platformIndex} not found. Skipping AI spawn.");
+                    continue;
+                }
 
-            Vector3 aiTilePos = HexUtils.GetRandomHexTile(platforms[platformIndex]).transform.position;
-            aiTilePos.y = 2.77f;
-            GameObject ai = AssetManager.Instance.GetAI(aiTilePos, Quaternion.identity);
-            ai.name = $"AI_{i}";
-            AIController aiControllerScript = ai.GetComponent<AIController>();
-            aiControllerScript.SetAIHexMap(platforms[platformIndex]);
-            int ai_id = 1000 + i; // fix this when ready for multiplayer.
-            aiControllerScript.Set_ID(ai_id);
-            RegisterAI(ai_id, aiControllerScript);
+                Vector3 aiTilePos = HexUtils.GetRandomHexTile(platforms[platformIndex]).transform.position;
+                aiTilePos.y = 2.77f;
+                GameObject ai = AssetManager.Instance.GetAI(aiTilePos, Quaternion.identity);
+                CharacterMotor AImotorScript = ai.GetComponent<CharacterMotor>();
+                AImotorScript.isPlayer = false;
+                ai.name = $"AI_{i}";
+                AIController aiControllerScript = ai.GetComponent<AIController>();
+                aiControllerScript.SetAIHexMap(platforms[platformIndex]);
+                int ai_id = 1000 + platformGameObjects[i+1].GetComponent<Platform>().platformId;
+                aiControllerScript.Set_ID(ai_id);
+                RegisterAI(ai_id, aiControllerScript);
+            }
         }
         
         TransitionToGameplay();
     }
+    */
 
     private void TransitionToGameplay()
     {
@@ -109,14 +215,16 @@ public class GameManager : MonoBehaviour
         if (isPlayer)
         {
             playerControllers.Remove(id);
-            OnPlayerDefeated();
+            //OnPlayerDefeated();
         }
         else
         {
             aiControllers.Remove(id);
-            CheckIfAllAIsDefeated();
+            //CheckIfAllAIsDefeated();
         }
     }
+
+    // NEED TO IMPLEMENT ACTIONS FOR WHEN PLAYERS ARE DEFEATED!!
 
     private void OnPlayerDefeated()
     {
@@ -161,7 +269,5 @@ public class GameManager : MonoBehaviour
     public void ReloadScene()
     {
         SceneManager.LoadScene("SampleScene");
-    }  
-
-    
+    }      
 }
