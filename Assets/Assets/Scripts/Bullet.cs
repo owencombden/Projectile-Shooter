@@ -27,7 +27,9 @@ public class Bullet : NetworkBehaviour
     private void OnEnable()
     {
         //Debug.Log($"{transform.name} has been enabled.");
-        startPos = transform.position;        
+        startPos = transform.position;
+        rb.isKinematic = false;        
+        rb.linearVelocity = Vector3.zero;        
         _hasTriggered = false; 
     }
 
@@ -35,9 +37,9 @@ public class Bullet : NetworkBehaviour
     private void OnDisable()
     {
         //Debug.Log($"{transform.name} has been disabled.");
-        startPos = Vector3.zero;        
+        startPos = Vector3.zero;
+        rb.isKinematic = true;        
         ownerId = -1;
-        rb.linearVelocity = Vector3.zero;
         trailRenderer.Clear();
         lifetime = 0f;       
     }
@@ -117,7 +119,7 @@ public class Bullet : NetworkBehaviour
             {
                 //controller.ApplyBlastForce(transform.position, blastForce, blastRadius);
             }
-        }
+        } 
 
         // also have a helper below to updates clients when required.
         // server handles all bullet collision/physics, but clients can handle their own visual/sound effects, etc.

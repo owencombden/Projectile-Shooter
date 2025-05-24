@@ -54,7 +54,7 @@ public class GameManager : MonoBehaviour
     
     public void SpawnAllCharacters(Dictionary<int, Dictionary<Vector2Int, HexTile>> platforms)
     {
-        int totalCharacters = 4;
+        int totalCharacters = 2;
         int connectedPlayers = NetworkManager.Singleton.ConnectedClientsList.Count;
         int aiNeeded = totalCharacters - connectedPlayers;
 
@@ -92,7 +92,7 @@ public class GameManager : MonoBehaviour
             currentPlatformIndex++;
         }
         
-        /*
+        
         int AICount = GameObject.FindGameObjectsWithTag("AI_Player").Length;
         //Debug.Log($"SpawnAllCharacters is about to start spawning AI.  There are {AICount} AI in the scene.");
 
@@ -136,63 +136,9 @@ public class GameManager : MonoBehaviour
 
             currentPlatformIndex++;
         }
-        */
 
         TransitionToGameplay();
     }
-
-
-    /* OLD WAY
-    public void SpawnAllCharacters(Dictionary<int, Dictionary<Vector2Int, HexTile>> platforms, Dictionary<int, GameObject> platformGameObjects)
-    {
-        // Spawn the human player on platform 0
-        Vector3 playerTilePos = HexUtils.GetRandomHexTile(platforms[0]).transform.position;
-        playerTilePos.y = 2.33f;
-        GameObject player0 = AssetManager.Instance.GetPlayer(playerTilePos, Quaternion.identity);
-        CharacterMotor playerMotorScript = player0.GetComponent<CharacterMotor>();
-        playerMotorScript.isPlayer = true;
-        PlayerController playerControllerScript = player0.GetComponent<PlayerController>();
-        playerControllerScript.SetPlayerHexMap(platforms[0]);
-        int playerID = platformGameObjects[0].GetComponent<Platform>().platformId;
-        playerControllerScript.Set_ID(playerID);  
-        RegisterPlayer(playerID, playerControllerScript);
-
-        // Set up the camera for the local player
-        if (playerControllerScript.IsOwner)       // watch this.  was using 'isLocalPlayer', but it changed during multiplayer edits.
-        {
-            Camera.main.GetComponent<CameraLook>().SetTarget(player0.transform, player0.transform.Find("CameraLookHere"));
-        }
-        
-        
-        if (allowEnemies)
-        {
-            // Spawn AI bots on subsequent platforms
-        for (int i = 0; i < numberOfAIBots; i++)
-            {
-                int platformIndex = i + 1;
-                if (!platforms.ContainsKey(platformIndex))
-                {
-                    Debug.LogWarning($"Platform {platformIndex} not found. Skipping AI spawn.");
-                    continue;
-                }
-
-                Vector3 aiTilePos = HexUtils.GetRandomHexTile(platforms[platformIndex]).transform.position;
-                aiTilePos.y = 2.77f;
-                GameObject ai = AssetManager.Instance.GetAI(aiTilePos, Quaternion.identity);
-                CharacterMotor AImotorScript = ai.GetComponent<CharacterMotor>();
-                AImotorScript.isPlayer = false;
-                ai.name = $"AI_{i}";
-                AIController aiControllerScript = ai.GetComponent<AIController>();
-                aiControllerScript.SetAIHexMap(platforms[platformIndex]);
-                int ai_id = 1000 + platformGameObjects[i+1].GetComponent<Platform>().platformId;
-                aiControllerScript.Set_ID(ai_id);
-                RegisterAI(ai_id, aiControllerScript);
-            }
-        }
-        
-        TransitionToGameplay();
-    }
-    */
 
     private void TransitionToGameplay()
     {
@@ -215,12 +161,12 @@ public class GameManager : MonoBehaviour
         if (isPlayer)
         {
             playerControllers.Remove(id);
-            //OnPlayerDefeated();
+            OnPlayerDefeated();
         }
         else
         {
             aiControllers.Remove(id);
-            //CheckIfAllAIsDefeated();
+            CheckIfAllAIsDefeated();
         }
     }
 
@@ -268,6 +214,18 @@ public class GameManager : MonoBehaviour
 
     public void ReloadScene()
     {
-        SceneManager.LoadScene("SampleScene");
+        // Only host has authority to reset the scene
+        if (NetworkManager.Singleton.IsHost)
+        {
+            string currentSceneName = SceneManager.GetActiveScene().name;
+
+            // This method reloads the scene across all connected clients
+            NetworkManager.Singleton.SceneManager.LoadScene(
+                currentSceneName, 
+                LoadSceneMode.Single
+            );
+
+            Debug.Log("Host started a new game.");
+        }
     }      
 }

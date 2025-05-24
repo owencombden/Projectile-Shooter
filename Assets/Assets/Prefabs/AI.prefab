@@ -270,8 +270,8 @@ MonoBehaviour:
   minAngle: 0
   minInterceptTime: 0.3
   maxInterceptTime: 1
-  gun: {fileID: 0}
-  spawnpoint: {fileID: 0}
+  gun: {fileID: 7450802283290010036}
+  spawnpoint: {fileID: 4700488143650427085}
 --- !u!143 &9067310580479264826
 CharacterController:
   m_ObjectHideFlags: 0

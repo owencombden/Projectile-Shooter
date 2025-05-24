@@ -35,9 +35,7 @@ public class AssetManager : MonoBehaviour
         {
             if (clientId == 0 && NetworkManager.Singleton.IsServer)
             {
-                PrewarmPool("player",    playerPrefab,    0);    // PUT THESE BACK!!  Setting 0 for multiplayer testing
-                PrewarmPool("ai",        aiPrefab,        0);
-                PrewarmPool("bullet",    bulletPrefab,    0);
+                PrewarmPool("bullet",    bulletPrefab,    5);
                 PrewarmPool("ammospawn", ammoSpawnPrefab, 0);
             }
         };
@@ -117,7 +115,11 @@ public class AssetManager : MonoBehaviour
             obj.SetActive(false);
             poolDict[key].Enqueue(obj);
             obj.transform.name = obj.transform.name + "_" + i;
-            obj.transform.parent = transform;
+            // ONLY parent if it is NOT a NetworkObject
+            if (!obj.TryGetComponent<NetworkObject>(out var _))
+            {
+                obj.transform.SetParent(transform);
+            }
         }
     }
 
@@ -136,7 +138,6 @@ public class AssetManager : MonoBehaviour
         {
             //Debug.Log($"...pool has {poolDict[key].Count} available.");
             obj = poolDict[key].Dequeue();
-            obj.transform.parent = null;
             obj.transform.SetPositionAndRotation(position, rotation);
             obj.SetActive(true);
             
@@ -157,7 +158,11 @@ public class AssetManager : MonoBehaviour
         //Debug.Log($"Deactivating {obj.name} and returning it to the pool.");
         obj.SetActive(false);
         obj.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
-        obj.transform.parent = transform;        
-        poolDict[key].Enqueue(obj);        
+        poolDict[key].Enqueue(obj);
+        // ONLY parent if it is NOT a NetworkObject
+        if (!obj.TryGetComponent<NetworkObject>(out var _))
+        {
+            obj.transform.SetParent(transform);
+        }        
     }    
 }

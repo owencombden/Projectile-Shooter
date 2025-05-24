@@ -10,8 +10,8 @@ public class MultiplayerManager : MonoBehaviour
     public UnityTransport transport; // Assign in Inspector
     public ushort port = 7777;
 
-    public bool IsHost => NetworkManager.Singleton.IsHost;
-    public bool IsClient => NetworkManager.Singleton.IsClient;
+    public bool IsHost => NetworkManager.Singleton != null && NetworkManager.Singleton.IsHost;
+    public bool IsClient => NetworkManager.Singleton != null && NetworkManager.Singleton.IsClient;
 
     private void Awake()
     {

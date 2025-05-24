@@ -1,7 +1,8 @@
 using UnityEngine;
 using System;
+using Unity.Netcode;
 
-public class Pickup : MonoBehaviour
+public class Pickup : NetworkBehaviour
 {
     public PickupType type;
     public int amount;
@@ -19,15 +20,20 @@ public class Pickup : MonoBehaviour
 
     private void Update()
     {
+        // only server has authority to manage pickups
+        if (!IsServer) return;
+
         if (lifetime > 0f && Time.time - spawnTime > lifetime)
         {
-            platformData?.UnregisterPickup(this.gameObject); // Unregister on expiration
             ReturnToPool();
         }
     }
 
     private void OnTriggerEnter(Collider other)
-    {
+    {        
+        // only server has authority to detect pickup collisions
+        if (!IsServer) return;
+
         //Debug.Log($"Pickup reported: {transform.name} hit {other.gameObject.name} at {other.transform.position}");
 
         if (other.CompareTag("Player") || other.CompareTag("AI_Player"))
@@ -36,7 +42,6 @@ public class Pickup : MonoBehaviour
 
             onCollectedCallback?.Invoke(other.gameObject);
 
-            platformData?.UnregisterPickup(this.gameObject); // Unregister on collection
             ReturnToPool();
         }
     }
@@ -75,6 +80,16 @@ public class Pickup : MonoBehaviour
 
     private void ReturnToPool()
     {
-        AssetManager.Instance.ReturnAmmoSpawn(this.gameObject); // Replace with generic method if available
+        // Unregister on expiration
+        platformData?.UnregisterPickup(this.gameObject); 
+
+        // Tell Netcode to despawn this bullet (but we're pooling so don’t destroy the GameObject!!)
+        var netObj = GetComponent<NetworkObject>();
+        if (netObj != null && netObj.IsSpawned)
+        {
+            netObj.Despawn(destroy: false);
+        }
+
+        AssetManager.Instance.ReturnAmmoSpawn(this.gameObject); 
     }
 }

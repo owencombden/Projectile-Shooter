@@ -1,6 +1,5 @@
 using UnityEngine;
 using System.Collections.Generic;
-using UnityEditor.TerrainTools;
 
 public class HexUtils : MonoBehaviour
 {

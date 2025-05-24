@@ -678,5 +678,5 @@ MonoBehaviour:
   minAngle: 0
   minInterceptTime: 0.3
   maxInterceptTime: 1
-  gun: {fileID: 0}
-  spawnpoint: {fileID: 0}
+  gun: {fileID: 3481322925320270664}
+  spawnpoint: {fileID: 152809226324175837}

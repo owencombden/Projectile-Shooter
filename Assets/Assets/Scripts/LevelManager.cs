@@ -82,7 +82,7 @@ public class LevelManager : MonoBehaviour
         {
             NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
             
-            int playerCount = GameObject.FindGameObjectsWithTag("Player").Length;
+            //int playerCount = GameObject.FindGameObjectsWithTag("Player").Length;
             //Debug.Log($"Level Manager has received OnClientConnected callback.  There are {playerCount} players in the scene.");
 
             GameManager.Instance.SpawnAllCharacters(platforms);

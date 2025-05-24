@@ -205,19 +205,9 @@ public class AIController : NetworkBehaviour
     public void KillEnemy(Vector3 feetPosition, Vector3 tippingAxis)
     {
         isDead = true;
-        GameManager.Instance.RemoveCharacter(id, false);
+        GameManager.Instance.RemoveCharacter(id, false);        
 
-        // Tell Netcode to despawn this player (but we're pooling so don’t destroy the GameObject!!)
-        var netObj = GetComponent<NetworkObject>();
-        if (netObj != null && netObj.IsSpawned)
-        {
-            netObj.Despawn(destroy: false);
-        }
-
-        StartCoroutine(TipAndFall(tippingAxis));
-
-        // return the AI to the pool
-        AssetManager.Instance.ReturnAI(gameObject);
+        StartCoroutine(TipAndFall(tippingAxis));        
     }
 
     private IEnumerator TipAndFall(Vector3 tippingAxis)
@@ -253,12 +243,14 @@ public class AIController : NetworkBehaviour
 
     void DestroyEnemy()
     {
-        // move this to asset manager when pooling is implemented
-        if (AssetManager.Instance)
+        // Tell Netcode to despawn this player (but we're pooling so don’t destroy the GameObject!!)
+        var netObj = GetComponent<NetworkObject>();
+        if (netObj != null && netObj.IsSpawned)
         {
-            AssetManager.Instance.ReturnAI(gameObject);
+            netObj.Despawn(destroy: false);
         }
-        else { Debug.Log("DestroyEnemy cannot find AssetManager!!"); }
-        
+
+        // return the AI to the pool
+        AssetManager.Instance.ReturnAI(gameObject);
     }
 }

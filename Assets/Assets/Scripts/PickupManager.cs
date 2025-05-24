@@ -1,7 +1,7 @@
 using UnityEngine;
-using System.Collections.Generic;
+using Unity.Netcode;
 
-public class PickupManager : MonoBehaviour
+public class PickupManager : NetworkBehaviour
 {
     public float globalSpawnCooldown = 5f;    // Time between spawn checks
     public int maxPickupsPerPlatform = 2;     // Max active pickups allowed per platform
@@ -11,19 +11,18 @@ public class PickupManager : MonoBehaviour
 
     void Update()
     {
-        /* taking this out while working on multiplayer
-        
+        // only server has authority to spawn pickups
+        if (!IsServer) return;
+
+
         spawnTimer -= Time.deltaTime;
 
         if (spawnTimer <= 0f)
         {
             TrySpawnPickups();
-            
+
             spawnTimer = globalSpawnCooldown;
         }
-
-        */
-        
     }
 
     private void TrySpawnPickups()
@@ -32,8 +31,8 @@ public class PickupManager : MonoBehaviour
 
         foreach (var kvp in allPlatformObjects)
         {
-            GameObject platformGO           = kvp.Value;
-            int platformId                  = platformGO.GetComponent<Platform>().platformId;
+            GameObject platformGO = kvp.Value;
+            int platformId = platformGO.GetComponent<Platform>().platformId;
             PlatformPickupData platformData = platformGO.GetComponent<PlatformPickupData>();
 
             if (platformData == null || LevelManager.Instance.GetHexMap(platformId) == null || LevelManager.Instance.GetHexMap(platformId).Count == 0)
@@ -45,17 +44,19 @@ public class PickupManager : MonoBehaviour
             Vector3 spawnPos = platformData.GetRandomSpawnPoint();
             spawnPos.y = 0.96f; // Ensure Y height is correct for pickups
 
-            GameObject pickup = AssetManager.Instance.GetAmmoSpawn(spawnPos, Quaternion.identity);
+            GameObject ammo = AssetManager.Instance.GetAmmoSpawn(spawnPos, Quaternion.identity);
 
-            pickup.GetComponent<Pickup>().Initialize(
-                PickupType.Ammo,
-                pickupAmmoAmount,
-                onCollected: null, // Optional: you could still hook score logic here
-                lifetimeSeconds: 10f,
-                ownerPlatform: platformData
-            );
+            ammo.GetComponent<Pickup>().Initialize(
+                    PickupType.Ammo,
+                    pickupAmmoAmount,
+                    onCollected: null, // Optional: you could still hook score logic here
+                    lifetimeSeconds: 10f,
+                    ownerPlatform: platformData
+                );
 
-            platformData.RegisterPickup(pickup);
+            platformData.RegisterPickup(ammo);
+
+            ammo.GetComponent<NetworkObject>().Spawn();
         }
-    }
+    }    
 }

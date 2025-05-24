@@ -187,7 +187,7 @@ public class CharacterShooter : MonoBehaviour
         Bullet bulletScript = bullet.GetComponent<Bullet>();
         bulletScript.ownerId = GetMyId();
         Rigidbody bulletRb = bullet.GetComponent<Rigidbody>();
-        bulletRb.AddForce(shotVel, ForceMode.Impulse);                
+        bulletRb.AddForce(shotVel, ForceMode.Impulse);
 
         bullet.GetComponent<NetworkObject>().Spawn();
     }
