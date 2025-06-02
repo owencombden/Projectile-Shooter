@@ -1,14 +1,14 @@
-
 using UnityEngine;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 using Unity.Netcode;
+using System.Linq;
 
 public class GameManager : MonoBehaviour
 {
     public enum GameState
     {
+        None,
         Setup,
         Gameplay,
         Win,
@@ -16,163 +16,156 @@ public class GameManager : MonoBehaviour
         Restarting
     }
 
-    public static GameManager Instance; 
+    public static GameManager Instance;
     public AssetManager assetManager;
-    public bool allowEnemies = true;    
+    public bool allowEnemies = true;
 
-    [Header("Game Settings")]
-    [Range(0, 5)]
-    [Tooltip("Number of AI bots to spawn (0 to 5).")]
-    public int numberOfAIBots = 3;
-    
-    private Dictionary<int, PlayerController> playerControllers = new();
-    private Dictionary<int, AIController> aiControllers = new();
+    private GameState currentState = GameState.None;
 
-    private GameState currentState = GameState.Setup;
+    private void OnEnable()
+    {
+        Debug.Log("GameManager OnEnable has run");
+
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.SceneManager != null)
+        {
+            NetworkManager.Singleton.SceneManager.OnLoadComplete += OnNetworkSceneLoaded;
+            NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
+        }
+        else
+        {
+            Debug.LogWarning("NetworkManager or SceneManager is not initialized yet.");
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.SceneManager != null)
+        {
+            NetworkManager.Singleton.SceneManager.OnLoadComplete -= OnNetworkSceneLoaded;
+            NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected;
+        }        
+    }
+
+    private void OnNetworkSceneLoaded(ulong clientId, string sceneName, LoadSceneMode loadSceneMode)
+    {
+        Debug.Log("GameManager OnNetworkSceneLoaded has run");  //THIS IS NOT GETTING CALLED!
+
+        // Host initializes the level *after* everyone finishes loading
+        if (NetworkManager.Singleton.IsHost && clientId == NetworkManager.Singleton.LocalClientId)
+        {
+            SetGameState(GameState.Setup); // Triggers LevelManager.InitializeLevel()
+        }
+    }
+
+    private void OnClientDisconnected(ulong clientId)
+    {
+        Debug.Log($"Client {clientId} disconnected.");
+
+        // Only the host should clean up and check win/loss
+        if (!NetworkManager.Singleton.IsHost) return;
+
+        var playerObj = NetworkManager.Singleton.ConnectedClients
+            .Where(kvp => kvp.Key == clientId)
+            .Select(kvp => kvp.Value.PlayerObject)
+            .FirstOrDefault();
+
+        if (playerObj == null)
+        {
+            Debug.LogWarning($"No PlayerObject found for disconnected client {clientId}");
+            return;
+        }
+
+        // Optional: Show visual effect, log, etc.
+        Debug.Log($"Destroying PlayerObject for client {clientId}");
+
+        // Try to clean up character from LevelManager
+        var playerController = playerObj.GetComponent<PlayerController>();
+        if (playerController != null)
+        {
+            LevelManager.Instance.RemoveCharacter(playerController.id, isPlayer: true);
+        }
+
+        // Despawn network object (host authority)
+        if (playerObj != null && playerObj.IsSpawned)
+            playerObj.Despawn();
+
+        // Check for game end conditions
+        if (LevelManager.Instance.AreAllAIsDefeated())
+            SetGameState(GameState.Win);
+        else if (LevelManager.Instance.IsPlayerDefeated())
+            SetGameState(GameState.Loss);
+    }
 
     private void Awake()
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
-        
-        int playerCount = GameObject.FindGameObjectsWithTag("Player").Length;
-        //Debug.Log($"GameManager is Awake.  There are {playerCount} players in the scene.");
-
     }
-    
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
-    {        
-
+    {
+        
+        
     }
 
     // Update is called once per frame
     void Update()
     {
-               
-    }
-    
-    public void SpawnAllCharacters(Dictionary<int, Dictionary<Vector2Int, HexTile>> platforms)
-    {
-        int totalCharacters = 2;
-        int connectedPlayers = NetworkManager.Singleton.ConnectedClientsList.Count;
-        int aiNeeded = totalCharacters - connectedPlayers;
+        if (currentState != GameState.Gameplay) return;
 
-        // Assign platforms
-        List<int> platformIndices = new List<int>(platforms.Keys);
-
-        int currentPlatformIndex = 0;
-
-        // HUMAN PLAYERS (Network-spawned already, just reposition them)
-        foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
+        // Check for win/loss based on current counts
+        if (LevelManager.Instance.AreAllAIsDefeated())
         {
-            //Debug.Log($"There are {NetworkManager.Singleton.ConnectedClientsList.Count} connected clients");
-            GameObject playerObj = client.PlayerObject.gameObject;
-            var spawnTile = HexUtils.GetRandomHexTile(platforms[platformIndices[currentPlatformIndex]]);
-            Vector3 spawnPos = spawnTile.transform.position;
-            spawnPos.y = 2.33f;
-
-            playerObj.transform.position = spawnPos;
-
-            CharacterMotor playerMotorScript = playerObj.GetComponent<CharacterMotor>();
-            playerMotorScript.isPlayer = true;
-
-            var playerController = playerObj.GetComponent<PlayerController>();
-            playerController.Set_ID(platformIndices[currentPlatformIndex]);
-            playerController.SetPlayerHexMap(platforms[platformIndices[currentPlatformIndex]]);
-
-            RegisterPlayer(platformIndices[currentPlatformIndex], playerController);
-
-            // Set up the camera for the local player
-            if (playerController.IsOwner)       // watch this.  was using 'isLocalPlayer', but it changed during multiplayer edits.
-            {
-                Camera.main.GetComponent<CameraLook>().SetTarget(playerObj.transform, playerObj.transform.Find("CameraLookHere"));
-            }
-
-            currentPlatformIndex++;
+            SetGameState(GameState.Win);
         }
-        
-        
-        int AICount = GameObject.FindGameObjectsWithTag("AI_Player").Length;
-        //Debug.Log($"SpawnAllCharacters is about to start spawning AI.  There are {AICount} AI in the scene.");
-
-        // AI PLAYERS
-        for (int i = 0; i < aiNeeded; i++)
+        else if (LevelManager.Instance.IsPlayerDefeated())
         {
-
-            // only the Server should spawn/handle AI
-            if (!NetworkManager.Singleton.IsServer) return;
-
-            //Debug.Log($"Spawning AI {i + 1} of {aiNeeded}.");
-            int platformIndex = platformIndices[currentPlatformIndex];
-            Vector3 aiSpawnPos = HexUtils.GetRandomHexTile(platforms[platformIndex]).transform.position;
-            aiSpawnPos.y = 2.77f;
-
-            GameObject ai = AssetManager.Instance.GetAI(aiSpawnPos, Quaternion.identity);
-
-            int AICount2 = GameObject.FindGameObjectsWithTag("AI_Player").Length;
-            //Debug.Log($"SpawnAllCharacters has instantiated an AI.  There are {AICount2} AI in the scene.");
-
-            // Ensure the AI prefab has a NetworkObject component
-            NetworkObject networkObject = ai.GetComponent<NetworkObject>();
-            if (networkObject != null)
-            {
-                networkObject.Spawn();
-
-                int AICount3 = GameObject.FindGameObjectsWithTag("AI_Player").Length;
-                //Debug.Log($"networkObject has spawned an AI.  There are {AICount3} AI in the scene.");
-            }
-            else
-            {
-                //Debug.LogError("AI prefab is missing NetworkObject component.");
-            }
-
-            var aiController = ai.GetComponent<AIController>();
-            aiController.SetAIHexMap(platforms[platformIndex]);
-            int aiID = 1000 + platformIndex;
-            aiController.Set_ID(aiID);
-
-            RegisterAI(aiID, aiController);  // this registration is local (in GameManager), NOT Network client/player registration
-
-            currentPlatformIndex++;
+            SetGameState(GameState.Loss);
         }
-
-        TransitionToGameplay();
     }
 
-    private void TransitionToGameplay()
+    public void SetGameState(GameState newState)
     {
-        currentState = GameState.Gameplay;
+        if (currentState == newState) return;
+
+        currentState = newState;
+        Debug.Log($"Game State changed to: {currentState}");
+
+        switch (currentState)
+        {
+            case GameState.Setup:
+                StartCoroutine(HandleSetup());
+                break;
+            case GameState.Gameplay:
+                // Begin gameplay loop
+                break;
+            case GameState.Win:
+                HandleWin();
+                break;
+            case GameState.Loss:
+                HandleLoss();
+                break;
+            case GameState.Restarting:
+                StartCoroutine(RestartLevelAfterDelay(2f));
+                break;
+        }
+    }
+
+    private IEnumerator HandleSetup()
+    {
+        yield return new WaitUntil(() => NetworkManager.Singleton.IsServer && NetworkManager.Singleton.IsListening);
+
+        LevelManager.Instance.InitializeLevel(); // Create method to call platform/character spawn
+    }
+
+    public void TransitionToGameplay()
+    {
+        SetGameState(GameState.Gameplay);
         Debug.Log("Game has started!");
-    } 
-
-    public void RegisterPlayer(int player_ID, PlayerController controllerScript)
-    {
-        playerControllers[player_ID] = controllerScript;
     }
 
-    public void RegisterAI(int ai_ID, AIController controllerScript)
-    {
-        aiControllers[ai_ID] = controllerScript;
-    }
-
-    public void RemoveCharacter(int id, bool isPlayer)
-    {
-        if (isPlayer)
-        {
-            playerControllers.Remove(id);
-            OnPlayerDefeated();
-        }
-        else
-        {
-            aiControllers.Remove(id);
-            CheckIfAllAIsDefeated();
-        }
-    }
-
-    // NEED TO IMPLEMENT ACTIONS FOR WHEN PLAYERS ARE DEFEATED!!
-
-    private void OnPlayerDefeated()
+    public void OnPlayerDefeated()
     {
         if (currentState != GameState.Gameplay) return;
 
@@ -181,16 +174,13 @@ public class GameManager : MonoBehaviour
         HandleLoss();
     }
 
-    private void CheckIfAllAIsDefeated()
+    public void OnAllAIsDefeated()
     {
         if (currentState != GameState.Gameplay) return;
 
-        if (aiControllers.Count == 0)
-        {
-            Debug.Log("All AI defeated!");
-            currentState = GameState.Win;
-            HandleWin();
-        }
+        Debug.Log("All AI defeated!");
+        currentState = GameState.Win;
+        HandleWin();
     }
 
     private void HandleWin()
@@ -217,15 +207,24 @@ public class GameManager : MonoBehaviour
         // Only host has authority to reset the scene
         if (NetworkManager.Singleton.IsHost)
         {
+            // Clear all pooled/spawned objects before scene reload
+            LevelManager.Instance?.CleanUpBeforeRestart();
+
             string currentSceneName = SceneManager.GetActiveScene().name;
 
             // This method reloads the scene across all connected clients
             NetworkManager.Singleton.SceneManager.LoadScene(
-                currentSceneName, 
+                currentSceneName,
                 LoadSceneMode.Single
             );
 
             Debug.Log("Host started a new game.");
         }
+    }
+
+    // this Instance is a global static reference.  Need to ensure that ref is cleared whenever reloading a scene.
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
     }      
 }

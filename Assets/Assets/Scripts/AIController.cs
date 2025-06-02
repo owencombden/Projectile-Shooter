@@ -205,7 +205,7 @@ public class AIController : NetworkBehaviour
     public void KillEnemy(Vector3 feetPosition, Vector3 tippingAxis)
     {
         isDead = true;
-        GameManager.Instance.RemoveCharacter(id, false);        
+        LevelManager.Instance.RemoveCharacter(id, false);        
 
         StartCoroutine(TipAndFall(tippingAxis));        
     }

@@ -1,36 +1,38 @@
 using UnityEngine;
-using System.Linq;
 using System.Collections.Generic;
 using Unity.Netcode;
+using System.Linq;
 
 public class LevelManager : MonoBehaviour
 {
-    public static LevelManager Instance; 
-    public enum SpawnMode { Grid, Circle, Pinwheel, Hexagon }
-    public int numRows = 5;
-    public int numCols = 6;
-    public float hexSize = 1f;  // Assumes hex ratio is 2 x Sqrt(3).  2f = twice as big.  0.5f = 1/2 as big.
-    public bool isFlatTop = true; // Toggle between flat-top and pointed-top
-    public SpawnMode spawnMode = SpawnMode.Grid;
-    public float circleRadius = 5f; // Used only for circle mode
-    public float edgeRaggedness = 0;  // 0 = perfect cirle, 0.5f pretty ragged, 0.8f very ragged.
+    public static LevelManager Instance;
 
-    private System.Random random = new System.Random();    
-   
-    // store all platforms in a dictionary of dictionaries
+    [Header("Game Setup")]
+    [SerializeField] private int maxTotalCharacters = 4; // total including players + AI
+    [SerializeField] private int extraAICount = 2;
+
+    [Header("Platform Settings")]
+    [SerializeField] private float xSpacing = 60f;
+    [SerializeField] private float zSpacing = 60f;
+
+    // store all platforms in a dictionary of nested dictionaries
     // outer dictionary stores all the platforms, indexable by platform ID
     // inner dictionary stores all of the hexTiles for that platform, indexable by grid-coord    
     // platforms[platformID]                 -> get all tiles for that platform
     // platforms[platformID][gridPos]        -> get any tile in O(1)
-    // platforms[platformID].Remove(gridPos) -> remove tile from dictionary
-    private int platformCounter = 0;
+    // platforms[platformID].Remove(gridPos) -> remove tile from dictionary    
     private Dictionary<int, Dictionary<Vector2Int, HexTile>> platforms = new();  // 2D hexmaps
     private Dictionary<int, GameObject> platformGameObjects = new();             // gameobjs  
-    
+
     // could also implement this HashSet if things get slow
     // an inner hashset is faster, could be good if wanted to apply something across all tiles (ie: collision detection?)
     // would have to keep the Dict(Dict) and maintain two collections when adding/removing tiles and platforms
     // private Dictionary<int, HashSet<HexTile>> activeTiles = new();
+
+    private Dictionary<int, PlayerController> playerControllers = new();
+    private Dictionary<int, AIController> aiControllers = new();
+    public bool AreAllAIsDefeated() => aiControllers.Count == 0;
+    public bool IsPlayerDefeated() => playerControllers.Count == 0;
 
     private void Awake()
     {
@@ -40,140 +42,168 @@ public class LevelManager : MonoBehaviour
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
-    {   
-        int numPlatforms = GameManager.Instance.numberOfAIBots + 1;  // one platform for each AI, and an extra one for player
-        
-        Vector3[] platformPositions = new Vector3[]
-        {
-            new Vector3(3, 0, 20),
-            new Vector3(40, 0, 55),
-            new Vector3(-30, 0, 57),
-            new Vector3(6, 0, 90)
-        };
-
-        if(numPlatforms > platformPositions.Count())
-        {
-            Debug.Log("Not enough platforms!!!");
-            return;
-        }
-
-        // spawn all platforms
-        for (int i = 0; i < numPlatforms; i++)
-        {
-            BuildPlatform(platformPositions[i]);
-        }
-
-        // spawn all the characters
-
-        //GameManager.Instance.SpawnAllCharacters(platforms, platformGameObjects); //old way
-        //GameManager.Instance.SpawnAllCharacters(platforms);
-
-        // make sure the server is actually listening before spawning characters
-
-        NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected; 
-        
-    }
-
-    private void OnClientConnected(ulong clientId)
     {
-        // The host itself always connects with clientId == 0
-        // Only the server should spawn everyone
-        if (NetworkManager.Singleton.IsServer && clientId == 0)
-        {
-            NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
-            
-            //int playerCount = GameObject.FindGameObjectsWithTag("Player").Length;
-            //Debug.Log($"Level Manager has received OnClientConnected callback.  There are {playerCount} players in the scene.");
 
-            GameManager.Instance.SpawnAllCharacters(platforms);
-        }
     }
 
-    private void BuildPlatform(Vector3 startPos)
+    public void InitializeLevel()
     {
-        List<Vector3>     hexPositions = new List<Vector3>();
-        List<Vector2Int> hexGridCoords = new List<Vector2Int>();
-
-        if (spawnMode == SpawnMode.Grid)
-        {
-            (hexPositions, hexGridCoords) = GenerateGridPositions();
-        }
-        else if (spawnMode == SpawnMode.Circle)
-        {
-            (hexPositions, hexGridCoords) = GenerateCirclePositions(circleRadius, edgeRaggedness);
-        }
-        else if (spawnMode == SpawnMode.Pinwheel)
-        {
-            (hexPositions, hexGridCoords) = GeneratePinwheelPositions(circleRadius);
-        }
-        else if (spawnMode == SpawnMode.Hexagon)
-        {
-            (hexPositions, hexGridCoords) = GenerateHexagonPositions(circleRadius);
-        }
-
-        // move the positions to the startPos param
-        for (int i=0; i < hexPositions.Count; i++) { hexPositions[i] += startPos; }
-        
-        if (hexPositions.Count != hexGridCoords.Count)
-        {
-            Debug.Log("BuildHexMap error!  Mismatched positions and gridcoords.");
-            return;
-        }
-
-        // PLATFORM
-        // get an empty parent object (platform) that will hold all of the tiles we're about to spawn
-        GameObject thisPlatform = AssetManager.Instance.GetPlatform(startPos, Quaternion.identity);
-        Platform platformScript = thisPlatform.GetComponent<Platform>();
-        platformScript.platformId = platformCounter; 
-
-        // build one hex map (a dictionary of grid-coords to hexTileScripts)
-        Dictionary<Vector2Int, HexTile> hexMap = new Dictionary<Vector2Int, HexTile>();
-
-
-        // HEXTILES
-        //spawn the hex tiles at each position, store coords, and add to dictionary
-        for (int i=0; i <hexPositions.Count; i++)
-        {
-            // get a hexTile, set the platform as the parent   
-            GameObject thisHexTile = AssetManager.Instance.GetHexTile(hexPositions[i], Quaternion.identity);
-            thisHexTile.transform.parent = thisPlatform.transform;
-            thisHexTile.name = "Hex Tile 1 " + hexGridCoords[i];
-
-            // initialize the hexScript
-            // should fix this with an Initialize and callback, similar to PickupManager/Pickup.
-            // when tile is destroyed, do a callback here for LevelManager to remove the tile from Dict collections.
-            HexTile hexScript      = thisHexTile.GetComponent<HexTile>();            
-            hexScript.ownerId      = platformCounter;
-            hexScript.gridCoords   = hexGridCoords[i];
-
-            // add this tile (script) to the hexMap
-            hexMap[hexGridCoords[i]] = hexScript;
-        }
-
-        //update the neighbours for each tile
-        HexUtils.UpdateHexMapNeighbours(hexMap);
-
-        // add the new hexMap to the collection of platforms
-        platforms[platformCounter] = hexMap;
-        platformGameObjects[platformCounter] = thisPlatform;
-        platformCounter += 1;
+        Debug.Log("Level Manager is Initalializing the level");
+        SpawnAllPlatforms();
+        SpawnAllCharacters(platforms);
     }
 
-    
+    private void SpawnAllPlatforms()
+    {
+
+        int humanCount = NetworkManager.Singleton.ConnectedClientsList.Count;
+        int totalCharacters = Mathf.Max(humanCount + extraAICount, maxTotalCharacters);
+
+        int gridSize = Mathf.CeilToInt(Mathf.Sqrt(totalCharacters));
+        int spawned = 0;
+
+        for (int row = 0; row < gridSize && spawned < totalCharacters; row++)
+        {
+            for (int col = 0; col < gridSize && spawned < totalCharacters; col++)
+            {
+                Vector3 spawnPos = new Vector3(col * xSpacing, 0, row * zSpacing);
+
+                // get a platform with a hexMap
+                GameObject thisPlatform;
+                Dictionary<Vector2Int, HexTile> hexMap;
+                (thisPlatform, hexMap) = PlatformBuilder.Instance.BuildPlatform(spawnPos);
+
+                // cache the platform gameobject, as well as the hexmap of tiles
+                int platformId = thisPlatform.GetComponent<Platform>().platformId;
+                platformGameObjects[platformId] = thisPlatform;
+                platforms[platformId] = hexMap;
+
+                spawned++;
+            }
+        }
+
+    }
+
+    public void SpawnAllCharacters(Dictionary<int, Dictionary<Vector2Int, HexTile>> platforms)
+    {
+        // Compute the center of all platforms (characters will face this center when spawned)
+        Vector3 centerPoint = Vector3.zero;
+        foreach (var platformGO in platformGameObjects.Values)
+        {
+            centerPoint += platformGO.transform.position;
+        }
+        centerPoint /= platformGameObjects.Count;
+
+        int aiNeeded = extraAICount;
+
+        // Assign characters to platforms
+        List<int> platformIndices = new List<int>(platforms.Keys);
+        int currentPlatformIndex = 0;
+
+        // HUMAN PLAYERS (Network-spawned already, just reposition them)
+        foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
+        {
+            GameObject playerObj = client.PlayerObject.gameObject;
+
+            //var spawnTile = HexUtils.GetRandomHexTile(platforms[platformIndices[currentPlatformIndex]]);
+            //Vector3 spawnPos = spawnTile.transform.position;
+
+            Vector3 spawnPos = GetPlatformCenter(platforms[platformIndices[currentPlatformIndex]]);
+            spawnPos.y = 2.33f;
+
+            playerObj.transform.position = spawnPos;
+
+            // Face center of the grid
+            Vector3 directionToCenter = (centerPoint - spawnPos).normalized;
+            directionToCenter.y = 0; // flatten on Y axis
+            if (directionToCenter != Vector3.zero)
+            {
+                playerObj.transform.rotation = Quaternion.LookRotation(directionToCenter);
+            }
+
+            CharacterMotor playerMotorScript = playerObj.GetComponent<CharacterMotor>();
+            playerMotorScript.isPlayer = true;
+
+            var playerController = playerObj.GetComponent<PlayerController>();
+            playerController.Set_ID(platformIndices[currentPlatformIndex]);
+            playerController.SetPlayerHexMap(platforms[platformIndices[currentPlatformIndex]]);
+
+            // this registration is local (in LevelManager), NOT Network client/player registration
+            RegisterPlayer(platformIndices[currentPlatformIndex], playerController);
+
+            // Set up the camera for the local player
+            if (playerController.IsOwner)
+            {
+                Camera.main.GetComponent<CameraLook>().SetTarget(playerObj.transform, playerObj.transform.Find("CameraLookHere"));
+            }
+
+            currentPlatformIndex++;
+        }
+
+        // AI PLAYERS
+        for (int i = 0; i < aiNeeded; i++)
+        {
+            // only the Server should spawn/handle AI
+            if (!NetworkManager.Singleton.IsServer) return;
+
+            int platformIndex = platformIndices[currentPlatformIndex];
+            //Vector3 aiSpawnPos = HexUtils.GetRandomHexTile(platforms[platformIndex]).transform.position;
+
+            Vector3 aiSpawnPos = GetPlatformCenter(platforms[platformIndex]);
+            aiSpawnPos.y = 2.77f;
+
+            // Face center of the grid
+            Vector3 directionToCenter = (centerPoint - aiSpawnPos).normalized;
+            directionToCenter.y = 0; // flatten on Y axis
+            Quaternion aiRotation = Quaternion.identity;
+            if (directionToCenter != Vector3.zero)
+            {
+                aiRotation = Quaternion.LookRotation(directionToCenter);
+            }
+
+            GameObject ai = AssetManager.Instance.GetAI(aiSpawnPos, aiRotation);
+
+            // Ensure the AI prefab has a NetworkObject component
+            NetworkObject networkObject = ai.GetComponent<NetworkObject>();
+            if (networkObject != null)
+            {
+                networkObject.Spawn();
+            }
+
+            var aiController = ai.GetComponent<AIController>();
+            aiController.SetAIHexMap(platforms[platformIndex]);
+            int aiID = 1000 + platformIndex;
+            aiController.Set_ID(aiID);
+
+            // this registration is local (in LevelManager), NOT Network client/player registration
+            RegisterAI(aiID, aiController);
+
+            currentPlatformIndex++;
+        }
+
+        GameManager.Instance.TransitionToGameplay();
+    }
+
+    public void RegisterPlayer(int player_ID, PlayerController controllerScript)
+    {
+        playerControllers[player_ID] = controllerScript;
+    }
+
+    public void RegisterAI(int ai_ID, AIController controllerScript)
+    {
+        aiControllers[ai_ID] = controllerScript;
+    }
+
     public Dictionary<Vector2Int, HexTile> GetHexMap(int platformId)
-    {        
-        if(platformId >= platforms.Count || platformId < 0)
-        {
-            Debug.Log("GetHexMap is trying to access a platform ID that does not exist!");
-            return null;
-        } 
+    {
+        if (platformId >= platforms.Count || platformId < 0) { return null; }
 
         return platforms[platformId];
     }
 
     public Dictionary<int, Dictionary<Vector2Int, HexTile>> GetAllHexMaps()
     {
-        return platforms;  
+        return platforms;
     }
 
     public Dictionary<int, GameObject> GetAllPlatformObjects()
@@ -181,11 +211,38 @@ public class LevelManager : MonoBehaviour
         return platformGameObjects;
     }
 
-    public void RemovePlatform()
+    public Vector3 GetPlatformCenter(Dictionary<Vector2Int, HexTile> hexMap)
     {
-        // to do
-        // remove platforms from both hexmap dict and gameobj dict
-        // make sure they are empty?      
+        Vector2Int centerCoords = new Vector2Int(0, 0);
+        foreach (var tile in hexMap)
+        {
+            if (tile.Key == centerCoords)
+                return tile.Value.transform.position;
+        }
+
+        Debug.LogWarning($"Center tile (0,0) was not found. Falling back to average.");
+
+        // Optional fallback to average center
+        var platformTiles = hexMap.Values.ToList();
+        if (platformTiles.Count == 0) return Vector3.zero;
+
+        Vector3 avg = Vector3.zero;
+        foreach (var tile in platformTiles)
+            avg += tile.transform.position;
+
+        return avg / platformTiles.Count;
+    }
+
+    public void RemoveCharacter(int id, bool isPlayer)
+    {
+        if (isPlayer)
+        {
+            playerControllers.Remove(id);
+        }
+        else
+        {
+            aiControllers.Remove(id);
+        }
     }
 
     public void RemoveHexTile(int platformID, Vector2Int gridPos)
@@ -210,135 +267,59 @@ public class LevelManager : MonoBehaviour
             HexUtils.UpdateHexTileNeighbours(neighbour, platforms[platformID]);
         }
     }
-    
 
-    private (List<Vector3>, List<Vector2Int>) GenerateGridPositions()
+    public void CleanUpBeforeRestart()
     {
-        List<Vector3> positions = new List<Vector3>();
-        List<Vector2Int> gridCoords = new List<Vector2Int>();
-
-        for (int row = 0; row < numRows; row++)
+        // player cleanup
+        foreach (var player in playerControllers.Values)
         {
-            for (int col = 0; col < numCols; col++)
-            {
-                Vector3 pos = isFlatTop ? GetFlatTopHexPosition(row, col, hexSize)
-                                        : GetPointedTopHexPosition(row, col, hexSize);
-                positions.Add(pos);
-                gridCoords.Add(new Vector2Int(row, col));
-            }
+            if (player != null) Destroy(player.gameObject);
         }
-        return (positions, gridCoords);
+        playerControllers.Clear();
+
+        // AI cleanup
+        foreach (var ai in aiControllers.Values)
+        {
+            if (ai != null) Destroy(ai.gameObject);
+        }
+        aiControllers.Clear();
+
+        // Platform and tile cleanup
+        foreach (var platformID in new List<int>(platforms.Keys))
+        {
+            RemovePlatform(platformID);
+        }
+
+        platforms.Clear();
+        platformGameObjects.Clear();
     }
 
-    private Vector3 GetFlatTopHexPosition(int row, int col, float size)
+    private void RemovePlatform(int platformID)
     {
-        float x = col * (1.5f * size);
-        float z = row * (Mathf.Sqrt(3) * size) + (col % 2) * (Mathf.Sqrt(3) / 2 * size);
-        return new Vector3(x, 0, z);
+        // remove platforms from both hexmap dict and gameobj dict.  make sure they are empty.
+        if (!platforms.ContainsKey(platformID)) return;
+        if (!platformGameObjects.ContainsKey(platformID)) return;
+
+        // Destroy all tiles under this platform
+        foreach (var tile in platforms[platformID].Values)
+        {
+            if (tile != null) Destroy(tile.gameObject);
+        }
+
+        // Destroy the platform object
+        if (platformGameObjects.TryGetValue(platformID, out GameObject platformObj))
+        {
+            Destroy(platformObj);
+        }
+
+        // Remove from dictionaries
+        platforms.Remove(platformID);
+        platformGameObjects.Remove(platformID);
     }
 
-    private Vector3 GetPointedTopHexPosition(int row, int col, float size)
+    // this Instance is a global static reference.  Need to ensure that ref is cleared whenever reloading a scene.
+    private void OnDestroy()
     {
-        float x = col * (Mathf.Sqrt(3) * size) + (row % 2) * (Mathf.Sqrt(3) / 2 * size);
-        float z = row * (1.5f * size);
-        return new Vector3(x, 0, z);
-    }
-
-    private (List<Vector3>, List<Vector2Int>) GeneratePinwheelPositions(float radius)
-    {
-        List<Vector3> positions = new List<Vector3>();
-        List<Vector2Int> gridCoords = new List<Vector2Int>();
-
-        int maxRings = Mathf.CeilToInt(radius / (1.5f * hexSize)); // Approximate ring count
-        positions.Add(Vector3.zero); // Center hex
-
-        for (int ring = 1; ring <= maxRings; ring++)
-        {
-            for (int i = 0; i < 6; i++) // 6 sides of a hexagon
-            {
-                for (int j = 0; j < ring; j++)
-                {
-                    float angle = (i * 60) * Mathf.Deg2Rad; // Convert degrees to radians
-                    float x = ring * hexSize * Mathf.Cos(angle) + j * hexSize * Mathf.Cos(angle + Mathf.PI / 3);
-                    float z = ring * hexSize * Mathf.Sin(angle) + j * hexSize * Mathf.Sin(angle + Mathf.PI / 3);
-                    positions.Add(new Vector3(x, 0, z));
-                    gridCoords.Add(new Vector2Int(i, j));
-                }
-            }
-        }
-        return (positions, gridCoords);
-    }
-
-    private (List<Vector3>, List<Vector2Int>) GenerateCirclePositions(float radius, float roughness)
-    {
-        List<Vector3> positions = new List<Vector3>();
-        List<Vector2Int> gridCoords = new List<Vector2Int>();
-        int maxRings = Mathf.CeilToInt(radius / hexSize) + 1;
-
-        System.Random rand = new System.Random(); // Seeded RNG for consistency
-
-        for (int q = -maxRings; q <= maxRings; q++)
-        {
-            for (int r = -maxRings; r <= maxRings; r++)
-            {
-                Vector3 worldPos = AxialToWorld(q, r);
-                float distance = Vector3.Distance(Vector3.zero, worldPos);
-
-                // Check if the hex is within the intended radius
-                if (distance <= radius)
-                {
-                    // Apply randomness to remove hexes at the edges
-                    if (distance > radius * 0.75f) // Only affect outer region
-                    {
-                        float noise = (float)rand.NextDouble(); // Random number between 0 and 1
-                        if (noise < roughness) continue; // Skip this hex to create holes
-                    }
-                    
-                    positions.Add(worldPos);
-                    gridCoords.Add(new Vector2Int(q, r));
-                }
-            }
-        }
-        return (positions, gridCoords);
-    }
-    
-    private (List<Vector3>, List<Vector2Int>) GenerateHexagonPositions(float radius)
-    {
-        List<Vector3> positions = new List<Vector3>();
-        List<Vector2Int> gridCoords = new List<Vector2Int>();
-
-        // Center hex
-        positions.Add(Vector3.zero);
-
-        int maxRings = Mathf.FloorToInt(radius / (1.5f * hexSize));
-
-        for (int q = -maxRings; q <= maxRings; q++)
-        {
-            for (int r = Mathf.Max(-maxRings, -q - maxRings); r <= Mathf.Min(maxRings, -q + maxRings); r++)
-            {
-                int s = -q - r; // The third axial coordinate (q + r + s = 0)
-                Vector3 pos = AxialToWorld(q, r);
-                positions.Add(pos);
-                gridCoords.Add(new Vector2Int(q, r));
-            }
-        }
-        return (positions, gridCoords);
-    }
-
-    // Convert axial coordinates (q, r) to world-space positions
-    private Vector3 AxialToWorld(int q, int r)
-    {
-        float x, z;
-        if (isFlatTop)
-        {
-            x = hexSize * 1.5f * q;
-            z = hexSize * Mathf.Sqrt(3) * (r + q / 2f);
-        }
-        else
-        {
-            x = hexSize * Mathf.Sqrt(3) * (q + r / 2f);
-            z = hexSize * 1.5f * r;
-        }
-        return new Vector3(x, 0, z);
+        if (Instance == this) Instance = null;
     }
 }

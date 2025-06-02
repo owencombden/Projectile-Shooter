@@ -168,7 +168,10 @@ public class PlayerController : NetworkBehaviour
     {
         // flag the player as dead.
         playerDead = true;
-        GameManager.Instance.RemoveCharacter(id, true);
+        LevelManager.Instance.RemoveCharacter(id, true);        
+
+        //tip the player towards the water in the direction of player velocity        
+        StartCoroutine(FallOver(tippingAxis));
 
         // Tell Netcode to despawn this player (but we're pooling so don’t destroy the GameObject!!)
         var netObj = GetComponent<NetworkObject>();
@@ -176,9 +179,6 @@ public class PlayerController : NetworkBehaviour
         {
             netObj.Despawn(destroy: false);
         }
-
-        //tip the player towards the water in the direction of player velocity        
-        StartCoroutine(FallOver(tippingAxis));
 
         // return the player to the pool
         AssetManager.Instance.ReturnPlayer(gameObject);

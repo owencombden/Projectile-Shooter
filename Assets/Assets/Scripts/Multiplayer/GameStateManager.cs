@@ -52,4 +52,10 @@ public class GameStateManager : MonoBehaviour
     }
 
     // You can add similar methods for tiles, bullets, pickups, etc.
+
+    // this Instance is a global static reference.  Need to ensure that ref is cleared whenever reloading a scene.
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
+    }
 }

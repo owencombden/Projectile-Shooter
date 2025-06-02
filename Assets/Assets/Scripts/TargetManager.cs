@@ -4,7 +4,7 @@ using UnityEngine;
 public class TargetManager : MonoBehaviour
 {
     public static TargetManager Instance { get; private set; }
-    
+
     public List<Targetable> targets = new List<Targetable>();
 
     private void Awake()
@@ -42,9 +42,15 @@ public class TargetManager : MonoBehaviour
         Debug.Log("------------------------------------");
         foreach (Targetable t in targets)
         {
-            output += t.transform.name + "...";            
+            output += t.transform.name + "...";
         }
         Debug.Log(output);
         Debug.Log("-----------------------------------");
+    }
+    
+    // this Instance is a global static reference.  Need to ensure that ref is cleared whenever reloading a scene.
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
     }
 }

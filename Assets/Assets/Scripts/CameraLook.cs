@@ -19,6 +19,11 @@ public class CameraLook : MonoBehaviour
     {
         player = playerTransform;
         cameraLookHere = lookPoint;
+
+         // Align camera behind the player and facing forward
+        Vector3 forward = player.forward;
+        currentYaw = Quaternion.LookRotation(forward).eulerAngles.y;
+        currentPitch = 10f;  // configurable.  find a good angle setting
     }
 
     void LateUpdate()

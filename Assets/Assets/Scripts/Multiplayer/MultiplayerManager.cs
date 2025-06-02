@@ -27,15 +27,13 @@ public class MultiplayerManager : MonoBehaviour
         }
     }
 
+    
     public void StartHost()
     {
         if (NetworkManager.Singleton.IsListening) return;
 
         Debug.Log("Starting Host...");
-        NetworkManager.Singleton.StartHost();        
-        
-        int playerCount2 = GameObject.FindGameObjectsWithTag("Player").Length;
-        //Debug.Log($"Finished MultiplayerManager.StartHost.  There are {playerCount2} players in the scene.");
+        NetworkManager.Singleton.StartHost();
     }
 
     public void StartClient(string ip)
@@ -46,6 +44,7 @@ public class MultiplayerManager : MonoBehaviour
         transport.SetConnectionData(ip, port);
         NetworkManager.Singleton.StartClient();
     }
+    
 
     public void Shutdown()
     {
@@ -56,22 +55,6 @@ public class MultiplayerManager : MonoBehaviour
         }
     }
 
-    private void OnEnable()
-    {
-        if (NetworkManager.Singleton == null) return;
-
-        NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
-        NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
-    }
-
-    private void OnDisable()
-    {
-        if (NetworkManager.Singleton == null) return;
-
-        NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
-        NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected;
-    }
-
     private void OnClientConnected(ulong clientId)
     {
         Debug.Log($"Client connected with ID: {clientId}");
@@ -80,5 +63,11 @@ public class MultiplayerManager : MonoBehaviour
     private void OnClientDisconnected(ulong clientId)
     {
         Debug.Log($"Client disconnected with ID: {clientId}");
+    }
+
+    // this Instance is a global static reference.  Need to ensure that ref is cleared whenever reloading a scene.
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
     }
 }

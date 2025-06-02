@@ -60,7 +60,7 @@ public class HexTile : MonoBehaviour
 
         if (remainingHitPoints <= 0)
         {
-            DestroyTile();
+            RemoveFromPlay();
         }
         else
         {
@@ -84,7 +84,7 @@ public class HexTile : MonoBehaviour
         }        
     }
 
-    void DestroyTile()
+    void RemoveFromPlay()
     {
         //print("Tile " + gameObject.name + " has been destroyed.");
         LevelManager.Instance.RemoveHexTile(ownerId, gridCoords);

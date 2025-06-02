@@ -92,7 +92,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   bulletType: 0
-  blastForce: 80
+  blastForce: 30
   maxLifetime: 7
   ownerId: 0
 --- !u!33 &7318560568985611680

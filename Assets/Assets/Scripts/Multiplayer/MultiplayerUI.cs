@@ -7,6 +7,7 @@ using UnityEngine.SceneManagement;
 
 public class MultiplayerUI : MonoBehaviour
 {
+    /*
     public Button hostButton;
     public Button joinButton;
     public Button restartButton;
@@ -114,4 +115,5 @@ public class MultiplayerUI : MonoBehaviour
         Application.Quit();
     #endif
     }
+    */
 }

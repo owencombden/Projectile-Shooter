@@ -129,6 +129,7 @@ GameObject:
   m_Component:
   - component: {fileID: 109674072}
   - component: {fileID: 109674073}
+  - component: {fileID: 109674074}
   m_Layer: 0
   m_Name: LevelManager
   m_TagString: Untagged
@@ -163,13 +164,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8fbd7bd74c90f294c96fb9c6a16923a4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  numRows: 6
-  numCols: 12
+  maxTotalCharacters: 4
+  extraAICount: 1
+  xSpacing: 50
+  zSpacing: 50
+--- !u!114 &109674074
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 109674071}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77eddb8d07f5dbc4daa04fca95e864cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  numRows: 10
+  numCols: 10
   hexSize: 1
   isFlatTop: 1
   spawnMode: 1
-  circleRadius: 18
-  edgeRaggedness: 0.12
+  circleRadius: 17
+  edgeRaggedness: 0
 --- !u!1 &175550320
 GameObject:
   m_ObjectHideFlags: 0
@@ -189,7 +206,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &175550321
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -289,11 +306,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b8950c0bb6125545810799f20e9cf01, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  hostButton: {fileID: 1998046941}
-  joinButton: {fileID: 438660251}
-  restartButton: {fileID: 393089945}
-  statusText: {fileID: 1025486366}
-  ipInputField: {fileID: 184866463}
 --- !u!1 &184866461
 GameObject:
   m_ObjectHideFlags: 0
@@ -688,8 +700,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.041178133, y: 0, z: 0, w: 0.9991518}
-  m_LocalPosition: {x: 11.165, y: 11.45, z: -31.3}
+  m_LocalRotation: {x: 0.2023426, y: 0.3530052, z: -0.078483514, w: 0.9101017}
+  m_LocalPosition: {x: -24.32861, y: 22.840858, z: -27.39783}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -751,7 +763,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ca929e7f8a4efb04483d72c5c8a8364e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cameraOffset: {x: 0, y: 12.2, z: -32}
+  cameraOffset: {x: 0, y: 0, z: -34}
   cameraRotateSpeed: 2
   cameraMoveSmooth: 40
   cameraRotateSmooth: 40
@@ -897,7 +909,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &409239113
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2098,7 +2110,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   assetManager: {fileID: 289987654}
   allowEnemies: 1
-  numberOfAIBots: 3
 --- !u!4 &1266648210
 Transform:
   m_ObjectHideFlags: 0

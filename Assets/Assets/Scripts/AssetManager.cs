@@ -7,15 +7,15 @@ public class AssetManager : MonoBehaviour
     public static AssetManager Instance;
 
     [Header("Prefabs")]
-    [SerializeField]private GameObject playerPrefab;
-    [SerializeField]private GameObject aiPrefab;
-    [SerializeField]private GameObject platformPrefab;
-    [SerializeField]private GameObject hexTilePrefab;
-    [SerializeField]private GameObject bulletPrefab;
-    [SerializeField]private GameObject ammoSpawnPrefab;
-    
+    [SerializeField] private GameObject playerPrefab;
+    [SerializeField] private GameObject aiPrefab;
+    [SerializeField] private GameObject platformPrefab;
+    [SerializeField] private GameObject hexTilePrefab;
+    [SerializeField] private GameObject bulletPrefab;
+    [SerializeField] private GameObject ammoSpawnPrefab;
+
     private Dictionary<string, Queue<GameObject>> poolDict = new();
-    
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -28,18 +28,18 @@ public class AssetManager : MonoBehaviour
     {
         // Pool static props immediately:
         PrewarmPool("platform", platformPrefab, 10);
-        PrewarmPool("hextile",  hexTilePrefab, 1100);
-        
+        PrewarmPool("hextile", hexTilePrefab, 1100);
+
         // Delay all networked pools until host/server is up:
         NetworkManager.Singleton.OnClientConnectedCallback += (clientId) =>
         {
             if (clientId == 0 && NetworkManager.Singleton.IsServer)
             {
-                PrewarmPool("bullet",    bulletPrefab,    5);
+                PrewarmPool("bullet", bulletPrefab, 5);
                 PrewarmPool("ammospawn", ammoSpawnPrefab, 0);
             }
         };
-    } 
+    }
 
     // Convenience wrappers
     public GameObject GetAI(Vector3 position, Quaternion rotation)
@@ -125,9 +125,9 @@ public class AssetManager : MonoBehaviour
 
     private GameObject GetFromPool(string key, GameObject prefab, Vector3 position, Quaternion rotation)
     {
-        
+
         //Debug.Log($"Getting a {prefab.name} from the pool...");
-        
+
         if (!poolDict.ContainsKey(key))
         {
             poolDict[key] = new Queue<GameObject>();
@@ -140,8 +140,8 @@ public class AssetManager : MonoBehaviour
             obj = poolDict[key].Dequeue();
             obj.transform.SetPositionAndRotation(position, rotation);
             obj.SetActive(true);
-            
-            
+
+
         }
         else
         {
@@ -163,6 +163,12 @@ public class AssetManager : MonoBehaviour
         if (!obj.TryGetComponent<NetworkObject>(out var _))
         {
             obj.transform.SetParent(transform);
-        }        
+        }
+    }
+
+    // this Instance is a global static reference.  Need to ensure that ref is cleared whenever reloading a scene.
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
     }    
 }
