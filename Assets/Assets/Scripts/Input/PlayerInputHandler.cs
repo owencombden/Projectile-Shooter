@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Users;
 using Unity.Netcode;
 
 public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
@@ -21,18 +22,24 @@ public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
 
         if (!IsOwner)
         {
-            // Disable input if not owned by this client
             if (playerInput != null)
                 playerInput.enabled = false;
         }
         else
         {
-            // Optional: explicitly pair input device to this PlayerInput
-            // Useful if you run into control issues even after enabling
-            playerInput.ActivateInput();
+            if (playerInput != null)
+            {
+                var user = playerInput.user;
+
+                // Unpair previous devices, just in case
+                InputUser.PerformPairingWithDevice(Keyboard.current, user);
+                InputUser.PerformPairingWithDevice(Mouse.current, user);
+
+                // Activate the input
+                playerInput.ActivateInput();
+            }
         }
     }
-
     public void OnMove(InputAction.CallbackContext context) => MoveInput = context.ReadValue<Vector2>();
     public void OnLook(InputAction.CallbackContext context) => LookInput = context.ReadValue<Vector2>();
 

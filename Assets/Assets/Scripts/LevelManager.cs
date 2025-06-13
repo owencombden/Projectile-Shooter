@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Unity.Netcode;
 using System.Linq;
 
-public class LevelManager : MonoBehaviour
+public class LevelManager : NetworkBehaviour
 {
     public static LevelManager Instance;
 
@@ -27,12 +27,18 @@ public class LevelManager : MonoBehaviour
     // could also implement this HashSet if things get slow
     // an inner hashset is faster, could be good if wanted to apply something across all tiles (ie: collision detection?)
     // would have to keep the Dict(Dict) and maintain two collections when adding/removing tiles and platforms
-    // private Dictionary<int, HashSet<HexTile>> activeTiles = new();
+    // private Dictionary<int, HashSet<HexTile>> activeTiles = new();    
 
     private Dictionary<int, PlayerController> playerControllers = new();
     private Dictionary<int, AIController> aiControllers = new();
     public bool AreAllAIsDefeated() => aiControllers.Count == 0;
     public bool IsPlayerDefeated() => playerControllers.Count == 0;
+
+    // tracking the initial synch of hextiles data across the network.
+    [SerializeField] private List<HexTileData> allHexTileData = new();    
+    private int expectedClientCount = -1;
+    private HashSet<ulong> clientsConfirmedHexData = new();
+    private HashSet<ulong> clientsConfirmedPlatformsSpawned = new();
 
     private void Awake()
     {
@@ -49,44 +55,200 @@ public class LevelManager : MonoBehaviour
     public void InitializeLevel()
     {
         Debug.Log("Level Manager is Initalializing the level");
-        SpawnAllPlatforms();
-        SpawnAllCharacters(platforms);
+
+        // get the number of expected clients (excluding the host) that we need to set up
+        // Track how many clients to expect
+        expectedClientCount = NetworkManager.Singleton.ConnectedClientsList.Count - 1; // exclude host
+
+        // generate the datastructure that stores all the information needed to spawn all the floor tiles
+        GenerateAllHexTileData();
+
+        // share the hexTile data with all clients.  The clients report back when they all have synched.
+        // convert the argument to an array (as its natively serialized by Unity) for transport to clients
+        SendHexTileDataClientRpc(allHexTileData.ToArray());
+
+        // SpawnAllCharacters(platforms);  //We will look at this later!
     }
 
-    private void SpawnAllPlatforms()
+    private void GenerateAllHexTileData()
     {
-
         int humanCount = NetworkManager.Singleton.ConnectedClientsList.Count;
         int totalCharacters = Mathf.Max(humanCount + extraAICount, maxTotalCharacters);
 
         int gridSize = Mathf.CeilToInt(Mathf.Sqrt(totalCharacters));
-        int spawned = 0;
+        int platformsSpawned = 0;
 
-        for (int row = 0; row < gridSize && spawned < totalCharacters; row++)
+        for (int row = 0; row < gridSize && platformsSpawned < totalCharacters; row++)
         {
-            for (int col = 0; col < gridSize && spawned < totalCharacters; col++)
+            for (int col = 0; col < gridSize && platformsSpawned < totalCharacters; col++)
             {
-                Vector3 spawnPos = new Vector3(col * xSpacing, 0, row * zSpacing);
+                // get the platform position
+                Vector3 platformPos = new Vector3(col * xSpacing, 0, row * zSpacing);
 
-                // get a platform with a hexMap
-                GameObject thisPlatform;
-                Dictionary<Vector2Int, HexTile> hexMap;
-                (thisPlatform, hexMap) = PlatformBuilder.Instance.BuildPlatform(spawnPos);
+                // get the worldpos and grid coords for each hextile attached to this platform
+                List<Vector3> hexPositions;
+                List<Vector2Int> hexGridCoords;
+                (hexPositions, hexGridCoords) = PlatformBuilder.Instance.GenerateHexTilePositions(platformPos);
 
-                // cache the platform gameobject, as well as the hexmap of tiles
-                int platformId = thisPlatform.GetComponent<Platform>().platformId;
-                platformGameObjects[platformId] = thisPlatform;
-                platforms[platformId] = hexMap;
+                // create the lightweight datastructure for sharing across the networks
+                // this will be used client-side to create/update the hextiles
+                List<HexTileData> hexTileDataList = new();
+                for (int i = 0; i < hexPositions.Count; i++)
+                {
+                    HexTileData data = new HexTileData
+                    {
+                        platformId = platformsSpawned,
+                        worldPos = hexPositions[i],
+                        gridCoords = hexGridCoords[i]
+                    };
 
-                spawned++;
+                    hexTileDataList.Add(data);
+                }
+                allHexTileData.AddRange(hexTileDataList);
+
+                platformsSpawned++;
             }
         }
+    }    
+    
+    [ClientRpc]
+    private void SendHexTileDataClientRpc(HexTileData[] tileDataList)
+    {
+        Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is calling SendHexTileDataClientRpc");        
+        // clients only. the host already has this data.
+        if (NetworkManager.Singleton.IsHost) return; 
+        
+        allHexTileData = tileDataList.ToList();  // convert the serializable array back to a list, which is updated on client side 
 
+        // Tell host we received it
+        ConfirmHexTileDataReceivedServerRpc(NetworkManager.Singleton.LocalClientId);
     }
 
-    public void SpawnAllCharacters(Dictionary<int, Dictionary<Vector2Int, HexTile>> platforms)
+    [ServerRpc(RequireOwnership = false)]
+    private void ConfirmHexTileDataReceivedServerRpc(ulong clientId)
     {
-        // Compute the center of all platforms (characters will face this center when spawned)
+        if (!NetworkManager.Singleton.IsServer) return;
+
+        clientsConfirmedHexData.Add(clientId);
+        Debug.Log($"[HexSync] Client {clientId} confirmed tile data receipt ({clientsConfirmedHexData.Count}/{expectedClientCount})");
+
+        if (clientsConfirmedHexData.Count >= expectedClientCount)
+        {
+            Debug.Log("[HexSync] All clients are ready to spawn platforms!");
+            ReadyToSpawnPlatformsClientRpc();
+        }
+    }
+
+    [ClientRpc]
+    private void ReadyToSpawnPlatformsClientRpc()
+    {
+        Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is calling ReadyToSpawnPlatformsClientRpc");
+
+        // everybody spawns, host too.
+        SpawnAllPlatforms();        
+
+        // each client should now report that they have finished spawning the floor hextiles.  
+        // when all are done, host can proceed with spawning characters.
+        ConfirmDoneSpawningPlatformsServerRpc(NetworkManager.Singleton.LocalClientId);
+    }       
+
+    private void SpawnAllPlatforms()
+    {
+        // the host has shared allHexTileData among all the clients
+        // clients will now use this list to instantiate platforms and platformGameObjects on the client-side
+
+        // Step 1: Group the hex tile data by platformId
+        var groupedByPlatform = allHexTileData
+            .GroupBy(data => data.platformId);
+
+        foreach (var platformGroup in groupedByPlatform)
+        {
+            int platformId = platformGroup.Key;
+
+            // make the position of the platform equal to the position of the first child hextile
+            Vector3 platformStartPos = platformGroup.First().worldPos;
+
+            Debug.Log($"Created platform {platformId} at position {platformStartPos}");
+
+            // Step 2: Instantiate the platform root object, set it's Id, and cache it
+            GameObject thisPlatform = AssetManager.Instance.GetPlatform(platformStartPos, Quaternion.identity);
+            thisPlatform.name = $"Platform_{platformId}";
+            thisPlatform.GetComponent<Platform>().platformId = platformId;
+            platformGameObjects[platformId] = thisPlatform;
+
+            // build a hexMap for this platform (gridcoords to HexTile scripts)
+            Dictionary<Vector2Int, HexTile> hexMap = new Dictionary<Vector2Int, HexTile>();
+
+            // Step 3: For each HexTileData in this group, spawn a hex tile
+            foreach (var tileData in platformGroup)
+            {
+                GameObject thisHexTile = AssetManager.Instance.GetHexTile(tileData.worldPos, Quaternion.identity);
+                thisHexTile.transform.SetParent(thisPlatform.transform, worldPositionStays: true);
+                thisHexTile.name = $"HexTile_{tileData.gridCoords}";
+
+                // initialize the hexScript
+                // should fix this with an Initialize and callback, similar to PickupManager/Pickup.
+                // when tile is destroyed, do a callback here for LevelManager to remove the tile from Dict collections.
+                HexTile hexScript = thisHexTile.GetComponent<HexTile>();
+                hexScript.ownerId = thisPlatform.GetComponent<Platform>().platformId;
+                hexScript.gridCoords = tileData.gridCoords;
+
+                // add this tile (script) to the hexMap
+                hexMap[tileData.gridCoords] = hexScript;
+            }
+
+            //update the neighbours for each tile
+            HexUtils.UpdateHexMapNeighbours(hexMap);
+
+            // add the configured hexMap to the collection
+            platforms[platformId] = hexMap;            
+        }
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void ConfirmDoneSpawningPlatformsServerRpc(ulong clientId)
+    {
+        if (!NetworkManager.Singleton.IsServer) return;
+
+        // track the clientId of the client that called this on the server
+        clientsConfirmedPlatformsSpawned.Add(clientId);
+
+        // the host/server has also spawned platforms, track its id
+        if (!clientsConfirmedPlatformsSpawned.Contains(NetworkManager.Singleton.LocalClientId))
+        {
+            clientsConfirmedPlatformsSpawned.Add(NetworkManager.Singleton.LocalClientId);
+        }
+
+        Debug.Log($"[PlatformSync] Client {clientId} confirmed finished spawning platforms.  receipt ({clientsConfirmedPlatformsSpawned.Count}/{expectedClientCount + 1})");  //include host
+
+        if (clientsConfirmedPlatformsSpawned.Count >= expectedClientCount + 1) // include host
+        {
+            Debug.Log($"[PlatformSync] Client {NetworkManager.Singleton.LocalClientId} reporting that the server is ready to spawn characters!");
+            ReadyToSpawnCharactersServerRpc();
+        }
+    }
+
+    [ServerRpc]
+    private void ReadyToSpawnCharactersServerRpc()
+    {
+        // server will spawn and own characters
+        if (!NetworkManager.Singleton.IsServer) return;
+
+        Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is calling ReadyToSpawnCharactersClientRpc");
+
+        // spawn human and ai characters (position, rotation, config)
+        SpawnAllCharacters();
+        
+        // this needs to come next
+        // GameManager.Instance.TransitionToGameplay();
+    }
+
+    void SpawnAllCharacters()
+    {
+        // only server can spawn
+        if (!IsServer) { return; }
+
+        // compute the center of all platforms (characters will face this center when spawned)
         Vector3 centerPoint = Vector3.zero;
         foreach (var platformGO in platformGameObjects.Values)
         {
@@ -96,39 +258,34 @@ public class LevelManager : MonoBehaviour
 
         int aiNeeded = extraAICount;
 
-        // Assign characters to platforms
+        // assign characters to platforms
         List<int> platformIndices = new List<int>(platforms.Keys);
         int currentPlatformIndex = 0;
 
-        // HUMAN PLAYERS (Network-spawned already, just reposition them)
+        // HUMAN PLAYERS (spawn on the network and reposition/configure)
         foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
         {
-            GameObject playerObj = client.PlayerObject.gameObject;
-
-            //var spawnTile = HexUtils.GetRandomHexTile(platforms[platformIndices[currentPlatformIndex]]);
-            //Vector3 spawnPos = spawnTile.transform.position;
-
+            // position (center of platform)        
             Vector3 spawnPos = GetPlatformCenter(platforms[platformIndices[currentPlatformIndex]]);
             spawnPos.y = 2.33f;
 
-            playerObj.transform.position = spawnPos;
-
-            // Face center of the grid
+            // rotation (face center of the platform grid)
             Vector3 directionToCenter = (centerPoint - spawnPos).normalized;
             directionToCenter.y = 0; // flatten on Y axis
-            if (directionToCenter != Vector3.zero)
-            {
-                playerObj.transform.rotation = Quaternion.LookRotation(directionToCenter);
-            }
+            Quaternion spawnRot = Quaternion.LookRotation(directionToCenter);
 
+            // spawn player
+            GameObject playerObj = AssetManager.Instance.GetPlayer(spawnPos, spawnRot);
+            playerObj.GetComponent<NetworkObject>().SpawnAsPlayerObject(client.ClientId);
+
+            // configure player
             CharacterMotor playerMotorScript = playerObj.GetComponent<CharacterMotor>();
             playerMotorScript.isPlayer = true;
-
             var playerController = playerObj.GetComponent<PlayerController>();
             playerController.Set_ID(platformIndices[currentPlatformIndex]);
             playerController.SetPlayerHexMap(platforms[platformIndices[currentPlatformIndex]]);
 
-            // this registration is local (in LevelManager), NOT Network client/player registration
+            // register player in LevelManager
             RegisterPlayer(platformIndices[currentPlatformIndex], playerController);
 
             // Set up the camera for the local player
@@ -143,47 +300,38 @@ public class LevelManager : MonoBehaviour
         // AI PLAYERS
         for (int i = 0; i < aiNeeded; i++)
         {
-            // only the Server should spawn/handle AI
-            if (!NetworkManager.Singleton.IsServer) return;
-
+            /*
+            // position
             int platformIndex = platformIndices[currentPlatformIndex];
-            //Vector3 aiSpawnPos = HexUtils.GetRandomHexTile(platforms[platformIndex]).transform.position;
-
             Vector3 aiSpawnPos = GetPlatformCenter(platforms[platformIndex]);
             aiSpawnPos.y = 2.77f;
 
-            // Face center of the grid
+            // rotation (face center of the platform grid)
             Vector3 directionToCenter = (centerPoint - aiSpawnPos).normalized;
             directionToCenter.y = 0; // flatten on Y axis
-            Quaternion aiRotation = Quaternion.identity;
-            if (directionToCenter != Vector3.zero)
-            {
-                aiRotation = Quaternion.LookRotation(directionToCenter);
-            }
+            Quaternion aiRotation = Quaternion.LookRotation(directionToCenter);
 
+            // spawn the ai on the network
             GameObject ai = AssetManager.Instance.GetAI(aiSpawnPos, aiRotation);
+            ai.GetComponent<NetworkObject>().Spawn(true); // Server owns it            
 
-            // Ensure the AI prefab has a NetworkObject component
-            NetworkObject networkObject = ai.GetComponent<NetworkObject>();
-            if (networkObject != null)
-            {
-                networkObject.Spawn();
-            }
-
+            // configure
             var aiController = ai.GetComponent<AIController>();
             aiController.SetAIHexMap(platforms[platformIndex]);
             int aiID = 1000 + platformIndex;
             aiController.Set_ID(aiID);
 
-            // this registration is local (in LevelManager), NOT Network client/player registration
+            // register with LevelManager
             RegisterAI(aiID, aiController);
 
             currentPlatformIndex++;
+            */
         }
 
-        GameManager.Instance.TransitionToGameplay();
-    }
+        Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is finished spawning the characters");
+    }  
 
+    
     public void RegisterPlayer(int player_ID, PlayerController controllerScript)
     {
         playerControllers[player_ID] = controllerScript;
@@ -193,7 +341,7 @@ public class LevelManager : MonoBehaviour
     {
         aiControllers[ai_ID] = controllerScript;
     }
-
+   
     public Dictionary<Vector2Int, HexTile> GetHexMap(int platformId)
     {
         if (platformId >= platforms.Count || platformId < 0) { return null; }
@@ -318,7 +466,7 @@ public class LevelManager : MonoBehaviour
     }
 
     // this Instance is a global static reference.  Need to ensure that ref is cleared whenever reloading a scene.
-    private void OnDestroy()
+    private new void OnDestroy()
     {
         if (Instance == this) Instance = null;
     }

@@ -14,14 +14,47 @@ public class PlatformBuilder : MonoBehaviour
     public float circleRadius = 5f; // Used only for circle mode
     public float edgeRaggedness = 0;  // 0 = perfect cirle, 0.5f pretty ragged, 0.8f very ragged.
 
-    private int platformIdCounter = 0;
-
     private void Awake()
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
     }
 
+    public (List<Vector3>, List<Vector2Int>) GenerateHexTilePositions(Vector3 platformPos)
+    {
+        List<Vector3> hexPositions = new List<Vector3>();
+        List<Vector2Int> hexGridCoords = new List<Vector2Int>();
+
+        if (spawnMode == SpawnMode.Grid)
+        {
+            (hexPositions, hexGridCoords) = HexUtils.GenerateGridPositions(numRows, numCols, hexSize, isFlatTop);
+        }
+        else if (spawnMode == SpawnMode.Circle)
+        {
+            (hexPositions, hexGridCoords) = HexUtils.GenerateCirclePositions(circleRadius, edgeRaggedness, hexSize, isFlatTop);
+        }
+        else if (spawnMode == SpawnMode.Pinwheel)
+        {
+            (hexPositions, hexGridCoords) = HexUtils.GeneratePinwheelPositions(circleRadius, hexSize);
+        }
+        else if (spawnMode == SpawnMode.Hexagon)
+        {
+            (hexPositions, hexGridCoords) = HexUtils.GenerateHexagonPositions(circleRadius, hexSize, isFlatTop);
+        }
+
+        if (hexPositions.Count != hexGridCoords.Count)
+        {
+            Debug.Log("BuildHexMap error!  Mismatched positions and gridcoords.");
+            return (null, null);
+        }
+
+        // update the generated world positions relative to this platform position
+        for (int i = 0; i < hexPositions.Count; i++) { hexPositions[i] += platformPos; }
+
+        return (hexPositions, hexGridCoords);
+    }
+
+    /*
     public (GameObject, Dictionary<Vector2Int, HexTile>) BuildPlatform(Vector3 startPos)
     {
         // get an empty parent object (platform) that will hold all of the floor tiles we're about to spawn
@@ -95,6 +128,7 @@ public class PlatformBuilder : MonoBehaviour
 
         return hexMap;
     }
+    */
 
     // this Instance is a global static reference.  Need to ensure that ref is cleared whenever reloading a scene.
     private void OnDestroy()

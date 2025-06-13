@@ -1,10 +1,11 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 using Unity.Netcode;
 using System.Linq;
 
-public class GameManager : MonoBehaviour
+public class GameManager : NetworkBehaviour
 {
     public enum GameState
     {
@@ -21,6 +22,31 @@ public class GameManager : MonoBehaviour
     public bool allowEnemies = true;
 
     private GameState currentState = GameState.None;
+
+    private HashSet<ulong> clientsLoadedScene = new(); // counter of clients that have connected
+
+
+    /*
+    POTENTIAL GAME FLOW
+    --------------------
+    [Scene Load Phase]
+    → Host + Clients enter GameScene via network scene loading
+    → Each client (including host) fires `OnLoadComplete`
+    → Each client sends "SceneLoaded" to host
+
+    [Tile Sync Phase]
+    → Host waits until all clients have sent "SceneLoaded"
+    → Host generates platform and tile data
+    → Host sends platform and tile data to all clients via RPC
+    → Each client (and host) uses that data to spawn tiles
+    → Each client sends "TilesSpawned" to host
+
+    [Game Start Phase]
+    → Host waits until all clients have sent "TilesSpawned"
+    → Host sends `StartGameClientRpc()` to begin gameplay
+    */
+
+
 
     private void OnEnable()
     {
@@ -48,14 +74,44 @@ public class GameManager : MonoBehaviour
 
     private void OnNetworkSceneLoaded(ulong clientId, string sceneName, LoadSceneMode loadSceneMode)
     {
-        Debug.Log("GameManager OnNetworkSceneLoaded has run");  //THIS IS NOT GETTING CALLED!
+        Debug.Log($"Local client ({clientId}) finished loading scene.");
 
-        // Host initializes the level *after* everyone finishes loading
-        if (NetworkManager.Singleton.IsHost && clientId == NetworkManager.Singleton.LocalClientId)
+        //ClientSceneLoadedServerRpc(clientId);
+        if (NetworkManager.Singleton.LocalClientId == clientId) // ✅ Only call from the local client
         {
-            SetGameState(GameState.Setup); // Triggers LevelManager.InitializeLevel()
+            ClientSceneLoadedServerRpc(clientId);
         }
     }
+
+    
+    [ServerRpc(RequireOwnership = false)]
+    public void ClientSceneLoadedServerRpc(ulong clientId)
+    {
+        // count the incoming clients.  when all have connected, setup the game
+        //if (!NetworkManager.Singleton.IsHost) return;
+
+        Debug.Log($"ClientSceneLoadedServerRpc is firing from Client {clientId}");
+
+        if (!clientsLoadedScene.Contains(clientId))
+        {
+            clientsLoadedScene.Add(clientId);
+            Debug.Log($"Client {clientId} reported scene loaded. Total: {clientsLoadedScene.Count} of {NetworkManager.Singleton.ConnectedClientsIds.Count}");
+
+            // Check if all connected clients are ready
+            int totalClients = NetworkManager.Singleton.ConnectedClientsIds.Count;
+
+            if (clientsLoadedScene.Count == totalClients)
+            {
+                Debug.Log("All clients have loaded the scene.");
+                SetGameState(GameState.Setup);
+            }
+        }
+        else
+        {
+            Debug.Log($"Client {clientId} has already been included in the clientsLoadedScene list!");
+        }
+    }
+    
 
     private void OnClientDisconnected(ulong clientId)
     {
@@ -127,6 +183,8 @@ public class GameManager : MonoBehaviour
 
     public void SetGameState(GameState newState)
     {
+        Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is attempting to change GameState to: {newState}.  It is currently {currentState}");
+
         if (currentState == newState) return;
 
         currentState = newState;
@@ -199,6 +257,8 @@ public class GameManager : MonoBehaviour
     {
         currentState = GameState.Restarting;
         yield return new WaitForSeconds(delay);
+
+        clientsLoadedScene.Clear(); // reset connected-clients counter before reloading
         ReloadScene();
     }
 
@@ -223,7 +283,7 @@ public class GameManager : MonoBehaviour
     }
 
     // this Instance is a global static reference.  Need to ensure that ref is cleared whenever reloading a scene.
-    private void OnDestroy()
+    private new void OnDestroy()
     {
         if (Instance == this) Instance = null;
     }      
