@@ -32,7 +32,7 @@ public class PickupManager : NetworkBehaviour
         foreach (var kvp in allPlatformObjects)
         {
             GameObject platformGO = kvp.Value;
-            int platformId = platformGO.GetComponent<Platform>().platformId;
+            ulong platformId = platformGO.GetComponent<Platform>().platformId;
             PlatformPickupData platformData = platformGO.GetComponent<PlatformPickupData>();
 
             if (platformData == null || LevelManager.Instance.GetHexMap(platformId) == null || LevelManager.Instance.GetHexMap(platformId).Count == 0)

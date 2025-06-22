@@ -7,7 +7,7 @@ using Unity.Netcode;
 [System.Serializable]
 public struct HexTileData : INetworkSerializable
 {
-    public int platformId;
+    public ulong platformId; // same as characterID who owns the platform
     public Vector2Int gridCoords;
     public Vector3 worldPos;
 

@@ -13,7 +13,7 @@ public class AIController : NetworkBehaviour
     [SerializeField] private float pickupCheckInterval = 1.0f; // seconds between pickup scans
     private float pickupCheckCooldown = 0f;
     private GameObject cachedNearestAmmo = null;
-    public int id;
+    public NetworkVariable<ulong> id;
 
     private CharacterMotor motor;
     private CharacterShooter shooter;
@@ -175,7 +175,7 @@ public class AIController : NetworkBehaviour
         List<Targetable> potentialTargets = TargetManager.Instance.GetTargets();
 
         // Filter out self, dead targets, and own-bullets
-        potentialTargets.RemoveAll(t => t == null || !t.isActiveAndEnabled || t.gameObject == this.gameObject || (t.transform.GetComponent<Bullet>() && t.transform.GetComponent<Bullet>().ownerId == id));
+        potentialTargets.RemoveAll(t => t == null || !t.isActiveAndEnabled || t.gameObject == this.gameObject || (t.transform.GetComponent<Bullet>() && t.transform.GetComponent<Bullet>().ownerId == id.Value));
         //  || (t.transform.GetComponent<Bullet>() && t.transform.GetComponent<Bullet>().ownerId == id)
         
         if (potentialTargets.Count == 0)
@@ -197,15 +197,10 @@ public class AIController : NetworkBehaviour
         currentDestination = GetRandomPosition(hexMap);
     }
 
-    public void Set_ID(int character_id)
-    {
-        id = character_id;        
-    }
-
     public void KillEnemy(Vector3 feetPosition, Vector3 tippingAxis)
     {
         isDead = true;
-        LevelManager.Instance.RemoveCharacter(id, false);        
+        LevelManager.Instance.RemoveCharacter(id.Value, false);        
 
         StartCoroutine(TipAndFall(tippingAxis));        
     }

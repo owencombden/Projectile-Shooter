@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using Unity.Netcode;
 
 [RequireComponent(typeof(CharacterController))]
 public class CharacterMotor : MonoBehaviour
@@ -49,7 +50,7 @@ public class CharacterMotor : MonoBehaviour
         }
     }
 
-    // Called for Player input
+    // for Player movement
     public void Move(Vector2 input)
     {
         if (input.sqrMagnitude < 0.01f) return;
@@ -72,7 +73,7 @@ public class CharacterMotor : MonoBehaviour
         }
     }
 
-    // Called for AI movement
+    // for AI movement
     public void MoveTo(Vector3 destination)
     {
         Vector3 direction = destination - transform.position;
@@ -111,17 +112,17 @@ public class CharacterMotor : MonoBehaviour
         Vector3 targetFacing = targetDir.normalized;
         desiredFacing = targetFacing;
         facingOverrideTimer = facingOverrideDuration;
-
                 
         float elapsed = 0f;
-
         while (elapsed < maxAimTime)
         {
             float angle = Vector3.Angle(transform.forward, targetFacing);
 
             if (angle < aimAngleThreshold)
             {
-                shooter.TryShoot(target);
+                // client sends a message to server to request a shot attempt
+                Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is requesting a shot from the server.");
+                shooter.TryShootServerRPC(target.position, target.tag);
                 break;
             }
 

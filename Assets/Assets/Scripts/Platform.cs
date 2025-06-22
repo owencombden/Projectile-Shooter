@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 public class Platform : MonoBehaviour
 {
-    public int platformId;
+    public ulong platformId; // same as characterID who owns the platform
 
     // hexmaps are stored in LevelManager
 

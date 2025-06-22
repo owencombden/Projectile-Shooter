@@ -25,7 +25,7 @@ public class MainMenuUI : MonoBehaviour
 
     private void OnHostClicked()
     {
-        Debug.Log("OnHostClicked was detected");
+        //Debug.Log("OnHostClicked was detected");
 
         statusText.text = "Starting Host...";
 
@@ -38,7 +38,7 @@ public class MainMenuUI : MonoBehaviour
 
     private void OnJoinClicked()
     {
-        Debug.Log("OnJoinClicked was detected");
+        //Debug.Log("OnJoinClicked was detected");
 
         string ip = ipInputField.text;
         if (string.IsNullOrWhiteSpace(ip)) ip = "127.0.0.1";
@@ -61,11 +61,11 @@ public class MainMenuUI : MonoBehaviour
 
     private void OnClientConnected(ulong clientId)
     {
-        Debug.Log($"OnClientConnected was detected for clientID {clientId}");
+        //Debug.Log($"OnClientConnected was detected for clientID {clientId}");
 
         if (clientId == NetworkManager.Singleton.LocalClientId)
         {
-            Debug.Log($"Connected! Client {clientId} is entering Lobby... ");    
+            //Debug.Log($"Connected! Client {clientId} is entering Lobby... ");    
 
             statusText.text = "Connected! Entering Lobby...";
             NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
@@ -77,7 +77,7 @@ public class MainMenuUI : MonoBehaviour
 
     private void OnClientDisconnected(ulong clientId)
     {
-        Debug.Log($"OnClientDisconnected was detected for clientID {clientId}");
+        //Debug.Log($"OnClientDisconnected was detected for clientID {clientId}");
 
         if (clientId == NetworkManager.Singleton.LocalClientId)
         {

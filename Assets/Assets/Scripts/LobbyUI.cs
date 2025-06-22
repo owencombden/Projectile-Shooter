@@ -44,13 +44,13 @@ public class LobbyUI : MonoBehaviour
 
     private void OnStartGameClicked()
     {
-        Debug.Log("Start Game clicked");
+        //Debug.Log("Start Game clicked");
         LobbyManager.Instance?.StartGame();
     }
 
     private void OnLeaveLobbyClicked()
     {
-        Debug.Log("Leave Lobby clicked");
+        //Debug.Log("Leave Lobby clicked");
         LobbyManager.Instance?.LeaveLobby();
     }
 }

@@ -25,7 +25,7 @@ public class LobbyManager : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        Debug.Log($"LobbyManager OnNetworkSpawn (IsServer: {IsServer}) on client {NetworkManager.LocalClientId}");
+        //Debug.Log($"LobbyManager OnNetworkSpawn (IsServer: {IsServer}) on client {NetworkManager.LocalClientId}");
 
         if (IsServer)
         {
@@ -75,7 +75,7 @@ public class LobbyManager : NetworkBehaviour
     [ClientRpc]
     private void SendPlayerListToClientsClientRpc(FixedString32Bytes[] names)
     {
-        Debug.Log($"[ClientRpc] Received player list with {names.Length} entries");
+        //Debug.Log($"[ClientRpc] Received player list with {names.Length} entries");
         if (lobbyUI == null)
         {
             Debug.LogWarning("LobbyUI is null on client!");

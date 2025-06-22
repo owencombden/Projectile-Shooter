@@ -8,7 +8,7 @@ public class HexTile : MonoBehaviour
     [SerializeField] private float remainingHitPoints;    
     public float         maxHitPoints = 100f;
     public Renderer      tileRenderer;
-    public int           ownerId;    // the parent platform
+    public ulong         ownerId;    // the parent platform
     public Vector2Int    gridCoords; // axial or offset grid coordinates
     public List<HexTile> neighbors = new List<HexTile>();
 

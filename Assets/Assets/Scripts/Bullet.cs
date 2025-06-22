@@ -9,24 +9,26 @@ public class Bullet : NetworkBehaviour
     public float blastForce = 100f;  // the AOE force applied, scaled for distance
     public float maxLifetime = 7f;
     public Vector3 startPos { get; private set; }    
-    public int ownerId;  
+    public ulong ownerId;  
 
     private Rigidbody rb;
     private TrailRenderer trailRenderer;
     private float lifetime = 0f;
     private bool _hasTriggered = false;
 
-
-    // called only once when instantiated!
-    private void Awake()
+    
+    public override void OnNetworkSpawn()
     {
+        if (!IsServer) return;
+        //Debug.Log($"Bullet has spawned on the network.");
         rb = GetComponent<Rigidbody>();
         trailRenderer = GetComponent<TrailRenderer>();         
     }
 
     private void OnEnable()
     {
-        //Debug.Log($"{transform.name} has been enabled.");
+        if (!IsServer) return;
+        //Debug.Log($"{transform.name} has been enabled with velocity {rb.linearVelocity}.");
         startPos = transform.position;
         rb.isKinematic = false;        
         rb.linearVelocity = Vector3.zero;        
@@ -36,10 +38,11 @@ public class Bullet : NetworkBehaviour
     // reset the bullet when it's deactivated (returned to the pool)
     private void OnDisable()
     {
+        if (!IsServer) return;
         //Debug.Log($"{transform.name} has been disabled.");
         startPos = Vector3.zero;
         rb.isKinematic = true;        
-        ownerId = -1;
+        ownerId = ulong.MaxValue;
         trailRenderer.Clear();
         lifetime = 0f;       
     }
@@ -47,10 +50,14 @@ public class Bullet : NetworkBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (!IsServer) return;
+
+        //Debug.Log($"Bullet is airborne with velocity {rb.linearVelocity}");
+        
         lifetime += Time.deltaTime;
 
         if(!isAlive())
-        {           
+        {                   
             DestroyBullet();
         }        
     }    
@@ -104,7 +111,7 @@ public class Bullet : NetworkBehaviour
             blastDirection.y = 0;
 
             PlayerController player = collision.transform.GetComponent<PlayerController>();
-            if (player != null && player.id != ownerId)
+            if (player != null && player.id.Value != ownerId)
             {   
                 //Debug.Log($"Bullet is applying blast force...");
                 player.ApplyBlastForce(blastDirection, blastForce);
@@ -115,7 +122,7 @@ public class Bullet : NetworkBehaviour
         else if (collision.collider.CompareTag("AI_Player"))
         {
             AIController controller = collision.transform.GetComponent<AIController>();
-            if (controller != null && controller.id != ownerId)
+            if (controller != null && controller.id.Value != ownerId)
             {
                 //controller.ApplyBlastForce(transform.position, blastForce, blastRadius);
             }
@@ -165,6 +172,10 @@ public class Bullet : NetworkBehaviour
 
     void DestroyBullet()
     {
+        if (!IsServer) return;
+
+        Debug.Log($"Destroying bullet..."); 
+
         // Tell Netcode to despawn this bullet (but we're pooling so don’t destroy the GameObject!!)
         var netObj = GetComponent<NetworkObject>();
         if (netObj != null && netObj.IsSpawned)

@@ -6,7 +6,7 @@ using Unity.Netcode;
 
 public class PlayerController : NetworkBehaviour
 {    
-    public int id;
+    public NetworkVariable<ulong> id;
     public bool playerDead = false;
     
     private CharacterMotor motor;
@@ -17,12 +17,16 @@ public class PlayerController : NetworkBehaviour
     Dictionary<Vector2Int, HexTile> hexMap;  // the collection of tiles that the Player is standing on
 
     public override void OnNetworkSpawn()
-    {
+    {        
+        if (!IsOwner) return;
         
-        if (!IsOwner) return;  //isOwner is provided by NetCode import
-
+        var camera = Camera.main;
+        if (camera != null && camera.TryGetComponent(out CameraLook lookScript))
+        {
+            lookScript.SetTarget(transform, transform.Find("CameraLookHere"));
+        }
         motor = GetComponent<CharacterMotor>();
-        motor.SetCamera(Camera.main.transform);   // Only needed for player
+        motor.SetCamera(camera.transform);   // Only needed for player
         input = GetComponent<ICharacterInputProvider>();
         shooter = GetComponent<CharacterShooter>();
         lastGroundPos = transform.position;   
@@ -31,6 +35,12 @@ public class PlayerController : NetworkBehaviour
     void Awake()
     {
         //Debug.Log($"Player prefab instantiated at runtime! Scene: {gameObject.scene.name} | Time: {Time.time}");
+    }
+
+    void Start()
+    {   
+        PlayerInputHandler handler = GetComponent<PlayerInputHandler>();
+        handler.OnShootClicked += HandleShootClicked;   
     }
 
     private void Update()
@@ -57,7 +67,7 @@ public class PlayerController : NetworkBehaviour
             {
                 isAvoidingWater = true;
                 lastGroundPos.y = transform.position.y;
-                Debug.Log($"Player is about to step in water!  Moving back to {lastGroundPos}");
+                //Debug.Log($"Player is about to step in water!  Moving back to {lastGroundPos}");
                 StartCoroutine(TryToAvoidWater(lastGroundPos, 0.2f));
             }
             return;
@@ -72,7 +82,8 @@ public class PlayerController : NetworkBehaviour
         Vector2 moveInput = input.MoveInput;
         if (moveInput.magnitude > 0.1f) { motor.Move(moveInput); }
 
-        //check for shooting
+        //check for shooting (using the event in PlayerInputHandler instead...testing)
+        /*
         if (input.ShootAtTarget)
         {
             Transform clickedTarget = GetMouseClickTarget();
@@ -85,14 +96,30 @@ public class PlayerController : NetworkBehaviour
                 if (clickedTarget.tag == "Ground" && IsOwnPlatform(clickedTarget)) { return; }
 
                 // Shoot!
+                //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} clicked on something.");
                 StartCoroutine(Shoot(clickedTarget));
             }
         }
+        */
+    }
+
+    private void HandleShootClicked()
+    {
+        if (!IsOwner || playerDead) return;
+        
+        Transform clickedTarget = GetMouseClickTarget();
+        if (clickedTarget == null) return;
+        if (clickedTarget.tag == "Water") return;
+        if (clickedTarget.tag == "Ground" && IsOwnPlatform(clickedTarget)) return;
+
+        //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} clicked on something.");
+        StartCoroutine(Shoot(clickedTarget));
     }
 
     private bool IsOwnPlatform(Transform clickedTarget)
     {
-        return clickedTarget.GetComponentInParent<HexTile>().ownerId == id;
+        //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is checking if isOwnPlatform.");
+        return clickedTarget.GetComponentInParent<HexTile>().ownerId == id.Value;
     }
 
     private IEnumerator TryToAvoidWater(Vector3 destination, float duration)
@@ -159,16 +186,11 @@ public class PlayerController : NetworkBehaviour
         hexMap = platform;
     }
 
-    public void Set_ID(int character_id)
-    {
-        id = character_id;        
-    }
-
     public void KillPlayer(Vector3 feetPosition, Vector3 tippingAxis)
     {
         // flag the player as dead.
         playerDead = true;
-        LevelManager.Instance.RemoveCharacter(id, true);        
+        LevelManager.Instance.RemoveCharacter(id.Value, true);        
 
         //tip the player towards the water in the direction of player velocity        
         StartCoroutine(FallOver(tippingAxis));

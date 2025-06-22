@@ -8,8 +8,8 @@ public class LevelManager : NetworkBehaviour
     public static LevelManager Instance;
 
     [Header("Game Setup")]
-    [SerializeField] private int maxTotalCharacters = 4; // total including players + AI
-    [SerializeField] private int extraAICount = 2;
+    [SerializeField] private int maxTotalCharacters = 0; // SET IN INSPECTOR.  Total includes players + AI
+    [SerializeField] private int extraAICount = 0;       // SET IN INSPECTOR.
 
     [Header("Platform Settings")]
     [SerializeField] private float xSpacing = 60f;
@@ -21,22 +21,27 @@ public class LevelManager : NetworkBehaviour
     // platforms[platformID]                 -> get all tiles for that platform
     // platforms[platformID][gridPos]        -> get any tile in O(1)
     // platforms[platformID].Remove(gridPos) -> remove tile from dictionary    
-    private Dictionary<int, Dictionary<Vector2Int, HexTile>> platforms = new();  // 2D hexmaps
-    private Dictionary<int, GameObject> platformGameObjects = new();             // gameobjs  
+    private Dictionary<ulong, Dictionary<Vector2Int, HexTile>> platforms = new();  // 2D hexmaps
+    private Dictionary<ulong, GameObject> platformGameObjects = new();             // gameobjs  
 
     // could also implement this HashSet if things get slow
     // an inner hashset is faster, could be good if wanted to apply something across all tiles (ie: collision detection?)
     // would have to keep the Dict(Dict) and maintain two collections when adding/removing tiles and platforms
     // private Dictionary<int, HashSet<HexTile>> activeTiles = new();    
 
-    private Dictionary<int, PlayerController> playerControllers = new();
-    private Dictionary<int, AIController> aiControllers = new();
+    private Dictionary<ulong, PlayerController> playerControllers = new();
+    private Dictionary<ulong, AIController> aiControllers = new();
     public bool AreAllAIsDefeated() => aiControllers.Count == 0;
     public bool IsPlayerDefeated() => playerControllers.Count == 0;
 
     // tracking the initial synch of hextiles data across the network.
-    [SerializeField] private List<HexTileData> allHexTileData = new();    
+    [SerializeField] private List<HexTileData> allHexTileData = new();
+
+    // track the clients    
     private int expectedClientCount = -1;
+    ulong[] characterIds = Enumerable.Repeat(ulong.MaxValue, 15).ToArray();  // careful, max 15 ids! initialize each position with a MaxValue placeholder
+
+    // ClientRPC callback tracking
     private HashSet<ulong> clientsConfirmedHexData = new();
     private HashSet<ulong> clientsConfirmedPlatformsSpawned = new();
 
@@ -54,33 +59,70 @@ public class LevelManager : NetworkBehaviour
 
     public void InitializeLevel()
     {
-        Debug.Log("Level Manager is Initalializing the level");
+        // server/host only here!
 
-        // get the number of expected clients (excluding the host) that we need to set up
-        // Track how many clients to expect
-        expectedClientCount = NetworkManager.Singleton.ConnectedClientsList.Count - 1; // exclude host
+        //Debug.Log("Level Manager is Initalializing the level");
+
+        // get the number of expected clients (excluding the host) that we have to communicate with
+        expectedClientCount = NetworkManager.Singleton.ConnectedClientsList.Count - 1;
+
+        int idCounter = 0;
+        // get the human ids
+        for (int i = 0; i < NetworkManager.Singleton.ConnectedClientsList.Count; i++)
+        {
+            characterIds[i] = NetworkManager.Singleton.ConnectedClientsList[i].ClientId;
+            idCounter++;
+        }
+        // generate and append any AI ids
+        for (int i = 0; i < extraAICount; i++)
+        {
+            ulong aiID = 100 + (ulong)idCounter;
+            characterIds[idCounter] = aiID;
+        }
+
+        //Debug.Log($"Character Ids:");
+        foreach (var id in characterIds)
+        {
+            //if (id != ulong.MaxValue) Debug.Log($"  -> {id}");
+        }
 
         // generate the datastructure that stores all the information needed to spawn all the floor tiles
         GenerateAllHexTileData();
 
         // share the hexTile data with all clients.  The clients report back when they all have synched.
         // convert the argument to an array (as its natively serialized by Unity) for transport to clients
-        SendHexTileDataClientRpc(allHexTileData.ToArray());
-
-        // SpawnAllCharacters(platforms);  //We will look at this later!
+        if (NetworkManager.Singleton.ConnectedClientsList.Count > 1)
+        {
+            SendHexTileDataClientRpc(allHexTileData.ToArray());
+        }
+        else
+        {
+            // only one human player
+            SpawnAllPlatforms();
+            SpawnAllCharacters();
+            GameManager.Instance.TransitionToGameplay();
+        }
+        
     }
 
     private void GenerateAllHexTileData()
     {
         int humanCount = NetworkManager.Singleton.ConnectedClientsList.Count;
-        int totalCharacters = Mathf.Max(humanCount + extraAICount, maxTotalCharacters);
+        
 
-        int gridSize = Mathf.CeilToInt(Mathf.Sqrt(totalCharacters));
+        // put this back for num platforms based on num total characters
+        // int gridSize = Mathf.CeilToInt(Mathf.Sqrt(totalCharacters));
+
+        //debugging
+        int gridSize = 2;
+        int maxPlatforms = 4;
+
+
         int platformsSpawned = 0;
 
-        for (int row = 0; row < gridSize && platformsSpawned < totalCharacters; row++)
+        for (int row = 0; row < gridSize && platformsSpawned < maxPlatforms; row++)
         {
-            for (int col = 0; col < gridSize && platformsSpawned < totalCharacters; col++)
+            for (int col = 0; col < gridSize && platformsSpawned < maxPlatforms; col++)
             {
                 // get the platform position
                 Vector3 platformPos = new Vector3(col * xSpacing, 0, row * zSpacing);
@@ -97,7 +139,7 @@ public class LevelManager : NetworkBehaviour
                 {
                     HexTileData data = new HexTileData
                     {
-                        platformId = platformsSpawned,
+                        platformId = characterIds[platformsSpawned],  // platform gets ID from character
                         worldPos = hexPositions[i],
                         gridCoords = hexGridCoords[i]
                     };
@@ -114,7 +156,7 @@ public class LevelManager : NetworkBehaviour
     [ClientRpc]
     private void SendHexTileDataClientRpc(HexTileData[] tileDataList)
     {
-        Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is calling SendHexTileDataClientRpc");        
+        //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is calling SendHexTileDataClientRpc");        
         // clients only. the host already has this data.
         if (NetworkManager.Singleton.IsHost) return; 
         
@@ -130,11 +172,11 @@ public class LevelManager : NetworkBehaviour
         if (!NetworkManager.Singleton.IsServer) return;
 
         clientsConfirmedHexData.Add(clientId);
-        Debug.Log($"[HexSync] Client {clientId} confirmed tile data receipt ({clientsConfirmedHexData.Count}/{expectedClientCount})");
+        //Debug.Log($"[HexSync] Client {clientId} confirmed tile data receipt ({clientsConfirmedHexData.Count}/{expectedClientCount})");
 
         if (clientsConfirmedHexData.Count >= expectedClientCount)
         {
-            Debug.Log("[HexSync] All clients are ready to spawn platforms!");
+            //Debug.Log("[HexSync] All clients are ready to spawn platforms!");
             ReadyToSpawnPlatformsClientRpc();
         }
     }
@@ -142,7 +184,7 @@ public class LevelManager : NetworkBehaviour
     [ClientRpc]
     private void ReadyToSpawnPlatformsClientRpc()
     {
-        Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is calling ReadyToSpawnPlatformsClientRpc");
+        //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is calling ReadyToSpawnPlatformsClientRpc");
 
         // everybody spawns, host too.
         SpawnAllPlatforms();        
@@ -163,12 +205,12 @@ public class LevelManager : NetworkBehaviour
 
         foreach (var platformGroup in groupedByPlatform)
         {
-            int platformId = platformGroup.Key;
+            ulong platformId = platformGroup.Key;
 
             // make the position of the platform equal to the position of the first child hextile
             Vector3 platformStartPos = platformGroup.First().worldPos;
 
-            Debug.Log($"Created platform {platformId} at position {platformStartPos}");
+            //Debug.Log($"Creating platform {platformId} at position {platformStartPos}");
 
             // Step 2: Instantiate the platform root object, set it's Id, and cache it
             GameObject thisPlatform = AssetManager.Instance.GetPlatform(platformStartPos, Quaternion.identity);
@@ -219,11 +261,11 @@ public class LevelManager : NetworkBehaviour
             clientsConfirmedPlatformsSpawned.Add(NetworkManager.Singleton.LocalClientId);
         }
 
-        Debug.Log($"[PlatformSync] Client {clientId} confirmed finished spawning platforms.  receipt ({clientsConfirmedPlatformsSpawned.Count}/{expectedClientCount + 1})");  //include host
+        //Debug.Log($"[PlatformSync] Client {clientId} confirmed finished spawning platforms.  receipt ({clientsConfirmedPlatformsSpawned.Count}/{expectedClientCount + 1})");  //include host
 
         if (clientsConfirmedPlatformsSpawned.Count >= expectedClientCount + 1) // include host
         {
-            Debug.Log($"[PlatformSync] Client {NetworkManager.Singleton.LocalClientId} reporting that the server is ready to spawn characters!");
+            //Debug.Log($"[PlatformSync] Client {NetworkManager.Singleton.LocalClientId} reporting that the server is ready to spawn characters!");
             ReadyToSpawnCharactersServerRpc();
         }
     }
@@ -234,13 +276,13 @@ public class LevelManager : NetworkBehaviour
         // server will spawn and own characters
         if (!NetworkManager.Singleton.IsServer) return;
 
-        Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is calling ReadyToSpawnCharactersClientRpc");
+        //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is calling ReadyToSpawnCharactersClientRpc");
 
         // spawn human and ai characters (position, rotation, config)
         SpawnAllCharacters();
         
-        // this needs to come next
-        // GameManager.Instance.TransitionToGameplay();
+        // finished with setup, start the game
+        GameManager.Instance.TransitionToGameplay();
     }
 
     void SpawnAllCharacters()
@@ -256,17 +298,15 @@ public class LevelManager : NetworkBehaviour
         }
         centerPoint /= platformGameObjects.Count;
 
-        int aiNeeded = extraAICount;
-
         // assign characters to platforms
-        List<int> platformIndices = new List<int>(platforms.Keys);
-        int currentPlatformIndex = 0;
+        List<ulong> platformIndices = new List<ulong>(platforms.Keys);
+        ulong currentPlatformIndex = 0;
 
         // HUMAN PLAYERS (spawn on the network and reposition/configure)
         foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
         {
             // position (center of platform)        
-            Vector3 spawnPos = GetPlatformCenter(platforms[platformIndices[currentPlatformIndex]]);
+            Vector3 spawnPos = GetPlatformCenter(platforms[platformIndices[(int)currentPlatformIndex]]);
             spawnPos.y = 2.33f;
 
             // rotation (face center of the platform grid)
@@ -282,27 +322,22 @@ public class LevelManager : NetworkBehaviour
             CharacterMotor playerMotorScript = playerObj.GetComponent<CharacterMotor>();
             playerMotorScript.isPlayer = true;
             var playerController = playerObj.GetComponent<PlayerController>();
-            playerController.Set_ID(platformIndices[currentPlatformIndex]);
-            playerController.SetPlayerHexMap(platforms[platformIndices[currentPlatformIndex]]);
+            playerController.id.Value = client.ClientId;
+            //Debug.Log($"Setting human player controller as ID: {playerController.id}");
+            playerController.SetPlayerHexMap(platforms[platformIndices[(int)currentPlatformIndex]]);
 
             // register player in LevelManager
-            RegisterPlayer(platformIndices[currentPlatformIndex], playerController);
-
-            // Set up the camera for the local player
-            if (playerController.IsOwner)
-            {
-                Camera.main.GetComponent<CameraLook>().SetTarget(playerObj.transform, playerObj.transform.Find("CameraLookHere"));
-            }
+            RegisterPlayer(platformIndices[(int)currentPlatformIndex], playerController);
 
             currentPlatformIndex++;
         }
 
         // AI PLAYERS
-        for (int i = 0; i < aiNeeded; i++)
+        for (int i = 0; i < extraAICount; i++)
         {
-            /*
+            
             // position
-            int platformIndex = platformIndices[currentPlatformIndex];
+            ulong platformIndex = platformIndices[(int)currentPlatformIndex];
             Vector3 aiSpawnPos = GetPlatformCenter(platforms[platformIndex]);
             aiSpawnPos.y = 2.77f;
 
@@ -318,43 +353,43 @@ public class LevelManager : NetworkBehaviour
             // configure
             var aiController = ai.GetComponent<AIController>();
             aiController.SetAIHexMap(platforms[platformIndex]);
-            int aiID = 1000 + platformIndex;
-            aiController.Set_ID(aiID);
+            ulong aiID = characterIds[(int)currentPlatformIndex];
+            aiController.id.Value = aiID;
 
             // register with LevelManager
             RegisterAI(aiID, aiController);
 
             currentPlatformIndex++;
-            */
+            
         }
 
-        Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is finished spawning the characters");
+        //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is finished spawning the characters");
     }  
 
     
-    public void RegisterPlayer(int player_ID, PlayerController controllerScript)
+    public void RegisterPlayer(ulong player_ID, PlayerController controllerScript)
     {
         playerControllers[player_ID] = controllerScript;
     }
 
-    public void RegisterAI(int ai_ID, AIController controllerScript)
+    public void RegisterAI(ulong ai_ID, AIController controllerScript)
     {
         aiControllers[ai_ID] = controllerScript;
     }
    
-    public Dictionary<Vector2Int, HexTile> GetHexMap(int platformId)
+    public Dictionary<Vector2Int, HexTile> GetHexMap(ulong platformId)
     {
-        if (platformId >= platforms.Count || platformId < 0) { return null; }
+        if ((int)platformId >= platforms.Count || platformId < 0) { return null; }
 
         return platforms[platformId];
     }
 
-    public Dictionary<int, Dictionary<Vector2Int, HexTile>> GetAllHexMaps()
+    public Dictionary<ulong, Dictionary<Vector2Int, HexTile>> GetAllHexMaps()
     {
         return platforms;
     }
 
-    public Dictionary<int, GameObject> GetAllPlatformObjects()
+    public Dictionary<ulong, GameObject> GetAllPlatformObjects()
     {
         return platformGameObjects;
     }
@@ -381,7 +416,7 @@ public class LevelManager : NetworkBehaviour
         return avg / platformTiles.Count;
     }
 
-    public void RemoveCharacter(int id, bool isPlayer)
+    public void RemoveCharacter(ulong id, bool isPlayer)
     {
         if (isPlayer)
         {
@@ -393,7 +428,7 @@ public class LevelManager : NetworkBehaviour
         }
     }
 
-    public void RemoveHexTile(int platformID, Vector2Int gridPos)
+    public void RemoveHexTile(ulong platformID, Vector2Int gridPos)
     {
         // get the script on this tile
         HexTile thisHexTile = platforms[platformID][gridPos];
@@ -433,7 +468,7 @@ public class LevelManager : NetworkBehaviour
         aiControllers.Clear();
 
         // Platform and tile cleanup
-        foreach (var platformID in new List<int>(platforms.Keys))
+        foreach (var platformID in new List<ulong>(platforms.Keys))
         {
             RemovePlatform(platformID);
         }
@@ -442,7 +477,7 @@ public class LevelManager : NetworkBehaviour
         platformGameObjects.Clear();
     }
 
-    private void RemovePlatform(int platformID)
+    private void RemovePlatform(ulong platformID)
     {
         // remove platforms from both hexmap dict and gameobj dict.  make sure they are empty.
         if (!platforms.ContainsKey(platformID)) return;

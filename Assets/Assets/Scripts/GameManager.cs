@@ -50,7 +50,7 @@ public class GameManager : NetworkBehaviour
 
     private void OnEnable()
     {
-        Debug.Log("GameManager OnEnable has run");
+        //Debug.Log("GameManager OnEnable has run");
 
         if (NetworkManager.Singleton != null && NetworkManager.Singleton.SceneManager != null)
         {
@@ -74,7 +74,7 @@ public class GameManager : NetworkBehaviour
 
     private void OnNetworkSceneLoaded(ulong clientId, string sceneName, LoadSceneMode loadSceneMode)
     {
-        Debug.Log($"Local client ({clientId}) finished loading scene.");
+        //Debug.Log($"Local client ({clientId}) finished loading scene.");
 
         //ClientSceneLoadedServerRpc(clientId);
         if (NetworkManager.Singleton.LocalClientId == clientId) // ✅ Only call from the local client
@@ -90,25 +90,25 @@ public class GameManager : NetworkBehaviour
         // count the incoming clients.  when all have connected, setup the game
         //if (!NetworkManager.Singleton.IsHost) return;
 
-        Debug.Log($"ClientSceneLoadedServerRpc is firing from Client {clientId}");
+        //Debug.Log($"ClientSceneLoadedServerRpc is firing from Client {clientId}");
 
         if (!clientsLoadedScene.Contains(clientId))
         {
             clientsLoadedScene.Add(clientId);
-            Debug.Log($"Client {clientId} reported scene loaded. Total: {clientsLoadedScene.Count} of {NetworkManager.Singleton.ConnectedClientsIds.Count}");
+            //Debug.Log($"Client {clientId} reported scene loaded. Total: {clientsLoadedScene.Count} of {NetworkManager.Singleton.ConnectedClientsIds.Count}");
 
             // Check if all connected clients are ready
             int totalClients = NetworkManager.Singleton.ConnectedClientsIds.Count;
 
             if (clientsLoadedScene.Count == totalClients)
             {
-                Debug.Log("All clients have loaded the scene.");
+                //Debug.Log("All clients have loaded the scene.");
                 SetGameState(GameState.Setup);
             }
         }
         else
         {
-            Debug.Log($"Client {clientId} has already been included in the clientsLoadedScene list!");
+            //Debug.Log($"Client {clientId} has already been included in the clientsLoadedScene list!");
         }
     }
     
@@ -138,7 +138,7 @@ public class GameManager : NetworkBehaviour
         var playerController = playerObj.GetComponent<PlayerController>();
         if (playerController != null)
         {
-            LevelManager.Instance.RemoveCharacter(playerController.id, isPlayer: true);
+            LevelManager.Instance.RemoveCharacter(playerController.id.Value, isPlayer: true);
         }
 
         // Despawn network object (host authority)
@@ -168,22 +168,29 @@ public class GameManager : NetworkBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (!IsServer) return;
+
         if (currentState != GameState.Gameplay) return;
 
         // Check for win/loss based on current counts
         if (LevelManager.Instance.AreAllAIsDefeated())
         {
-            SetGameState(GameState.Win);
+            //SetGameState(GameState.Win);
         }
         else if (LevelManager.Instance.IsPlayerDefeated())
         {
-            SetGameState(GameState.Loss);
+            //SetGameState(GameState.Loss);
         }
+    }
+
+    public void TransitionToGameplay()
+    {
+        SetGameState(GameState.Gameplay);
     }
 
     public void SetGameState(GameState newState)
     {
-        Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is attempting to change GameState to: {newState}.  It is currently {currentState}");
+        //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is attempting to change GameState to: {newState}.  It is currently {currentState}");
 
         if (currentState == newState) return;
 
@@ -196,7 +203,8 @@ public class GameManager : NetworkBehaviour
                 StartCoroutine(HandleSetup());
                 break;
             case GameState.Gameplay:
-                // Begin gameplay loop
+                // Begin gameplay loop                
+                //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} has started the game!");
                 break;
             case GameState.Win:
                 HandleWin();
@@ -216,12 +224,7 @@ public class GameManager : NetworkBehaviour
 
         LevelManager.Instance.InitializeLevel(); // Create method to call platform/character spawn
     }
-
-    public void TransitionToGameplay()
-    {
-        SetGameState(GameState.Gameplay);
-        Debug.Log("Game has started!");
-    }
+    
 
     public void OnPlayerDefeated()
     {
