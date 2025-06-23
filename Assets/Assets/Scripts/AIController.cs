@@ -42,6 +42,9 @@ public class AIController : NetworkBehaviour
         
         if (isDead) return;
 
+        if (PauseManager.Instance != null && PauseManager.Instance.isPaused.Value)
+        return;
+
         // Check ground
         if (TryGetGroundHit(out RaycastHit hitData))
         {

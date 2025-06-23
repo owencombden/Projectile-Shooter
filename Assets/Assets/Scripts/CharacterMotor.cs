@@ -28,6 +28,9 @@ public class CharacterMotor : MonoBehaviour
 
     private void Update()
     {
+        if (PauseManager.Instance != null && PauseManager.Instance.isPaused.Value)
+        return;
+        
         HandleRotation();   
     }
 

@@ -15,22 +15,21 @@ public class Bullet : NetworkBehaviour
     private TrailRenderer trailRenderer;
     private float lifetime = 0f;
     private bool _hasTriggered = false;
+    private Vector3 cachedVelocity = Vector3.zero;
 
-    
     public override void OnNetworkSpawn()
     {
         if (!IsServer) return;
         //Debug.Log($"Bullet has spawned on the network.");
         rb = GetComponent<Rigidbody>();
-        trailRenderer = GetComponent<TrailRenderer>();         
+        trailRenderer = GetComponent<TrailRenderer>();
     }
 
     private void OnEnable()
     {
         if (!IsServer) return;
         //Debug.Log($"{transform.name} has been enabled with velocity {rb.linearVelocity}.");
-        startPos = transform.position;
-        rb.isKinematic = false;        
+        startPos = transform.position; 
         rb.linearVelocity = Vector3.zero;        
         _hasTriggered = false; 
     }
@@ -40,8 +39,7 @@ public class Bullet : NetworkBehaviour
     {
         if (!IsServer) return;
         //Debug.Log($"{transform.name} has been disabled.");
-        startPos = Vector3.zero;
-        rb.isKinematic = true;        
+        startPos = Vector3.zero;      
         ownerId = ulong.MaxValue;
         trailRenderer.Clear();
         lifetime = 0f;       
@@ -52,10 +50,30 @@ public class Bullet : NetworkBehaviour
     {
         if (!IsServer) return;
 
-        //Debug.Log($"Bullet is airborne with velocity {rb.linearVelocity}");
-        
-        lifetime += Time.deltaTime;
+        // handle paused
+        if (PauseManager.Instance.isPaused.Value)
+        {
+            if (rb.linearVelocity != Vector3.zero)
+            {
+                cachedVelocity = rb.linearVelocity;
+                rb.linearVelocity = Vector3.zero;
+                rb.isKinematic = true;
+            }
+            return;
+        }
+        else
+        {
+            if (rb.isKinematic)
+            {
+                rb.isKinematic = false;
+                rb.linearVelocity = cachedVelocity;
+            }
+        }
 
+        //Debug.Log($"Bullet is airborne with velocity {rb.linearVelocity}");
+
+        // handle bullet lifespan
+        lifetime += Time.deltaTime;
         if(!isAlive())
         {                   
             DestroyBullet();

@@ -170,6 +170,9 @@ public class GameManager : NetworkBehaviour
     {
         if (!IsServer) return;
 
+        if (PauseManager.Instance != null && PauseManager.Instance.isPaused.Value)
+        return;
+
         if (currentState != GameState.Gameplay) return;
 
         // Check for win/loss based on current counts

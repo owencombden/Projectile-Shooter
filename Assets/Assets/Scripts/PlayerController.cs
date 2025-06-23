@@ -47,6 +47,9 @@ public class PlayerController : NetworkBehaviour
     {
         if (!IsOwner || playerDead) return;
 
+        if (PauseManager.Instance != null && PauseManager.Instance.isPaused.Value)
+        return;
+
         // get current ground
         // use SphereCast so we can ignore tiny gaps in the floor tiles
         string tag = "";

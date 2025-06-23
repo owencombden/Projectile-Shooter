@@ -365,4 +365,4 @@ MonoBehaviour:
   NetworkRigidbodyBaseExpanded: 0
   UseRigidBodyForMotion: 1
   AutoUpdateKinematicState: 1
-  AutoSetKinematicOnDespawn: 0
+  AutoSetKinematicOnDespawn: 1

@@ -23,6 +23,9 @@ public class Pickup : NetworkBehaviour
         // only server has authority to manage pickups
         if (!IsServer) return;
 
+        if (PauseManager.Instance != null && PauseManager.Instance.isPaused.Value)
+        return;
+
         if (lifetime > 0f && Time.time - spawnTime > lifetime)
         {
             ReturnToPool();

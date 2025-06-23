@@ -14,6 +14,9 @@ public class PickupManager : NetworkBehaviour
         // only server has authority to spawn pickups
         if (!IsServer) return;
 
+        if (PauseManager.Instance != null && PauseManager.Instance.isPaused.Value)
+        return;
+
 
         spawnTimer -= Time.deltaTime;
 
