@@ -141,10 +141,13 @@ public class AIController : NetworkBehaviour
     {
         isWaiting = true;
 
-        Transform target = GetRandomTarget();        
+        Transform target = GetRandomTarget();
         if (target != null)
         {
-            yield return StartCoroutine(motor.RotateTowardTargetAndShoot(target));
+            // rotate body
+            yield return StartCoroutine(motor.RotateTowardTarget(target));
+            
+            //IMPLEMENT AI SHOOTING HERE
         }
 
         // Pick a new destination

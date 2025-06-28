@@ -20,10 +20,10 @@ public class CharacterShooter : NetworkBehaviour
     private Vector3 futurePos;
     private Vector3 gravityCompensation;
 
-    private int currentAmmo = 3;
+    public int currentAmmo = 3;
     private int maxAmmo = 3;  
-    private float shootCooldown = 0.5f;
-    private float lastShootTime;
+    public float shootCooldown = 0.5f;
+    public float lastShootTime;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -56,53 +56,21 @@ public class CharacterShooter : NetworkBehaviour
     }
 
     [ServerRpc]
-    public void TryShootServerRPC(Vector3 targetPosition, string targetTag)
+    public void SpawnBulletServerRPC(ulong clientID, Vector3 spawnPos, Vector3 shotVel)
     {
         if (!NetworkManager.Singleton.IsServer) return;
 
-        //  Who sent this?
-        var clientObj = NetworkManager.Singleton.ConnectedClients[OwnerClientId].PlayerObject;
-        var clientShooter = clientObj.GetComponent<CharacterShooter>();
-        
-        Debug.Log($"Server (Client {NetworkManager.Singleton.LocalClientId}) is handling a shot request from Client {OwnerClientId}");
+        Debug.Log($"Server (Client {NetworkManager.Singleton.LocalClientId}) is spawning a bullet for Client {clientID}");
 
-        // check ammo
-        if (clientShooter.currentAmmo <= 0) return;
-
-        if (Time.time - clientShooter.lastShootTime < clientShooter.shootCooldown) return;
-        clientShooter.lastShootTime = Time.time;
-
-        if (targetTag == "Ground" || targetTag == "Player" || targetTag == "AI_Player")
-        {
-            float fineTune = 0.97f;  //finetune range if needed
-            float distToTarget = Vector3.Distance(transform.position, targetPosition) * fineTune;
-
-            // calculate the angle, rotate the gun to position, get the required speed
-            // shoot in the direction the gun is pointing
-            float shotSpeed = AimAtTarget(distToTarget, clientShooter.gun);
-
-            Debug.Log($"Shot speed: {shotSpeed}");
-
-            Vector3 shotVelocity = shotSpeed * clientShooter.spawnpoint.forward;
-
-            Debug.Log($"Shot velocity: {shotVelocity}");
-
-            SpawnBullet(shotVelocity, clientShooter.spawnpoint.position, clientObj);
-
-            clientShooter.currentAmmo--;
-        }
-
-        // removed while focusing on ground hits.
-        // when implementing, possibly need to have the server rotate the client...is that doable?  wise?
-        // maybe revamp shooting altogether
-
-        // short tween to rotate/aim, then ShootAtEnemyBullet()
-        //if (targetTag == "Bullet") { AimAtEnemyBullet(target); }
-
-
+        GameObject bullet = AssetManager.Instance.GetBullet(spawnPos, Quaternion.identity);
+        bullet.GetComponent<NetworkObject>().Spawn();
+        Bullet bulletScript = bullet.GetComponent<Bullet>();
+        bulletScript.ownerId = clientID;             // currently the client requesting the shot is being assigned as the bullet 'owner'
+        Rigidbody bulletRb = bullet.GetComponent<Rigidbody>();
+        bulletRb.AddForce(shotVel, ForceMode.Impulse);
     }
     
-    public float AimAtTarget(float distToTarget, Transform clientGun)
+    public float AimAtTarget(float distToTarget, Transform gun)
     {
         // calculate the required angle and launchVelocity from two inputs: distToTarget and maxHeight
         // maxHeight can be set in the inspector to allow loftier shots
@@ -110,9 +78,9 @@ public class CharacterShooter : NetworkBehaviour
 
         // get and set the required gun angle.  
         float targetAngle = Mathf.Atan(4 * maxHeight/distToTarget) * Mathf.Rad2Deg;
-        Vector3 currentGunRot = clientGun.transform.rotation.eulerAngles;
+        Vector3 currentGunRot = gun.transform.rotation.eulerAngles;
         Vector3 gunRot = new Vector3(targetAngle,currentGunRot.y,currentGunRot.z);
-        clientGun.transform.eulerAngles = gunRot;   
+        gun.transform.eulerAngles = gunRot;   
 
         // get the required velocity, at that angle, to reach maxHeight. 
         float calculatedLaunchVelocity = CalculateLaunchVelocity(distToTarget, maxHeight); // normal velocity is around 30
@@ -197,18 +165,6 @@ public class CharacterShooter : NetworkBehaviour
     }
     */
 
-    void SpawnBullet(Vector3 shotVel, Vector3 spawnPos, NetworkObject clientObj)
-    {
-        Debug.Log($"Bullet is being spawned by Client {NetworkManager.Singleton.LocalClientId} as requested by Client {clientObj.GetComponent<PlayerController>().id}");
-        GameObject bullet = AssetManager.Instance.GetBullet(spawnPos, Quaternion.identity);
-        bullet.GetComponent<NetworkObject>().Spawn();
-        Bullet bulletScript = bullet.GetComponent<Bullet>();
-        bulletScript.ownerId = GetMyId(clientObj);             // currently the client requesting the shot is being assigned as the bullet 'owner'
-        Rigidbody bulletRb = bullet.GetComponent<Rigidbody>();
-        bulletRb.AddForce(shotVel, ForceMode.Impulse);
-    }
-
-
     public static float CalculateLaunchVelocity(float distance, float maxHeight)
     {
         float g = Physics.gravity.y * -1;        
@@ -221,20 +177,7 @@ public class CharacterShooter : NetworkBehaviour
         return v0;
     }
 
-    private ulong GetMyId(NetworkObject clientObj)
-    {
-        if (clientObj.tag == "Player")
-        {
-            return clientObj.GetComponent<PlayerController>().id.Value;
-        }
-        else if (clientObj.tag == "AI_Player")
-        {
-            return clientObj.GetComponent<AIController>().id.Value;
-        }
-        else{ Debug.Log("Could not set ownerID on Bullet!"); }
-
-        return ulong.MaxValue;
-    }
+    
 
 
     public static float MapValueToRange(float value, float fromMin, float fromMax, float toMin, float toMax)

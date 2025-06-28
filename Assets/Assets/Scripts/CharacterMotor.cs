@@ -103,8 +103,10 @@ public class CharacterMotor : MonoBehaviour
         desiredFacing = direction.normalized;
     }
 
-    public IEnumerator RotateTowardTargetAndShoot(Transform target)
+    public IEnumerator RotateTowardTarget(Transform target)
     {
+        // this should only be called by owner! See PlayerController
+
         if (target == null) yield break;
 
         Vector3 targetDir = target.position - transform.position;
@@ -123,9 +125,7 @@ public class CharacterMotor : MonoBehaviour
 
             if (angle < aimAngleThreshold)
             {
-                // client sends a message to server to request a shot attempt
-                Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is requesting a shot from the server.");
-                shooter.TryShootServerRPC(target.position, target.tag);
+                // body has been rotated
                 break;
             }
 

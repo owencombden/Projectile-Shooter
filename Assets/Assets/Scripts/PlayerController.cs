@@ -153,7 +153,43 @@ public class PlayerController : NetworkBehaviour
 
     private IEnumerator Shoot(Transform target)
     {
-        yield return StartCoroutine(motor.RotateTowardTargetAndShoot(target));
+        // wait until body rotates to face target
+        yield return StartCoroutine(motor.RotateTowardTarget(target));
+
+        //check if can shoot
+        var shooter = transform.GetComponent<CharacterShooter>();
+        if (shooter.GetCurrentAmmo() <= 0) yield break;
+        if (Time.time - shooter.lastShootTime < shooter.shootCooldown) yield break;
+        shooter.lastShootTime = Time.time;
+
+        // check target tag
+        if (target.tag == "Ground" || target.tag == "Player" || target.tag == "AI_Player")
+        {
+            float fineTune = 0.97f;  //finetune range if needed
+            float distToTarget = Vector3.Distance(transform.position, target.transform.position) * fineTune;
+
+            // calculate the angle, rotate the gun to position, get the required speed            
+            float shotSpeed = shooter.AimAtTarget(distToTarget, shooter.gun);
+            Vector3 shotVelocity = shotSpeed * shooter.spawnpoint.forward;
+            Debug.Log($"Shot speed: {shotSpeed}    Shot velocity: {shotVelocity}");
+
+            // request server to shoot in the direction the gun is pointing
+            Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is requesting a shot from the server.");
+            shooter.SpawnBulletServerRPC(id.Value, shooter.spawnpoint.position, shotVelocity);
+
+            // reduce ammo
+            shooter.currentAmmo--;
+
+            //PauseManager.Instance.TogglePauseServerRpc();
+        }
+
+        // SHOOT AT BULLETS (see also CharacterShooter)
+        // removed while focusing on ground hits.
+        // when implementing, possibly need to have the server rotate the client...is that doable?  wise?
+        // maybe revamp shooting altogether
+
+        // short tween to rotate/aim, then ShootAtEnemyBullet()
+        //if (targetTag == "Bullet") { AimAtEnemyBullet(target); }        
     }    
 
     private bool TryGetGroundHit(out RaycastHit hitData)
@@ -182,6 +218,21 @@ public class PlayerController : NetworkBehaviour
         // could tie duration to characterWeight and use it to adjust the knockback?
         float duration = 1.25f;
         motor.ApplyBlastForce(direction, force, duration);
+    }
+
+    private ulong GetMyId()
+    {
+        if (transform.tag == "Player")
+        {
+            return transform.GetComponent<PlayerController>().id.Value;
+        }
+        else if (transform.tag == "AI_Player")
+        {
+            return transform.GetComponent<AIController>().id.Value;
+        }
+        else { Debug.Log("Could not get ownerID!"); }
+
+        return ulong.MaxValue;
     }
 
     public void SetPlayerHexMap(Dictionary<Vector2Int, HexTile> platform)
