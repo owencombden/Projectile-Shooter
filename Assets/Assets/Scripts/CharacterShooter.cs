@@ -20,21 +20,20 @@ public class CharacterShooter : NetworkBehaviour
     private Vector3 futurePos;
     private Vector3 gravityCompensation;
 
-    public int currentAmmo = 3;
-    private int maxAmmo = 3;  
+    public NetworkVariable<int> currentAmmo;
+    public int maxAmmo = 10;  
     public float shootCooldown = 0.5f;
     public float lastShootTime;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+
     void Start()
     {
+        if(!IsOwner) { return; }
+
         assetManager = GameObject.Find("AssetManager").GetComponent<AssetManager>();
         // gun and spawnpoint must be children of the character
         gun = transform.Find("Gun");
         spawnpoint = transform.Find("Gun/SpawnPoint");
-
-        //start with a full clip
-        //currentAmmo = maxAmmo;
     }
 
     // Update is called once per frame
@@ -45,20 +44,37 @@ public class CharacterShooter : NetworkBehaviour
 
     public void AddAmmo(int amount)
     {
-        currentAmmo += amount;
-        currentAmmo = Mathf.Min(currentAmmo, maxAmmo);
-        //Debug.Log($"...added ammo, character now has {GetCurrentAmmo()}");
+        currentAmmo.Value += amount;
+        currentAmmo.Value = Mathf.Min(currentAmmo.Value, maxAmmo);
+
+        //debugging
+        if (transform.tag == "Player")
+        {
+            Debug.Log($"Added {amount} ammo for Client {OwnerClientId}.  Current Ammo: {GetCurrentAmmo()}.");
+        }
+        else if (transform.tag == "AI_Player")
+        {
+            Debug.Log($"Added {amount} ammo for AI {transform.GetComponent<AIController>().id.Value}.  Current Ammo: {GetCurrentAmmo()}.");
+        }
+        
     }
 
     public int GetCurrentAmmo()
     {
-        return currentAmmo;
+        return currentAmmo.Value;
     }
 
     [ServerRpc]
     public void SpawnBulletServerRPC(ulong clientID, Vector3 spawnPos, Vector3 shotVel)
     {
         if (!NetworkManager.Singleton.IsServer) return;
+
+        Debug.Log($"Server is trying to spawn a bullet for Client {clientID}");
+
+        // Get the player who sent the RPC
+        if (!NetworkManager.Singleton.ConnectedClients.TryGetValue(OwnerClientId, out var client)) { return; }
+        GameObject playerObj = client.PlayerObject.gameObject;
+        CharacterShooter shooter = playerObj.GetComponent<CharacterShooter>();
 
         Debug.Log($"Server (Client {NetworkManager.Singleton.LocalClientId}) is spawning a bullet for Client {clientID}");
 
@@ -68,6 +84,10 @@ public class CharacterShooter : NetworkBehaviour
         bulletScript.ownerId = clientID;             // currently the client requesting the shot is being assigned as the bullet 'owner'
         Rigidbody bulletRb = bullet.GetComponent<Rigidbody>();
         bulletRb.AddForce(shotVel, ForceMode.Impulse);
+
+        // server handles ammo management
+        shooter.currentAmmo.Value--;
+        Debug.Log($"Server (Client {NetworkManager.Singleton.LocalClientId}) is reducing ammo for Client {clientID}.  Current Ammo is now {shooter.currentAmmo.Value}");
     }
     
     public float AimAtTarget(float distToTarget, Transform gun)
@@ -90,10 +110,10 @@ public class CharacterShooter : NetworkBehaviour
         return calculatedLaunchVelocity;
     }
 
-    /*
-    public void AimAtEnemyBullet(Transform target)
+    
+    public Vector3 AimAtEnemyBullet(Transform target)
     {
-        if (target == null) return;
+        if (target == null) return Vector3.zero;
 
         targetRB = target.GetComponent<Rigidbody>();
         shotOrigin = target.GetComponent<Bullet>().startPos;
@@ -119,19 +139,18 @@ public class CharacterShooter : NetworkBehaviour
         gravityCompensation = 0.5f * Physics.gravity * interceptTime * interceptTime;
         futurePos -= gravityCompensation;
 
-        if (futurePos.y < 2f || futurePos.y > 30f) return;
+        if (futurePos.y < 2f || futurePos.y > 30f) return Vector3.zero;
 
         // Rotate to face the futurePos
         Vector3 lookDir = futurePos - transform.position;
         lookDir.y = 0;
 
-        float angleDist = Vector3.Angle(transform.forward, lookDir);
-        float rotateTime = angleDist / (2f * 200f);
+        return lookDir;
 
-        StartCoroutine(RotateThenShoot(lookDir, rotateTime));
+        
     }
 
-    private IEnumerator RotateThenShoot(Vector3 lookDir, float duration)
+    public IEnumerator RotateToFuturePos(Vector3 lookDir, float duration)
     {
         Quaternion startRotation = transform.rotation;
         Quaternion endRotation = Quaternion.LookRotation(lookDir);
@@ -143,12 +162,10 @@ public class CharacterShooter : NetworkBehaviour
             elapsed += Time.deltaTime;
             yield return null;
         }
-
         transform.rotation = endRotation;
-        ShootAtEnemyBullet();
     }
 
-    void ShootAtEnemyBullet()
+    public Vector3 ShootAtEnemyBullet()
     {
         // shoot the projectile, attempt to intercept the incoming bullet        
         Vector3 shotDir = (futurePos + gravityCompensation - spawnpoint.position).normalized;
@@ -159,11 +176,8 @@ public class CharacterShooter : NetworkBehaviour
         if (requiredSpeed > maxSpeed) { requiredSpeed = maxSpeed; }
 
         Vector3 shotVelocity = requiredSpeed * shotDir;
-        SpawnBullet(shotVelocity);
-
-        currentAmmo--;
+        return shotVelocity;
     }
-    */
 
     public static float CalculateLaunchVelocity(float distance, float maxHeight)
     {

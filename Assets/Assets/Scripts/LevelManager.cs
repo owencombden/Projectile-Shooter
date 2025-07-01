@@ -71,20 +71,19 @@ public class LevelManager : NetworkBehaviour
         for (int i = 0; i < NetworkManager.Singleton.ConnectedClientsList.Count; i++)
         {
             characterIds[i] = NetworkManager.Singleton.ConnectedClientsList[i].ClientId;
+            Debug.Log($"Created human player with id: {characterIds[i]}");
             idCounter++;
         }
         // generate and append any AI ids
         for (int i = 0; i < extraAICount; i++)
         {
             ulong aiID = 100 + (ulong)idCounter;
+            Debug.Log($"Created AI player with id: {aiID}");
             characterIds[idCounter] = aiID;
+            idCounter++;
         }
 
-        //Debug.Log($"Character Ids:");
-        foreach (var id in characterIds)
-        {
-            //if (id != ulong.MaxValue) Debug.Log($"  -> {id}");
-        }
+        
 
         // generate the datastructure that stores all the information needed to spawn all the floor tiles
         GenerateAllHexTileData();
@@ -108,21 +107,16 @@ public class LevelManager : NetworkBehaviour
     private void GenerateAllHexTileData()
     {
         int humanCount = NetworkManager.Singleton.ConnectedClientsList.Count;
-        
+        int totalCharacters = Mathf.Max(humanCount + extraAICount, maxTotalCharacters);
 
         // put this back for num platforms based on num total characters
-        // int gridSize = Mathf.CeilToInt(Mathf.Sqrt(totalCharacters));
-
-        //debugging
-        int gridSize = 2;
-        int maxPlatforms = 4;
-
+        int gridSize = Mathf.CeilToInt(Mathf.Sqrt(totalCharacters));
 
         int platformsSpawned = 0;
 
-        for (int row = 0; row < gridSize && platformsSpawned < maxPlatforms; row++)
+        for (int row = 0; row < gridSize && platformsSpawned < totalCharacters; row++)
         {
-            for (int col = 0; col < gridSize && platformsSpawned < maxPlatforms; col++)
+            for (int col = 0; col < gridSize && platformsSpawned < totalCharacters; col++)
             {
                 // get the platform position
                 Vector3 platformPos = new Vector3(col * xSpacing, 0, row * zSpacing);
@@ -151,6 +145,8 @@ public class LevelManager : NetworkBehaviour
                 platformsSpawned++;
             }
         }
+
+        Debug.Log($"Finished generating hextiles.  There are {platformsSpawned} platforms available");
     }    
     
     [ClientRpc]
@@ -290,6 +286,8 @@ public class LevelManager : NetworkBehaviour
         // only server can spawn
         if (!IsServer) { return; }
 
+        Debug.Log($"Spawning characters.  There are {platformGameObjects.Count} platforms available.");
+
         // compute the center of all platforms (characters will face this center when spawned)
         Vector3 centerPoint = Vector3.zero;
         foreach (var platformGO in platformGameObjects.Values)
@@ -325,6 +323,10 @@ public class LevelManager : NetworkBehaviour
             playerController.id.Value = client.ClientId;
             //Debug.Log($"Setting human player controller as ID: {playerController.id}");
             playerController.SetPlayerHexMap(platforms[platformIndices[(int)currentPlatformIndex]]);
+            // set starting ammo
+            CharacterShooter playerShooterScript = playerObj.GetComponent<CharacterShooter>();
+            playerShooterScript.currentAmmo.Value = playerShooterScript.maxAmmo;
+            Debug.Log($"Player {playerController.id.Value} is starting with {playerShooterScript.currentAmmo.Value} ammo.");
 
             // register player in LevelManager
             RegisterPlayer(platformIndices[(int)currentPlatformIndex], playerController);
@@ -355,6 +357,10 @@ public class LevelManager : NetworkBehaviour
             aiController.SetAIHexMap(platforms[platformIndex]);
             ulong aiID = characterIds[(int)currentPlatformIndex];
             aiController.id.Value = aiID;
+            // set starting ammo
+            CharacterShooter aiShooterScript = ai.GetComponent<CharacterShooter>();
+            aiShooterScript.currentAmmo.Value = aiShooterScript.maxAmmo;
+            Debug.Log($"AI {aiController.id.Value} is starting with {aiShooterScript.currentAmmo.Value} ammo.");
 
             // register with LevelManager
             RegisterAI(aiID, aiController);
@@ -379,7 +385,7 @@ public class LevelManager : NetworkBehaviour
    
     public Dictionary<Vector2Int, HexTile> GetHexMap(ulong platformId)
     {
-        if ((int)platformId >= platforms.Count || platformId < 0) { return null; }
+        if (platformId < 0) { return null; }
 
         return platforms[platformId];
     }

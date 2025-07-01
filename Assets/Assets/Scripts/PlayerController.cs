@@ -153,13 +153,22 @@ public class PlayerController : NetworkBehaviour
 
     private IEnumerator Shoot(Transform target)
     {
+
         // wait until body rotates to face target
         yield return StartCoroutine(motor.RotateTowardTarget(target));
 
         //check if can shoot
         var shooter = transform.GetComponent<CharacterShooter>();
-        if (shooter.GetCurrentAmmo() <= 0) yield break;
-        if (Time.time - shooter.lastShootTime < shooter.shootCooldown) yield break;
+        if (shooter.GetCurrentAmmo() <= 0)
+        {
+            Debug.Log($"NO SHOT.  Client {NetworkManager.Singleton.LocalClientId} has no ammo.");
+            yield break;
+        }
+        if (Time.time - shooter.lastShootTime < shooter.shootCooldown)
+        {
+            Debug.Log($"NO SHOT.  Client {NetworkManager.Singleton.LocalClientId} is still in cooldown.");
+            yield break;
+        }    
         shooter.lastShootTime = Time.time;
 
         // check target tag
@@ -177,19 +186,30 @@ public class PlayerController : NetworkBehaviour
             Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is requesting a shot from the server.");
             shooter.SpawnBulletServerRPC(id.Value, shooter.spawnpoint.position, shotVelocity);
 
-            // reduce ammo
-            shooter.currentAmmo--;
-
             //PauseManager.Instance.TogglePauseServerRpc();
         }
+        else if (target.tag == "Bullet")
+        {
+            Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is trying to shoot at a bullet.");
+            Vector3 lookDir = shooter.AimAtEnemyBullet(target);
 
-        // SHOOT AT BULLETS (see also CharacterShooter)
-        // removed while focusing on ground hits.
-        // when implementing, possibly need to have the server rotate the client...is that doable?  wise?
-        // maybe revamp shooting altogether
+            if (lookDir == Vector3.zero)
+            {
+                Debug.Log($"NO SHOT. Client {NetworkManager.Singleton.LocalClientId} couldn't get a tracking vector.");
+                yield break;
+            }
 
-        // short tween to rotate/aim, then ShootAtEnemyBullet()
-        //if (targetTag == "Bullet") { AimAtEnemyBullet(target); }        
+            float angleDist = Vector3.Angle(transform.forward, lookDir);
+            float rotateTime = angleDist / (2f * 200f);
+
+            Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is tracking the bullet.");
+            StartCoroutine(shooter.RotateToFuturePos(lookDir, rotateTime));
+
+            Vector3 shotVelocity = shooter.ShootAtEnemyBullet();
+
+            Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is shooting at the bullet.");
+            shooter.SpawnBulletServerRPC(id.Value, shooter.spawnpoint.position, shotVelocity);
+        }        
     }    
 
     private bool TryGetGroundHit(out RaycastHit hitData)

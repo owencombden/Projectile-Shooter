@@ -37,16 +37,26 @@ public class Pickup : NetworkBehaviour
         // only server has authority to detect pickup collisions
         if (!IsServer) return;
 
-        //Debug.Log($"Pickup reported: {transform.name} hit {other.gameObject.name} at {other.transform.position}");
-
-        if (other.CompareTag("Player") || other.CompareTag("AI_Player"))
+        //debugging
+        if (other.CompareTag("Player"))
         {
-            ApplyPickupEffect(other.gameObject);
-
-            onCollectedCallback?.Invoke(other.gameObject);
-
-            ReturnToPool();
+            Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is handling a pickup onTrigger for Client {other.transform.GetComponent<PlayerController>().id.Value}.");
         }
+        else if (other.CompareTag("AI_Player"))
+        {
+            Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is handling a pickup onTrigger for Client {other.transform.GetComponent<AIController>().id.Value}.");
+        }
+        
+
+        
+        if (other.CompareTag("Player") || other.CompareTag("AI_Player"))
+            {
+                ApplyPickupEffect(other.gameObject);
+
+                onCollectedCallback?.Invoke(other.gameObject);
+
+                ReturnToPool();
+            }
     }
 
     public void Initialize(
@@ -73,7 +83,7 @@ public class Pickup : NetworkBehaviour
                 var shooter = collector.GetComponent<CharacterShooter>();
                 if (shooter != null)
                 {
-                    shooter.AddAmmo(amount);
+                    shooter.AddAmmo(amount);                    
                 }
                 break;
 
@@ -86,7 +96,7 @@ public class Pickup : NetworkBehaviour
         // Unregister on expiration
         platformData?.UnregisterPickup(this.gameObject); 
 
-        // Tell Netcode to despawn this bullet (but we're pooling so don’t destroy the GameObject!!)
+        // Tell Netcode to despawn this pickup prefab (but we're pooling so don’t destroy the GameObject!!)
         var netObj = GetComponent<NetworkObject>();
         if (netObj != null && netObj.IsSpawned)
         {
