@@ -457,6 +457,20 @@ public class LevelManager : NetworkBehaviour
         }
     }
 
+    [ClientRpc]
+    public void ApplyBlastDamageClientRpc(ulong platformID, Vector2Int originGridPos, float baseDamage, int blastRadius)
+    {
+        // Skip for host — already applied on server side
+        if (IsHost) return;
+
+        // This assumes you can find the tile and your map is in sync
+        HexTile originTile = platforms[platformID][originGridPos];
+        if (originTile != null)
+        {
+            originTile.ApplyBlastDamage(baseDamage, blastRadius);
+        }
+    }
+
     public void CleanUpBeforeRestart()
     {
         // player cleanup

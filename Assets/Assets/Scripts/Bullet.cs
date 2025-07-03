@@ -104,15 +104,15 @@ public class Bullet : NetworkBehaviour
                 float damage = GetBaseDamage();
                 int radius = GetBlastRadius();
                 hexScript.ApplyBlastDamage(damage, radius);
+
+                // Inform clients to do the same
+                ulong platformId = hexScript.ownerId;
+                Vector2Int gridPos = hexScript.gridCoords;
+                LevelManager.Instance.ApplyBlastDamageClientRpc(platformId, gridPos, damage, radius);
             }
         }
         
         DestroyBullet();
-
-        // also have a helper below to updates clients when required.
-        // server handles all bullet collision/physics, but clients can handle their own visual/sound effects, etc.
-        // call function below if wanting to send a message to client about the impact
-        // NotifyClientsOfImpact(Vector3 position) 
     }
 
     private void OnCollisionEnter(Collision collision)
@@ -152,13 +152,6 @@ public class Bullet : NetworkBehaviour
         // NotifyClientsOfImpact(Vector3 position) 
     }
 
-    [ClientRpc]
-    void NotifyClientsOfImpactClientRpc(Vector3 position)
-    {
-        // Trigger visual effects on clients
-    }
-    
-
     private float GetBaseDamage()
     {
         return bulletType switch
@@ -192,7 +185,7 @@ public class Bullet : NetworkBehaviour
     {
         if (!IsServer) return;
 
-        Debug.Log($"Destroying bullet..."); 
+        //Debug.Log($"Destroying bullet..."); 
 
         // Tell Netcode to despawn this bullet (but we're pooling so don’t destroy the GameObject!!)
         var netObj = GetComponent<NetworkObject>();

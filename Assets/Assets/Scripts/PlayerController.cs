@@ -184,7 +184,7 @@ public class PlayerController : NetworkBehaviour
 
             // request server to shoot in the direction the gun is pointing
             Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is requesting a shot from the server.");
-            shooter.SpawnBulletServerRPC(id.Value, shooter.spawnpoint.position, shotVelocity);
+            shooter.SpawnBulletServerRPC(GetComponent<NetworkObject>(), id.Value, shooter.spawnpoint.position, shotVelocity);
 
             //PauseManager.Instance.TogglePauseServerRpc();
         }
@@ -208,7 +208,7 @@ public class PlayerController : NetworkBehaviour
             Vector3 shotVelocity = shooter.ShootAtEnemyBullet();
 
             Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is shooting at the bullet.");
-            shooter.SpawnBulletServerRPC(id.Value, shooter.spawnpoint.position, shotVelocity);
+            shooter.SpawnBulletServerRPC(GetComponent<NetworkObject>(), id.Value, shooter.spawnpoint.position, shotVelocity);
         }        
     }    
 

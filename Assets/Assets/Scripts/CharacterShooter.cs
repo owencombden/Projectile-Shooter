@@ -65,18 +65,24 @@ public class CharacterShooter : NetworkBehaviour
     }
 
     [ServerRpc]
-    public void SpawnBulletServerRPC(ulong clientID, Vector3 spawnPos, Vector3 shotVel)
+    public void SpawnBulletServerRPC(NetworkObjectReference shooterRef, ulong clientID,  Vector3 spawnPos, Vector3 shotVel)
     {
         if (!NetworkManager.Singleton.IsServer) return;
 
-        Debug.Log($"Server is trying to spawn a bullet for Client {clientID}");
+        //Debug.Log($"Server is trying to spawn a bullet for Client {clientID}");
 
-        // Get the player who sent the RPC
-        if (!NetworkManager.Singleton.ConnectedClients.TryGetValue(OwnerClientId, out var client)) { return; }
-        GameObject playerObj = client.PlayerObject.gameObject;
-        CharacterShooter shooter = playerObj.GetComponent<CharacterShooter>();
+        if (!shooterRef.TryGet(out NetworkObject netObj))
+        {
+            Debug.LogWarning("Invalid shooter reference");
+            return;
+        }
 
-        Debug.Log($"Server (Client {NetworkManager.Singleton.LocalClientId}) is spawning a bullet for Client {clientID}");
+        CharacterShooter shooter = netObj.GetComponent<CharacterShooter>();
+        if (shooter == null)
+        {
+            Debug.LogWarning("Shooter script not found on NetworkObject");
+            return;
+        }        
 
         GameObject bullet = AssetManager.Instance.GetBullet(spawnPos, Quaternion.identity);
         bullet.GetComponent<NetworkObject>().Spawn();
@@ -84,6 +90,8 @@ public class CharacterShooter : NetworkBehaviour
         bulletScript.ownerId = clientID;             // currently the client requesting the shot is being assigned as the bullet 'owner'
         Rigidbody bulletRb = bullet.GetComponent<Rigidbody>();
         bulletRb.AddForce(shotVel, ForceMode.Impulse);
+
+        Debug.Log($"Server (Client {NetworkManager.Singleton.LocalClientId}) is spawning a bullet for Client {clientID}");
 
         // server handles ammo management
         shooter.currentAmmo.Value--;
