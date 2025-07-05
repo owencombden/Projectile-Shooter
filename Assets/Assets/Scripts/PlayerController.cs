@@ -5,21 +5,22 @@ using System.Collections.Generic;
 using Unity.Netcode;
 
 public class PlayerController : NetworkBehaviour
-{    
+{
     public NetworkVariable<ulong> id;
     public bool playerDead = false;
-    
+
     private CharacterMotor motor;
     private CharacterShooter shooter;
     private ICharacterInputProvider input;
     private Vector3 lastGroundPos;
     private bool isAvoidingWater = false;
+    public bool isBeingKnockedBack = false;
     Dictionary<Vector2Int, HexTile> hexMap;  // the collection of tiles that the Player is standing on
 
     public override void OnNetworkSpawn()
-    {        
+    {
         if (!IsOwner) return;
-        
+
         var camera = Camera.main;
         if (camera != null && camera.TryGetComponent(out CameraLook lookScript))
         {
@@ -29,18 +30,18 @@ public class PlayerController : NetworkBehaviour
         motor.SetCamera(camera.transform);   // Only needed for player
         input = GetComponent<ICharacterInputProvider>();
         shooter = GetComponent<CharacterShooter>();
-        lastGroundPos = transform.position;   
+        lastGroundPos = transform.position;
     }
-    
+
     void Awake()
     {
         //Debug.Log($"Player prefab instantiated at runtime! Scene: {gameObject.scene.name} | Time: {Time.time}");
     }
 
     void Start()
-    {   
+    {
         PlayerInputHandler handler = GetComponent<PlayerInputHandler>();
-        handler.OnShootClicked += HandleShootClicked;   
+        handler.OnShootClicked += HandleShootClicked;
     }
 
     private void Update()
@@ -48,7 +49,9 @@ public class PlayerController : NetworkBehaviour
         if (!IsOwner || playerDead) return;
 
         if (PauseManager.Instance != null && PauseManager.Instance.isPaused.Value)
-        return;
+            return;
+
+        if (isBeingKnockedBack) return;
 
         // get current ground
         // use SphereCast so we can ignore tiny gaps in the floor tiles
@@ -85,31 +88,14 @@ public class PlayerController : NetworkBehaviour
         Vector2 moveInput = input.MoveInput;
         if (moveInput.magnitude > 0.1f) { motor.Move(moveInput); }
 
-        //check for shooting (using the event in PlayerInputHandler instead...testing)
-        /*
-        if (input.ShootAtTarget)
-        {
-            Transform clickedTarget = GetMouseClickTarget();
-            if (clickedTarget != null)
-            {
-                // ignore clicks on water/floor
-                if (clickedTarget.tag == "Water") { return; }
-
-                // ignore clicks on players own platform (for now...set up move to position here?)
-                if (clickedTarget.tag == "Ground" && IsOwnPlatform(clickedTarget)) { return; }
-
-                // Shoot!
-                //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} clicked on something.");
-                StartCoroutine(Shoot(clickedTarget));
-            }
-        }
-        */
+        //checking for shooting using the event in PlayerInputHandler
+        
     }
 
     private void HandleShootClicked()
     {
         if (!IsOwner || playerDead) return;
-        
+
         Transform clickedTarget = GetMouseClickTarget();
         if (clickedTarget == null) return;
         if (clickedTarget.tag == "Water") return;
@@ -141,7 +127,7 @@ public class PlayerController : NetworkBehaviour
         // if still not grounded, KillPlayer
         if (TryGetGroundHit(out RaycastHit hitData))
         {
-            if(hitData.transform.tag != "Ground")
+            if (hitData.transform.tag != "Ground")
             {
                 KillPlayer(hitData.point, Vector3.Cross(motor.GetVelocity(false), transform.up));
             }
@@ -168,7 +154,7 @@ public class PlayerController : NetworkBehaviour
         {
             Debug.Log($"NO SHOT.  Client {NetworkManager.Singleton.LocalClientId} is still in cooldown.");
             yield break;
-        }    
+        }
         shooter.lastShootTime = Time.time;
 
         // check target tag
@@ -209,8 +195,8 @@ public class PlayerController : NetworkBehaviour
 
             Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is shooting at the bullet.");
             shooter.SpawnBulletServerRPC(GetComponent<NetworkObject>(), id.Value, shooter.spawnpoint.position, shotVelocity);
-        }        
-    }    
+        }
+    }
 
     private bool TryGetGroundHit(out RaycastHit hitData)
     {
@@ -232,6 +218,8 @@ public class PlayerController : NetworkBehaviour
     public void ApplyBlastForce(Vector3 direction, float force)
     {
         if (playerDead) return;
+
+        isBeingKnockedBack = true;
 
         // Optionally, cancel player movement or shooting here
 
@@ -264,20 +252,12 @@ public class PlayerController : NetworkBehaviour
     {
         // flag the player as dead.
         playerDead = true;
-        LevelManager.Instance.RemoveCharacter(id.Value, true);        
 
-        //tip the player towards the water in the direction of player velocity        
+        //simple death animation, tip the player towards the water in the direction of player velocity        
         StartCoroutine(FallOver(tippingAxis));
 
-        // Tell Netcode to despawn this player (but we're pooling so don’t destroy the GameObject!!)
-        var netObj = GetComponent<NetworkObject>();
-        if (netObj != null && netObj.IsSpawned)
-        {
-            netObj.Despawn(destroy: false);
-        }
-
-        // return the player to the pool
-        AssetManager.Instance.ReturnPlayer(gameObject);
+        // Tell the server to handle the rest (despawn, return to pool)
+        SubmitDeathServerRpc();
     }
 
     private IEnumerator FallOver(Vector3 tippingAxis)
@@ -307,5 +287,20 @@ public class PlayerController : NetworkBehaviour
             yield return null;
         }
         transform.position = fallDestination;
+    }
+
+    [ServerRpc]
+    private void SubmitDeathServerRpc(ServerRpcParams rpcParams = default)
+    {
+        // Remove the character from the active list (on server)
+        LevelManager.Instance.RemoveCharacter(id.Value, true);
+
+        var netObj = GetComponent<NetworkObject>();
+        if (netObj != null && netObj.IsSpawned)
+        {
+            netObj.Despawn(false);
+        }
+
+        AssetManager.Instance.ReturnPlayer(gameObject);
     }      
 }

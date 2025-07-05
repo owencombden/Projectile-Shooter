@@ -31,8 +31,6 @@ public class LevelManager : NetworkBehaviour
 
     private Dictionary<ulong, PlayerController> playerControllers = new();
     private Dictionary<ulong, AIController> aiControllers = new();
-    public bool AreAllAIsDefeated() => aiControllers.Count == 0;
-    public bool IsPlayerDefeated() => playerControllers.Count == 0;
 
     // tracking the initial synch of hextiles data across the network.
     [SerializeField] private List<HexTileData> allHexTileData = new();
@@ -371,7 +369,6 @@ public class LevelManager : NetworkBehaviour
 
         //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is finished spawning the characters");
     }  
-
     
     public void RegisterPlayer(ulong player_ID, PlayerController controllerScript)
     {
@@ -432,6 +429,8 @@ public class LevelManager : NetworkBehaviour
         {
             aiControllers.Remove(id);
         }
+
+        CheckForGameOver();
     }
 
     public void RemoveHexTile(ulong platformID, Vector2Int gridPos)
@@ -468,6 +467,22 @@ public class LevelManager : NetworkBehaviour
         if (originTile != null)
         {
             originTile.ApplyBlastDamage(baseDamage, blastRadius);
+        }
+    }
+
+    private void CheckForGameOver()
+    {
+        if (playerControllers.Count() == 1 && aiControllers.Count() <= 0)
+        {
+            var remainingPlayer = playerControllers.First();
+            ulong remainingPlayerId = remainingPlayer.Key;
+            Debug.Log($"Game Over!  Player {remainingPlayerId} Won !!");
+        }
+        else if (aiControllers.Count() == 1 && playerControllers.Count() <= 0)
+        {
+            var remainingAI = aiControllers.First();
+            ulong remainingAIId = remainingAI.Key;
+            Debug.Log($"Game Over! AI {remainingAIId} Won !!");
         }
     }
 

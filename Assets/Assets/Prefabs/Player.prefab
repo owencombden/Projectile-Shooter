@@ -776,6 +776,8 @@ MonoBehaviour:
   maxInterceptTime: 1
   gun: {fileID: 3481322925320270664}
   spawnpoint: {fileID: 152809226324175837}
-  currentAmmo: 3
+  currentAmmo:
+    m_InternalValue: 0
+  maxAmmo: 10
   shootCooldown: 0.5
   lastShootTime: 0

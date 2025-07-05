@@ -29,7 +29,8 @@ public class Bullet : NetworkBehaviour
     {
         if (!IsServer) return;
         //Debug.Log($"{transform.name} has been enabled with velocity {rb.linearVelocity}.");
-        startPos = transform.position; 
+        startPos = transform.position;
+        rb.isKinematic = false; 
         rb.linearVelocity = Vector3.zero;        
         _hasTriggered = false; 
     }
@@ -96,18 +97,21 @@ public class Bullet : NetworkBehaviour
             return;
         }
         else if (other.CompareTag("Ground"))
-        {
-            //Debug.Log($"{transform.name} triggered {other.transform.parent.name}");
+        {            
             HexTile hexScript = other.GetComponentInParent<HexTile>();
+            Debug.Log($"{transform.name} triggered {hexScript.gridCoords}");
             if (hexScript != null)
             {
+                // cache the position info, this tile may get destroyed
+                ulong platformId = hexScript.ownerId;
+                Vector2Int gridPos = hexScript.gridCoords;
+
+                // apply damage to the server's hexmap
                 float damage = GetBaseDamage();
                 int radius = GetBlastRadius();
                 hexScript.ApplyBlastDamage(damage, radius);
 
-                // Inform clients to do the same
-                ulong platformId = hexScript.ownerId;
-                Vector2Int gridPos = hexScript.gridCoords;
+                // inform clients to do the same                
                 LevelManager.Instance.ApplyBlastDamageClientRpc(platformId, gridPos, damage, radius);
             }
         }
@@ -125,7 +129,7 @@ public class Bullet : NetworkBehaviour
         // Debug.Log($"{transform.name} has collided with {collision.transform.name}");
         if (collision.collider.CompareTag("Player"))
         {
-            Vector3 blastDirection = (collision.transform.position - transform.position).normalized;
+            Vector3 blastDirection = (collision.transform.position - startPos).normalized;
             blastDirection.y = 0;
 
             PlayerController player = collision.transform.GetComponent<PlayerController>();
@@ -144,12 +148,7 @@ public class Bullet : NetworkBehaviour
             {
                 //controller.ApplyBlastForce(transform.position, blastForce, blastRadius);
             }
-        } 
-
-        // also have a helper below to updates clients when required.
-        // server handles all bullet collision/physics, but clients can handle their own visual/sound effects, etc.
-        // call function below if wanting to send a message to client about the impact
-        // NotifyClientsOfImpact(Vector3 position) 
+        }
     }
 
     private float GetBaseDamage()

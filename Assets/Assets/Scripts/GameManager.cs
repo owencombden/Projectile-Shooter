@@ -12,8 +12,7 @@ public class GameManager : NetworkBehaviour
         None,
         Setup,
         Gameplay,
-        Win,
-        Loss,
+        GameOver,
         Restarting
     }
 
@@ -143,13 +142,7 @@ public class GameManager : NetworkBehaviour
 
         // Despawn network object (host authority)
         if (playerObj != null && playerObj.IsSpawned)
-            playerObj.Despawn();
-
-        // Check for game end conditions
-        if (LevelManager.Instance.AreAllAIsDefeated())
-            SetGameState(GameState.Win);
-        else if (LevelManager.Instance.IsPlayerDefeated())
-            SetGameState(GameState.Loss);
+            playerObj.Despawn();        
     }
 
     private void Awake()
@@ -174,16 +167,7 @@ public class GameManager : NetworkBehaviour
         return;
 
         if (currentState != GameState.Gameplay) return;
-
-        // Check for win/loss based on current counts
-        if (LevelManager.Instance.AreAllAIsDefeated())
-        {
-            //SetGameState(GameState.Win);
-        }
-        else if (LevelManager.Instance.IsPlayerDefeated())
-        {
-            //SetGameState(GameState.Loss);
-        }
+        
     }
 
     public void TransitionToGameplay()
@@ -209,11 +193,8 @@ public class GameManager : NetworkBehaviour
                 // Begin gameplay loop                
                 //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} has started the game!");
                 break;
-            case GameState.Win:
-                HandleWin();
-                break;
-            case GameState.Loss:
-                HandleLoss();
+            case GameState.GameOver:
+                HandleGameOver();
                 break;
             case GameState.Restarting:
                 StartCoroutine(RestartLevelAfterDelay(2f));
@@ -228,35 +209,11 @@ public class GameManager : NetworkBehaviour
         LevelManager.Instance.InitializeLevel(); // Create method to call platform/character spawn
     }
     
-
-    public void OnPlayerDefeated()
+    
+    private void HandleGameOver()
     {
-        if (currentState != GameState.Gameplay) return;
-
-        Debug.Log("Player defeated!");
-        currentState = GameState.Loss;
-        HandleLoss();
-    }
-
-    public void OnAllAIsDefeated()
-    {
-        if (currentState != GameState.Gameplay) return;
-
-        Debug.Log("All AI defeated!");
-        currentState = GameState.Win;
-        HandleWin();
-    }
-
-    private void HandleWin()
-    {
-        Debug.Log("Player wins! Restarting...");
-        StartCoroutine(RestartLevelAfterDelay(2f));
-    }
-
-    private void HandleLoss()
-    {
-        Debug.Log("Player loses! Restarting...");
-        StartCoroutine(RestartLevelAfterDelay(2f));
+        Debug.Log("Somebody won! Restarting...");
+        //StartCoroutine(RestartLevelAfterDelay(2f));
     }
 
     private IEnumerator RestartLevelAfterDelay(float delay)
