@@ -48,6 +48,8 @@ public class PlayerController : NetworkBehaviour
     {
         if (!IsOwner || playerDead) return;
 
+        if (GameManager.Instance.GetGameState() == GameManager.GameState.GameOver) return;
+
         if (PauseManager.Instance != null && PauseManager.Instance.isPaused.Value)
             return;
 
@@ -215,18 +217,19 @@ public class PlayerController : NetworkBehaviour
         return null;
     }
 
-    public void ApplyBlastForce(Vector3 direction, float force)
+    [ClientRpc]
+    public void ReceiveKnockbackBlastClientRpc(Vector3 direction, float force, ClientRpcParams rpcParams = default)
     {
+        // Ensure only the owner runs this
+        if (!IsOwner) return;
+
         if (playerDead) return;
 
         isBeingKnockedBack = true;
 
-        // Optionally, cancel player movement or shooting here
-
-        // could tie duration to characterWeight and use it to adjust the knockback?
         float duration = 1.25f;
-        motor.ApplyBlastForce(direction, force, duration);
-    }
+        motor.ApplyBlastForce(direction, force, duration, true);        
+    }    
 
     private ulong GetMyId()
     {

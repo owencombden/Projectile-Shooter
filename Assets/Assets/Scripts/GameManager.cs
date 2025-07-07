@@ -12,8 +12,7 @@ public class GameManager : NetworkBehaviour
         None,
         Setup,
         Gameplay,
-        GameOver,
-        Restarting
+        GameOver
     }
 
     public static GameManager Instance;
@@ -112,38 +111,7 @@ public class GameManager : NetworkBehaviour
     }
     
 
-    private void OnClientDisconnected(ulong clientId)
-    {
-        Debug.Log($"Client {clientId} disconnected.");
-
-        // Only the host should clean up and check win/loss
-        if (!NetworkManager.Singleton.IsHost) return;
-
-        var playerObj = NetworkManager.Singleton.ConnectedClients
-            .Where(kvp => kvp.Key == clientId)
-            .Select(kvp => kvp.Value.PlayerObject)
-            .FirstOrDefault();
-
-        if (playerObj == null)
-        {
-            Debug.LogWarning($"No PlayerObject found for disconnected client {clientId}");
-            return;
-        }
-
-        // Optional: Show visual effect, log, etc.
-        Debug.Log($"Destroying PlayerObject for client {clientId}");
-
-        // Try to clean up character from LevelManager
-        var playerController = playerObj.GetComponent<PlayerController>();
-        if (playerController != null)
-        {
-            LevelManager.Instance.RemoveCharacter(playerController.id.Value, isPlayer: true);
-        }
-
-        // Despawn network object (host authority)
-        if (playerObj != null && playerObj.IsSpawned)
-            playerObj.Despawn();        
-    }
+    
 
     private void Awake()
     {
@@ -175,7 +143,12 @@ public class GameManager : NetworkBehaviour
         SetGameState(GameState.Gameplay);
     }
 
-    public void SetGameState(GameState newState)
+    public void TransitionToGameOver()
+    {
+        SetGameState(GameState.GameOver);
+    }
+
+    private void SetGameState(GameState newState)
     {
         //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is attempting to change GameState to: {newState}.  It is currently {currentState}");
 
@@ -196,10 +169,12 @@ public class GameManager : NetworkBehaviour
             case GameState.GameOver:
                 HandleGameOver();
                 break;
-            case GameState.Restarting:
-                StartCoroutine(RestartLevelAfterDelay(2f));
-                break;
         }
+    }
+
+    public GameState GetGameState()
+    {
+        return currentState;
     }
 
     private IEnumerator HandleSetup()
@@ -208,41 +183,59 @@ public class GameManager : NetworkBehaviour
 
         LevelManager.Instance.InitializeLevel(); // Create method to call platform/character spawn
     }
-    
-    
+
+
     private void HandleGameOver()
     {
-        Debug.Log("Somebody won! Restarting...");
-        //StartCoroutine(RestartLevelAfterDelay(2f));
+        if (!IsServer) return;
+
+        Debug.Log("GameManager has ended the game!");
+
+        StartCoroutine(LoadLobbySceneAfterDelay(5f));
     }
 
-    private IEnumerator RestartLevelAfterDelay(float delay)
+    private IEnumerator LoadLobbySceneAfterDelay(float delay)
     {
-        currentState = GameState.Restarting;
         yield return new WaitForSeconds(delay);
 
-        clientsLoadedScene.Clear(); // reset connected-clients counter before reloading
-        ReloadScene();
-    }
+        // Clear all pooled/spawned objects before scene reload
+        LevelManager.Instance?.CleanUpBeforeRestart();
 
-    public void ReloadScene()
+        Debug.Log("Loading Lobby Scene...");
+        NetworkManager.Singleton.SceneManager.LoadScene("LobbyScene", LoadSceneMode.Single);
+    }   
+
+    private void OnClientDisconnected(ulong clientId)
     {
-        // Only host has authority to reset the scene
-        if (NetworkManager.Singleton.IsHost)
+        Debug.Log($"Client {clientId} disconnected.");
+
+        // Only the host should clean up and check win/loss
+        if (!NetworkManager.Singleton.IsHost) return;
+
+        var playerObj = NetworkManager.Singleton.ConnectedClients
+            .Where(kvp => kvp.Key == clientId)
+            .Select(kvp => kvp.Value.PlayerObject)
+            .FirstOrDefault();
+
+        if (playerObj == null)
         {
-            // Clear all pooled/spawned objects before scene reload
-            LevelManager.Instance?.CleanUpBeforeRestart();
-
-            string currentSceneName = SceneManager.GetActiveScene().name;
-
-            // This method reloads the scene across all connected clients
-            NetworkManager.Singleton.SceneManager.LoadScene(
-                currentSceneName,
-                LoadSceneMode.Single
-            );
-
-            Debug.Log("Host started a new game.");
+            Debug.LogWarning($"No PlayerObject found for disconnected client {clientId}");
+            return;
         }
+
+        // Optional: Show visual effect, log, etc.
+        Debug.Log($"Destroying PlayerObject for client {clientId}");
+
+        // Try to clean up character from LevelManager
+        var playerController = playerObj.GetComponent<PlayerController>();
+        if (playerController != null)
+        {
+            LevelManager.Instance.RemoveCharacter(playerController.id.Value, isPlayer: true);
+        }
+
+        // Despawn network object (host authority)
+        if (playerObj != null && playerObj.IsSpawned)
+            playerObj.Despawn();        
     }
 
     // this Instance is a global static reference.  Need to ensure that ref is cleared whenever reloading a scene.

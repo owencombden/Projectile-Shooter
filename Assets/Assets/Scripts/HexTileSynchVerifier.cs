@@ -26,6 +26,11 @@ public class HexTileSynchVerifier : NetworkBehaviour
         while (true)
         {
             yield return new WaitForSeconds(checkInterval);
+            
+            if (GameManager.Instance.GetGameState() == GameManager.GameState.GameOver) yield break;
+
+            if (PauseManager.Instance != null && PauseManager.Instance.isPaused.Value) yield break;
+
             int hash = ComputeHexMapHash(LevelManager.Instance.GetAllHexMaps());
             SubmitHashToServerServerRpc(hash);
         }

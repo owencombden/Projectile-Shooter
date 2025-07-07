@@ -150,12 +150,12 @@ public class CharacterMotor : MonoBehaviour
         
     }
 
-    public void ApplyBlastForce(Vector3 direction, float force, float duration = 0.3f)
+    public void ApplyBlastForce(Vector3 direction, float force, float duration, bool isHuman)
     {
-        StartCoroutine(BlastForceCoroutine(direction, force, duration));
+        StartCoroutine(BlastForceCoroutine(direction, force, duration, isHuman));
     }
 
-    private IEnumerator BlastForceCoroutine(Vector3 direction, float force, float duration)
+    private IEnumerator BlastForceCoroutine(Vector3 direction, float force, float duration, bool isHuman)
     {
         direction.y = 0f;
         Vector3 blastVelocity = direction.normalized * force;
@@ -167,13 +167,22 @@ public class CharacterMotor : MonoBehaviour
             blastVelocity = Vector3.Lerp(blastVelocity, Vector3.zero, time / duration); // ease out
             time += Time.deltaTime;
 
-            CheckIfWater();
+            CheckIfWater(isHuman);
 
             yield return null;
         }
+
+        if (isHuman)
+        {
+            transform.GetComponent<PlayerController>().isBeingKnockedBack = false;
+        }
+        else
+        {
+            transform.GetComponent<AIController>().isBeingKnockedBack = false;
+        }        
     }
 
-    private void CheckIfWater()
+    private void CheckIfWater(bool isHuman)
     {
         Vector3 rayStart = transform.position;
         float rayRadius = 0.1f;
@@ -184,7 +193,7 @@ public class CharacterMotor : MonoBehaviour
         {
             if(hitData.transform.tag != null && hitData.transform.tag == "Water")
             {
-                if (isPlayer)
+                if (isHuman)
                 {
                     transform.GetComponent<PlayerController>().KillPlayer(hitData.point, Vector3.Cross(GetVelocity(false), transform.up));
                 }

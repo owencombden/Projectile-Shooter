@@ -23,6 +23,7 @@ public class AIController : NetworkBehaviour
 
     private Vector3 currentDestination;
     private bool isWaiting = false;
+    public bool isBeingKnockedBack = false;
     bool isDead = false;
 
 
@@ -40,7 +41,11 @@ public class AIController : NetworkBehaviour
     {
         if (!IsServer) return;   // only the server runs AI logic
 
+        if (GameManager.Instance.GetGameState() == GameManager.GameState.GameOver) return;
+
         if (isDead) return;
+
+        if (isBeingKnockedBack) return;
 
         if (PauseManager.Instance != null && PauseManager.Instance.isPaused.Value)
             return;
@@ -260,12 +265,23 @@ public class AIController : NetworkBehaviour
         currentDestination = GetRandomPosition(hexMap);
     }
 
+    public void ApplyBlastForce(Vector3 direction, float force)
+    {
+        if (isDead) return;
+
+        isBeingKnockedBack = true;
+
+        // could tie duration to characterWeight and use it to adjust the knockback?
+        float duration = 1.25f;
+        motor.ApplyBlastForce(direction, force, duration, false);
+    }
+
     public void KillEnemy(Vector3 feetPosition, Vector3 tippingAxis)
     {
         isDead = true;
-        LevelManager.Instance.RemoveCharacter(id.Value, false);        
+        LevelManager.Instance.RemoveCharacter(id.Value, false);
 
-        StartCoroutine(TipAndFall(tippingAxis));        
+        StartCoroutine(TipAndFall(tippingAxis));
     }
 
     private IEnumerator TipAndFall(Vector3 tippingAxis)

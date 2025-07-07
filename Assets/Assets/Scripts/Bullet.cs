@@ -125,29 +125,31 @@ public class Bullet : NetworkBehaviour
 
         // server handles all collisions and should be the source of truth
         if (!IsServer) return;
+        
+        Vector3 blastDirection = (collision.transform.position - startPos).normalized;
+        blastDirection.y = 0;
 
         // Debug.Log($"{transform.name} has collided with {collision.transform.name}");
         if (collision.collider.CompareTag("Player"))
         {
-            Vector3 blastDirection = (collision.transform.position - startPos).normalized;
-            blastDirection.y = 0;
-
             PlayerController player = collision.transform.GetComponent<PlayerController>();
             if (player != null && player.id.Value != ownerId)
-            {   
+            {
                 //Debug.Log($"Bullet is applying blast force...");
-                player.ApplyBlastForce(blastDirection, blastForce);
-            }  
+                player.ReceiveKnockbackBlastClientRpc(blastDirection, blastForce);
+            }
 
-            Destroy(gameObject);
+            DestroyBullet();
         }
         else if (collision.collider.CompareTag("AI_Player"))
         {
-            AIController controller = collision.transform.GetComponent<AIController>();
-            if (controller != null && controller.id.Value != ownerId)
+            AIController ai = collision.transform.GetComponent<AIController>();
+            if (ai != null && ai.id.Value != ownerId)
             {
-                //controller.ApplyBlastForce(transform.position, blastForce, blastRadius);
+                ai.ApplyBlastForce(blastDirection, blastForce);
             }
+
+            DestroyBullet();
         }
     }
 

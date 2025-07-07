@@ -91,7 +91,7 @@ public class Pickup : NetworkBehaviour
         }
     }
 
-    private void ReturnToPool()
+    public void ReturnToPool()
     {
         // Unregister on expiration
         platformData?.UnregisterPickup(this.gameObject); 

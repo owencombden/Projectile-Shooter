@@ -421,6 +421,9 @@ public class LevelManager : NetworkBehaviour
 
     public void RemoveCharacter(ulong id, bool isPlayer)
     {
+        // server only
+        if (!IsServer) return;
+
         if (isPlayer)
         {
             playerControllers.Remove(id);
@@ -472,17 +475,22 @@ public class LevelManager : NetworkBehaviour
 
     private void CheckForGameOver()
     {
+        // server only
+        if (!IsServer) return;
+
         if (playerControllers.Count() == 1 && aiControllers.Count() <= 0)
         {
             var remainingPlayer = playerControllers.First();
             ulong remainingPlayerId = remainingPlayer.Key;
             Debug.Log($"Game Over!  Player {remainingPlayerId} Won !!");
+            GameManager.Instance.TransitionToGameOver();
         }
         else if (aiControllers.Count() == 1 && playerControllers.Count() <= 0)
         {
             var remainingAI = aiControllers.First();
             ulong remainingAIId = remainingAI.Key;
             Debug.Log($"Game Over! AI {remainingAIId} Won !!");
+            GameManager.Instance.TransitionToGameOver();
         }
     }
 
@@ -502,12 +510,31 @@ public class LevelManager : NetworkBehaviour
         }
         aiControllers.Clear();
 
+        // Pickups cleanup
+        var allPlatformObjects = LevelManager.Instance.GetAllPlatformObjects();
+        foreach (var kvp in allPlatformObjects)
+        {
+            GameObject platformGO = kvp.Value;
+            ulong platformId = platformGO.GetComponent<Platform>().platformId;
+            PlatformPickupData platformData = platformGO.GetComponent<PlatformPickupData>();
+            foreach (var pickup in platformData.activePickups)
+            {
+                var netObj = pickup.GetComponent<NetworkObject>();
+                if (netObj != null && netObj.IsSpawned)
+                {
+                    netObj.Despawn(true);
+                }
+                Debug.Log("Destroying Pickup");
+                //pickup.GetComponent<Pickup>().ReturnToPool();
+            }
+            platformData.activePickups.Clear();
+        }
+        
         // Platform and tile cleanup
         foreach (var platformID in new List<ulong>(platforms.Keys))
         {
             RemovePlatform(platformID);
         }
-
         platforms.Clear();
         platformGameObjects.Clear();
     }
