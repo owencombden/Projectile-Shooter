@@ -69,14 +69,14 @@ public class LevelManager : NetworkBehaviour
         for (int i = 0; i < NetworkManager.Singleton.ConnectedClientsList.Count; i++)
         {
             characterIds[i] = NetworkManager.Singleton.ConnectedClientsList[i].ClientId;
-            Debug.Log($"Created human player with id: {characterIds[i]}");
+            //Debug.Log($"Created human player with id: {characterIds[i]}");
             idCounter++;
         }
         // generate and append any AI ids
         for (int i = 0; i < extraAICount; i++)
         {
             ulong aiID = 100 + (ulong)idCounter;
-            Debug.Log($"Created AI player with id: {aiID}");
+            //Debug.Log($"Created AI player with id: {aiID}");
             characterIds[idCounter] = aiID;
             idCounter++;
         }
@@ -144,7 +144,7 @@ public class LevelManager : NetworkBehaviour
             }
         }
 
-        Debug.Log($"Finished generating hextiles.  There are {platformsSpawned} platforms available");
+        //Debug.Log($"Finished generating hextiles.  There are {platformsSpawned} platforms available");
     }    
     
     [ClientRpc]
@@ -284,7 +284,7 @@ public class LevelManager : NetworkBehaviour
         // only server can spawn
         if (!IsServer) { return; }
 
-        Debug.Log($"Spawning characters.  There are {platformGameObjects.Count} platforms available.");
+        //Debug.Log($"Spawning characters.  There are {platformGameObjects.Count} platforms available.");
 
         // compute the center of all platforms (characters will face this center when spawned)
         Vector3 centerPoint = Vector3.zero;
@@ -324,7 +324,7 @@ public class LevelManager : NetworkBehaviour
             // set starting ammo
             CharacterShooter playerShooterScript = playerObj.GetComponent<CharacterShooter>();
             playerShooterScript.currentAmmo.Value = playerShooterScript.maxAmmo;
-            Debug.Log($"Player {playerController.id.Value} is starting with {playerShooterScript.currentAmmo.Value} ammo.");
+            //Debug.Log($"Player {playerController.id.Value} is starting with {playerShooterScript.currentAmmo.Value} ammo.");
 
             // register player in LevelManager
             RegisterPlayer(platformIndices[(int)currentPlatformIndex], playerController);
@@ -358,7 +358,7 @@ public class LevelManager : NetworkBehaviour
             // set starting ammo
             CharacterShooter aiShooterScript = ai.GetComponent<CharacterShooter>();
             aiShooterScript.currentAmmo.Value = aiShooterScript.maxAmmo;
-            Debug.Log($"AI {aiController.id.Value} is starting with {aiShooterScript.currentAmmo.Value} ammo.");
+            //Debug.Log($"AI {aiController.id.Value} is starting with {aiShooterScript.currentAmmo.Value} ammo.");
 
             // register with LevelManager
             RegisterAI(aiID, aiController);
@@ -419,18 +419,18 @@ public class LevelManager : NetworkBehaviour
         return avg / platformTiles.Count;
     }
 
-    public void RemoveCharacter(ulong id, bool isPlayer)
+    public void RemoveCharacter(ulong removingId, bool isPlayer)
     {
         // server only
         if (!IsServer) return;
 
         if (isPlayer)
         {
-            playerControllers.Remove(id);
+            playerControllers.Remove(removingId);
         }
         else
         {
-            aiControllers.Remove(id);
+            aiControllers.Remove(removingId);
         }
 
         CheckForGameOver();
@@ -479,18 +479,18 @@ public class LevelManager : NetworkBehaviour
         if (!IsServer) return;
 
         if (playerControllers.Count() == 1 && aiControllers.Count() <= 0)
-        {
-            var remainingPlayer = playerControllers.First();
-            ulong remainingPlayerId = remainingPlayer.Key;
+        {            
+            var remainingPlayerController = playerControllers.First().Value;
+            ulong remainingPlayerId = remainingPlayerController.id.Value;
             Debug.Log($"Game Over!  Player {remainingPlayerId} Won !!");
-            GameManager.Instance.TransitionToGameOver();
+            GameManager.Instance.TransitionToGameOver(remainingPlayerId);
         }
         else if (aiControllers.Count() == 1 && playerControllers.Count() <= 0)
         {
-            var remainingAI = aiControllers.First();
-            ulong remainingAIId = remainingAI.Key;
+            var remainingAIController = aiControllers.First().Value;
+            ulong remainingAIId = remainingAIController.id.Value;
             Debug.Log($"Game Over! AI {remainingAIId} Won !!");
-            GameManager.Instance.TransitionToGameOver();
+            GameManager.Instance.TransitionToGameOver(remainingAIId);
         }
     }
 
@@ -499,6 +499,7 @@ public class LevelManager : NetworkBehaviour
         // player cleanup
         foreach (var player in playerControllers.Values)
         {
+            Debug.Log($"Destroying Player {player.id.Value}");
             if (player != null) Destroy(player.gameObject);
         }
         playerControllers.Clear();
@@ -524,42 +525,41 @@ public class LevelManager : NetworkBehaviour
                 {
                     netObj.Despawn(true);
                 }
-                Debug.Log("Destroying Pickup");
-                //pickup.GetComponent<Pickup>().ReturnToPool();
             }
             platformData.activePickups.Clear();
         }
-        
-        // Platform and tile cleanup
-        foreach (var platformID in new List<ulong>(platforms.Keys))
-        {
-            RemovePlatform(platformID);
-        }
-        platforms.Clear();
-        platformGameObjects.Clear();
+
+        // Platform and tile cleanup (client-owned, so clean up locally)
+        RemovePlatformClientRpc();        
     }
 
-    private void RemovePlatform(ulong platformID)
+    [ClientRpc]
+    private void RemovePlatformClientRpc()
     {
-        // remove platforms from both hexmap dict and gameobj dict.  make sure they are empty.
-        if (!platforms.ContainsKey(platformID)) return;
-        if (!platformGameObjects.ContainsKey(platformID)) return;
-
-        // Destroy all tiles under this platform
-        foreach (var tile in platforms[platformID].Values)
+        foreach (var platformID in new List<ulong>(platforms.Keys))
         {
-            if (tile != null) Destroy(tile.gameObject);
-        }
+            // remove platforms from both hexmap dict and gameobj dict.  make sure they are empty.
+            if (!platforms.ContainsKey(platformID)) return;
+            if (!platformGameObjects.ContainsKey(platformID)) return;
 
-        // Destroy the platform object
-        if (platformGameObjects.TryGetValue(platformID, out GameObject platformObj))
-        {
-            Destroy(platformObj);
-        }
+            // Destroy all tiles under this platform
+            foreach (var tile in platforms[platformID].Values)
+            {
+                if (tile != null) Destroy(tile.gameObject);
+            }
 
-        // Remove from dictionaries
-        platforms.Remove(platformID);
-        platformGameObjects.Remove(platformID);
+            // Destroy the platform object
+            if (platformGameObjects.TryGetValue(platformID, out GameObject platformObj))
+            {
+                Destroy(platformObj);
+            }
+
+            // Remove from dictionaries
+            platforms.Remove(platformID);
+            platformGameObjects.Remove(platformID);
+        }
+        platforms.Clear();
+        platformGameObjects.Clear();        
     }
 
     // this Instance is a global static reference.  Need to ensure that ref is cleared whenever reloading a scene.

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 using Unity.Netcode;
 using System.Linq;
+using UnityEngine.UIElements;
 
 public class GameManager : NetworkBehaviour
 {
@@ -22,6 +23,8 @@ public class GameManager : NetworkBehaviour
     private GameState currentState = GameState.None;
 
     private HashSet<ulong> clientsLoadedScene = new(); // counter of clients that have connected
+
+    private ulong winnerID;
 
 
     /*
@@ -80,7 +83,6 @@ public class GameManager : NetworkBehaviour
             ClientSceneLoadedServerRpc(clientId);
         }
     }
-
     
     [ServerRpc(RequireOwnership = false)]
     public void ClientSceneLoadedServerRpc(ulong clientId)
@@ -110,20 +112,10 @@ public class GameManager : NetworkBehaviour
         }
     }
     
-
-    
-
     private void Awake()
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
-    }
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-        
     }
 
     // Update is called once per frame
@@ -143,8 +135,9 @@ public class GameManager : NetworkBehaviour
         SetGameState(GameState.Gameplay);
     }
 
-    public void TransitionToGameOver()
+    public void TransitionToGameOver(ulong winningId)
     {
+        winnerID = winningId;
         SetGameState(GameState.GameOver);
     }
 
@@ -184,26 +177,108 @@ public class GameManager : NetworkBehaviour
         LevelManager.Instance.InitializeLevel(); // Create method to call platform/character spawn
     }
 
+    [ServerRpc(RequireOwnership = false)]
+    public void SubmitDeathServerRpc(Vector3 tippingAxis, ServerRpcParams rpcParams = default)
+    {
+        // which client called this?
+        ulong senderClientId = rpcParams.Receive.SenderClientId;
+        var deadPlayer = NetworkManager.Singleton.ConnectedClients[senderClientId].PlayerObject;
+        ulong deadPlayerId = deadPlayer.GetComponent<PlayerController>().id.Value;
+        Debug.Log($"Server (Client {NetworkManager.Singleton.LocalClientId}) is handling a death for Client {deadPlayerId}");
+
+        // Tell all clients to play the death animation
+        GameManager.Instance.PlayPlayerDeathClientRpc(deadPlayerId, tippingAxis);
+
+        // Wait til finished, then despawn
+        StartCoroutine(DelayedDespawn(deadPlayer, deadPlayerId));        
+    }
+
+    private IEnumerator DelayedDespawn(NetworkObject netObj, ulong playerId)
+    {
+        yield return new WaitForSeconds(2.0f); // must match FallOver duration
+        Debug.Log($"Death animation has finished, despawning Player {playerId}");
+
+        LevelManager.Instance.RemoveCharacter(playerId, true);
+
+        //if (GameManager.Instance.GetGameState() == GameManager.GameState.GameOver)
+            //yield break;
+
+        if (netObj.IsSpawned)
+            netObj.Despawn(false);
+
+        AssetManager.Instance.ReturnPlayer(netObj.gameObject);
+    } 
 
     private void HandleGameOver()
     {
         if (!IsServer) return;
 
-        Debug.Log("GameManager has ended the game!");
+        Debug.Log($"GameManager has ended the game!  Winning player had id: {winnerID}");
 
-        StartCoroutine(LoadLobbySceneAfterDelay(5f));
+        StartCoroutine(HandleGameOverSequence(winnerID));
     }
 
-    private IEnumerator LoadLobbySceneAfterDelay(float delay)
+    private IEnumerator HandleGameOverSequence(ulong winnerId)
     {
-        yield return new WaitForSeconds(delay);
+        // delay before showing banner
+        //yield return new WaitForSeconds(0.5f);
 
-        // Clear all pooled/spawned objects before scene reload
+        // ✅ Only call once, globally
+        ShowGameOverBannerClientRpc(winnerId);
+
+        yield return new WaitForSeconds(4);
+
         LevelManager.Instance?.CleanUpBeforeRestart();
+
+        //REMOVE THIS, DEBUGGING
+        Debug.Log("Finished cleaning level.");
+        yield return new WaitForSeconds(10);
+
 
         Debug.Log("Loading Lobby Scene...");
         NetworkManager.Singleton.SceneManager.LoadScene("LobbyScene", LoadSceneMode.Single);
-    }   
+    }
+
+    [ClientRpc]
+    private void ShowGameOverBannerClientRpc(ulong winnerId)
+    {
+        // Called on ALL clients (host too)
+
+        // Find local player
+        var localPlayer = FindObjectsByType<PlayerController>(FindObjectsSortMode.None)
+            .FirstOrDefault(p => p.IsOwner);
+
+        if (localPlayer == null)
+        {
+            Debug.LogWarning("Local player not found on client.");
+            return;
+        }
+
+        bool isWinner = localPlayer.id.Value == winnerId;
+
+        Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} showing banner. Winner: {isWinner}");
+
+        GameplayUI.Instance.ShowGameOverBanner(isWinner);
+    }
+
+    [ClientRpc]
+    public void PlayPlayerDeathClientRpc(ulong deadPlayerId, Vector3 tippingAxis)
+    {
+        var player = FindObjectsByType<PlayerController>(FindObjectsSortMode.None)
+            .FirstOrDefault(p => p.id.Value == deadPlayerId);
+
+        if (player == null)
+        {
+            Debug.LogWarning($"[DeathAnim] Player with id {deadPlayerId} not found on client {NetworkManager.Singleton.LocalClientId}");
+            return;
+        }
+
+        Debug.Log($"[DeathAnim] Playing death animation on client {NetworkManager.Singleton.LocalClientId} for player {deadPlayerId}");
+
+        player.StartCoroutine(player.FallOver(tippingAxis));
+    }
+
+        
 
     private void OnClientDisconnected(ulong clientId)
     {
@@ -235,7 +310,7 @@ public class GameManager : NetworkBehaviour
 
         // Despawn network object (host authority)
         if (playerObj != null && playerObj.IsSpawned)
-            playerObj.Despawn();        
+            playerObj.Despawn();
     }
 
     // this Instance is a global static reference.  Need to ensure that ref is cleared whenever reloading a scene.

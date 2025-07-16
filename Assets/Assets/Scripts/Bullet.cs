@@ -99,7 +99,7 @@ public class Bullet : NetworkBehaviour
         else if (other.CompareTag("Ground"))
         {            
             HexTile hexScript = other.GetComponentInParent<HexTile>();
-            Debug.Log($"{transform.name} triggered {hexScript.gridCoords}");
+            //Debug.Log($"{transform.name} triggered {hexScript.gridCoords}");
             if (hexScript != null)
             {
                 // cache the position info, this tile may get destroyed
@@ -160,7 +160,7 @@ public class Bullet : NetworkBehaviour
             BulletType.Fire => 60f,
             BulletType.Ice  => 40f,
             BulletType.Rock => 80f,
-            _               => 50f,
+            _               => 500f, //"Normal" was 50
         };
     }
 
@@ -171,7 +171,7 @@ public class Bullet : NetworkBehaviour
             BulletType.Fire => 3,
             BulletType.Ice  => 2,
             BulletType.Rock => 1,
-            _               => 4,
+            _               => 6, //"Normal" was 4
         };
     }
     

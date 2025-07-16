@@ -61,7 +61,7 @@ public class HexTileSynchVerifier : NetworkBehaviour
         ulong senderId = rpcParams.Receive.SenderClientId;
         clientHashes[senderId] = hash;
 
-        Debug.Log($"Client {senderId} reported hash: {hash}");
+        //Debug.Log($"Client {senderId} reported hash: {hash}");
 
         if (clientHashes.Count == NetworkManager.Singleton.ConnectedClients.Count)
         {

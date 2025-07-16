@@ -3,6 +3,7 @@ using UnityEngine.InputSystem;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
+using System.Linq;
 
 public class PlayerController : NetworkBehaviour
 {
@@ -13,6 +14,7 @@ public class PlayerController : NetworkBehaviour
     private CharacterShooter shooter;
     private ICharacterInputProvider input;
     private Vector3 lastGroundPos;
+    private Vector3 storedTippingAxis;
     private bool isAvoidingWater = false;
     public bool isBeingKnockedBack = false;
     Dictionary<Vector2Int, HexTile> hexMap;  // the collection of tiles that the Player is standing on
@@ -91,7 +93,7 @@ public class PlayerController : NetworkBehaviour
         if (moveInput.magnitude > 0.1f) { motor.Move(moveInput); }
 
         //checking for shooting using the event in PlayerInputHandler
-        
+
     }
 
     private void HandleShootClicked()
@@ -228,24 +230,9 @@ public class PlayerController : NetworkBehaviour
         isBeingKnockedBack = true;
 
         float duration = 1.25f;
-        motor.ApplyBlastForce(direction, force, duration, true);        
-    }    
-
-    private ulong GetMyId()
-    {
-        if (transform.tag == "Player")
-        {
-            return transform.GetComponent<PlayerController>().id.Value;
-        }
-        else if (transform.tag == "AI_Player")
-        {
-            return transform.GetComponent<AIController>().id.Value;
-        }
-        else { Debug.Log("Could not get ownerID!"); }
-
-        return ulong.MaxValue;
-    }
-
+        motor.ApplyBlastForce(direction, force, duration, true);
+    }     
+    
     public void SetPlayerHexMap(Dictionary<Vector2Int, HexTile> platform)
     {
         hexMap = platform;
@@ -253,19 +240,31 @@ public class PlayerController : NetworkBehaviour
 
     public void KillPlayer(Vector3 feetPosition, Vector3 tippingAxis)
     {
+        if (playerDead) return;
+
         // flag the player as dead.
         playerDead = true;
 
-        //simple death animation, tip the player towards the water in the direction of player velocity        
-        StartCoroutine(FallOver(tippingAxis));
-
+        // Store tipping axis so server can use it too
+        storedTippingAxis = tippingAxis;
+        
         // Tell the server to handle the rest (despawn, return to pool)
-        SubmitDeathServerRpc();
+        Debug.Log($"Client {NetworkManager.Singleton.LocalClientId}) submitting death to ServerRPC");
+        GameManager.Instance.SubmitDeathServerRpc(tippingAxis);
     }
 
-    private IEnumerator FallOver(Vector3 tippingAxis)
+    
+
+    public IEnumerator FallOver(Vector3 tippingAxis)
     {
-        float duration = 0.4f;
+        // currently the NetworkObject is set to synch x,y,z pos, and x,y,z rot to allow this animation
+        // network optomization is available here.
+        // should look at only synching x,z pos and y rot...
+        // ...could 'hide' the player prefab on the network and have each client locally spawn/animate a dummy.
+
+        Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is running death animation on Client {id.Value}");
+
+        float duration = 0.2f;
         float angle = -120f;
         Quaternion startRot = transform.rotation;
         Quaternion endRot = Quaternion.AngleAxis(angle, tippingAxis) * startRot;
@@ -279,8 +278,8 @@ public class PlayerController : NetworkBehaviour
         }
         transform.rotation = endRot;
 
-        Vector3 fallDestination = new Vector3(transform.position.x, transform.position.y - 2f, transform.position.z);
-        float fallDuration = 0.8f;
+        Vector3 fallDestination = new Vector3(transform.position.x, transform.position.y - 6f, transform.position.z);
+        float fallDuration = 0.5f;
         elapsed = 0f;
         Vector3 startPos = transform.position;
         while (elapsed < fallDuration)
@@ -292,18 +291,5 @@ public class PlayerController : NetworkBehaviour
         transform.position = fallDestination;
     }
 
-    [ServerRpc]
-    private void SubmitDeathServerRpc(ServerRpcParams rpcParams = default)
-    {
-        // Remove the character from the active list (on server)
-        LevelManager.Instance.RemoveCharacter(id.Value, true);
-
-        var netObj = GetComponent<NetworkObject>();
-        if (netObj != null && netObj.IsSpawned)
-        {
-            netObj.Despawn(false);
-        }
-
-        AssetManager.Instance.ReturnPlayer(gameObject);
-    }      
+           
 }

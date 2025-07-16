@@ -50,11 +50,11 @@ public class CharacterShooter : NetworkBehaviour
         //debugging
         if (transform.tag == "Player")
         {
-            Debug.Log($"Added {amount} ammo for Client {OwnerClientId}.  Current Ammo: {GetCurrentAmmo()}.");
+            //Debug.Log($"Added {amount} ammo for Client {OwnerClientId}.  Current Ammo: {GetCurrentAmmo()}.");
         }
         else if (transform.tag == "AI_Player")
         {
-            Debug.Log($"Added {amount} ammo for AI {transform.GetComponent<AIController>().id.Value}.  Current Ammo: {GetCurrentAmmo()}.");
+            //Debug.Log($"Added {amount} ammo for AI {transform.GetComponent<AIController>().id.Value}.  Current Ammo: {GetCurrentAmmo()}.");
         }
         
     }
@@ -91,11 +91,11 @@ public class CharacterShooter : NetworkBehaviour
         Rigidbody bulletRb = bullet.GetComponent<Rigidbody>();
         bulletRb.AddForce(shotVel, ForceMode.Impulse);
 
-        Debug.Log($"Server (Client {NetworkManager.Singleton.LocalClientId}) is spawning a bullet for Client {clientID}");
+        //Debug.Log($"Server (Client {NetworkManager.Singleton.LocalClientId}) is spawning a bullet for Client {clientID}");
 
         // server handles ammo management
         shooter.currentAmmo.Value--;
-        Debug.Log($"Server (Client {NetworkManager.Singleton.LocalClientId}) is reducing ammo for Client {clientID}.  Current Ammo is now {shooter.currentAmmo.Value}");
+        //Debug.Log($"Server (Client {NetworkManager.Singleton.LocalClientId}) is reducing ammo for Client {clientID}.  Current Ammo is now {shooter.currentAmmo.Value}");
     }
     
     public float AimAtTarget(float distToTarget, Transform gun)

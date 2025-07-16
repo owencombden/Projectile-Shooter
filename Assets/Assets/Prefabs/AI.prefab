@@ -220,11 +220,11 @@ MonoBehaviour:
   TickSyncChildren: 0
   UseUnreliableDeltas: 0
   SyncPositionX: 1
-  SyncPositionY: 0
+  SyncPositionY: 1
   SyncPositionZ: 1
-  SyncRotAngleX: 0
+  SyncRotAngleX: 1
   SyncRotAngleY: 1
-  SyncRotAngleZ: 0
+  SyncRotAngleZ: 1
   SyncScaleX: 0
   SyncScaleY: 0
   SyncScaleZ: 0
@@ -269,6 +269,7 @@ MonoBehaviour:
   pickupCheckInterval: 1
   id:
     m_InternalValue: 0
+  isBeingKnockedBack: 0
 --- !u!114 &-8486201669556992624
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -321,7 +322,9 @@ MonoBehaviour:
   maxInterceptTime: 1
   gun: {fileID: 7450802283290010036}
   spawnpoint: {fileID: 4700488143650427085}
-  currentAmmo: 3
+  currentAmmo:
+    m_InternalValue: 0
+  maxAmmo: 10
   shootCooldown: 0.5
   lastShootTime: 0
 --- !u!143 &9067310580479264826
