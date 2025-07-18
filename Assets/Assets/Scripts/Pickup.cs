@@ -50,13 +50,13 @@ public class Pickup : NetworkBehaviour
 
         
         if (other.CompareTag("Player") || other.CompareTag("AI_Player"))
-            {
-                ApplyPickupEffect(other.gameObject);
+        {
+            ApplyPickupEffect(other.gameObject);
 
-                onCollectedCallback?.Invoke(other.gameObject);
+            onCollectedCallback?.Invoke(other.gameObject);
 
-                ReturnToPool();
-            }
+            ReturnToPool();
+        }
     }
 
     public void Initialize(

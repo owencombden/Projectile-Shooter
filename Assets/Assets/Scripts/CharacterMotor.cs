@@ -7,23 +7,24 @@ public class CharacterMotor : MonoBehaviour
 {
     public bool isPlayer;
 
+    [SerializeField] private float acceleration = 10f;
+    [SerializeField] private float deceleration = 1f;
     [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private float rotateSpeed = 360f;
+    [SerializeField] private float rotateSpeed = 720f;
     [SerializeField] private float aimAngleThreshold = 0.5f;
     [SerializeField] private float maxAimTime = 1f;
     [SerializeField] private float facingOverrideDuration = 1f;
     [SerializeField] private Transform cameraTransform; // Set this for player only
 
     private CharacterController controller;
-    private CharacterShooter shooter;
-    private float turnSmoothVelocity;
     private Vector3? desiredFacing = null;
     private float facingOverrideTimer = 0f;
+    private Vector3 currentVelocity = Vector3.zero;
+
 
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
-        shooter = GetComponent<CharacterShooter>();
     }
 
     private void Update()
@@ -56,6 +57,48 @@ public class CharacterMotor : MonoBehaviour
     // for Player movement
     public void Move(Vector2 input)
     {
+        if (input.sqrMagnitude < 0.01f)
+        {
+            // Gradually slow to a stop when there's no input
+            currentVelocity = Vector3.Lerp(currentVelocity, Vector3.zero, acceleration * Time.deltaTime);
+            controller.Move(currentVelocity * Time.deltaTime);
+            return;
+        }
+
+        // Convert input to world space movement direction
+        Vector3 inputDirection = new Vector3(input.x, 0f, input.y).normalized;
+        float targetAngle = Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg;
+
+        if (cameraTransform != null)
+        {
+            targetAngle += cameraTransform.eulerAngles.y;
+        }
+
+        // Calculate final movement direction
+        Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
+        Vector3 targetVelocity = moveDir * moveSpeed;
+
+        // Smooth velocity
+        currentVelocity = Vector3.Lerp(currentVelocity, targetVelocity, acceleration * Time.deltaTime);
+        controller.Move(currentVelocity * Time.deltaTime);
+
+        // Smooth rotation (optional — if you want the character to face moveDir smoothly)
+        if (facingOverrideTimer <= 0f && moveDir != Vector3.zero)
+        {
+            Quaternion targetRotation = Quaternion.LookRotation(moveDir);
+            transform.rotation = Quaternion.RotateTowards(
+                transform.rotation,
+                targetRotation,
+                rotateSpeed * Time.deltaTime
+            );
+
+            desiredFacing = moveDir;
+        }
+    }
+
+    /*
+    public void Move(Vector2 input)
+    {
         if (input.sqrMagnitude < 0.01f) return;
 
         Vector3 direction = new Vector3(input.x, 0f, input.y).normalized;
@@ -75,6 +118,7 @@ public class CharacterMotor : MonoBehaviour
             desiredFacing = moveDir;
         }
     }
+    */
 
     // for AI movement
     public void MoveTo(Vector3 destination)

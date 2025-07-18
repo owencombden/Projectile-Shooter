@@ -8,8 +8,8 @@ public class LevelManager : NetworkBehaviour
     public static LevelManager Instance;
 
     [Header("Game Setup")]
-    [SerializeField] private int maxTotalCharacters = 0; // SET IN INSPECTOR.  Total includes players + AI
-    [SerializeField] private int extraAICount = 0;       // SET IN INSPECTOR.
+    private int maxTotalCharacters = 4; // Total includes players + AI
+    private int extraAICount = 3;
 
     [Header("Platform Settings")]
     [SerializeField] private float xSpacing = 60f;
@@ -444,8 +444,19 @@ public class LevelManager : NetworkBehaviour
         // get the neighbours of the tile that will be removed (they will need their 'neighbours' updated after removal)
         List<HexTile> neighbours = HexUtils.GetHexTileNeighbours(thisHexTile, platforms[platformID]);
 
+        // if this tile has a pickup, remove it
+        if (CheckForHexTilePickup(thisHexTile.transform.position, out RaycastHit hitData))
+        {
+            tag = hitData.transform.tag;
+            if (tag == "Ammo")
+            {
+                //hitData.transform.GetComponent<Pickup>().
+            }
+
+        }
+
         // reset the tile being destroyed
-        thisHexTile.startPos = Vector3.zero;
+            thisHexTile.startPos = Vector3.zero;
         thisHexTile.gridCoords = Vector2Int.zero;
         thisHexTile.neighbors.Clear();
 
@@ -457,6 +468,17 @@ public class LevelManager : NetworkBehaviour
         {
             HexUtils.UpdateHexTileNeighbours(neighbour, platforms[platformID]);
         }
+    }
+
+    private bool CheckForHexTilePickup(Vector3 pos, out RaycastHit hitData)
+    {
+        // shoot a ray upwards and check for pickup tag
+        Vector3 rayStart = pos;
+        float rayRadius = 0.1f;
+        Vector3 rayDir = Vector3.up;
+        float rayLength = 5f;
+
+        return Physics.SphereCast(rayStart, rayRadius, rayDir, out hitData, rayLength);
     }
 
     [ClientRpc]

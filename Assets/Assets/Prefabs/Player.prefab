@@ -997,8 +997,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   isPlayer: 0
-  moveSpeed: 10
-  rotateSpeed: 360
+  acceleration: 5
+  deceleration: 0.1
+  moveSpeed: 18
+  rotateSpeed: 220
   aimAngleThreshold: 0.5
   maxAimTime: 1
   facingOverrideDuration: 1

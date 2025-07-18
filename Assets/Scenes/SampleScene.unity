@@ -167,8 +167,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  maxTotalCharacters: 3
-  extraAICount: 0
+  maxTotalCharacters: 2
+  extraAICount: 1
   xSpacing: 50
   zSpacing: 50
   allHexTileData: []

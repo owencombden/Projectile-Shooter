@@ -160,7 +160,7 @@ public class Bullet : NetworkBehaviour
             BulletType.Fire => 60f,
             BulletType.Ice  => 40f,
             BulletType.Rock => 80f,
-            _               => 500f, //"Normal" was 50
+            _               => 50f, //"Normal" was 50
         };
     }
 
@@ -171,7 +171,7 @@ public class Bullet : NetworkBehaviour
             BulletType.Fire => 3,
             BulletType.Ice  => 2,
             BulletType.Rock => 1,
-            _               => 6, //"Normal" was 4
+            _               => 5, //"Normal" was 4
         };
     }
     

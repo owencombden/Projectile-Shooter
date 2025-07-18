@@ -232,7 +232,7 @@ public class GameManager : NetworkBehaviour
 
         //REMOVE THIS, DEBUGGING
         Debug.Log("Finished cleaning level.");
-        yield return new WaitForSeconds(10);
+        yield return new WaitForSeconds(2);
 
 
         Debug.Log("Loading Lobby Scene...");

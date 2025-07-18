@@ -90,7 +90,7 @@ public class PlayerController : NetworkBehaviour
 
         // check for movement.
         Vector2 moveInput = input.MoveInput;
-        if (moveInput.magnitude > 0.1f) { motor.Move(moveInput); }
+        motor.Move(moveInput);
 
         //checking for shooting using the event in PlayerInputHandler
 
@@ -252,8 +252,6 @@ public class PlayerController : NetworkBehaviour
         Debug.Log($"Client {NetworkManager.Singleton.LocalClientId}) submitting death to ServerRPC");
         GameManager.Instance.SubmitDeathServerRpc(tippingAxis);
     }
-
-    
 
     public IEnumerator FallOver(Vector3 tippingAxis)
     {
