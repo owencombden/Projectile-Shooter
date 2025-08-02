@@ -94,7 +94,7 @@ public class PlayerController : NetworkBehaviour
 
         //checking for shooting using the event in PlayerInputHandler
 
-    }
+        }
 
     private void HandleShootClicked()
     {
@@ -170,34 +170,34 @@ public class PlayerController : NetworkBehaviour
             // calculate the angle, rotate the gun to position, get the required speed            
             float shotSpeed = shooter.AimAtTarget(distToTarget, shooter.gun);
             Vector3 shotVelocity = shotSpeed * shooter.spawnpoint.forward;
-            Debug.Log($"Shot speed: {shotSpeed}    Shot velocity: {shotVelocity}");
+            //Debug.Log($"Shot speed: {shotSpeed}    Shot velocity: {shotVelocity}");
 
             // request server to shoot in the direction the gun is pointing
-            Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is requesting a shot from the server.");
+            //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is requesting a shot from the server.");
             shooter.SpawnBulletServerRPC(GetComponent<NetworkObject>(), id.Value, shooter.spawnpoint.position, shotVelocity);
 
             //PauseManager.Instance.TogglePauseServerRpc();
         }
         else if (target.tag == "Bullet")
         {
-            Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is trying to shoot at a bullet.");
+            //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is trying to shoot at a bullet.");
             Vector3 lookDir = shooter.AimAtEnemyBullet(target);
 
             if (lookDir == Vector3.zero)
             {
-                Debug.Log($"NO SHOT. Client {NetworkManager.Singleton.LocalClientId} couldn't get a tracking vector.");
+                //Debug.Log($"NO SHOT. Client {NetworkManager.Singleton.LocalClientId} couldn't get a tracking vector.");
                 yield break;
             }
 
             float angleDist = Vector3.Angle(transform.forward, lookDir);
             float rotateTime = angleDist / (2f * 200f);
 
-            Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is tracking the bullet.");
+            //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is tracking the bullet.");
             StartCoroutine(shooter.RotateToFuturePos(lookDir, rotateTime));
 
             Vector3 shotVelocity = shooter.ShootAtEnemyBullet();
 
-            Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is shooting at the bullet.");
+            //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is shooting at the bullet.");
             shooter.SpawnBulletServerRPC(GetComponent<NetworkObject>(), id.Value, shooter.spawnpoint.position, shotVelocity);
         }
     }
@@ -249,7 +249,7 @@ public class PlayerController : NetworkBehaviour
         storedTippingAxis = tippingAxis;
         
         // Tell the server to handle the rest (despawn, return to pool)
-        Debug.Log($"Client {NetworkManager.Singleton.LocalClientId}) submitting death to ServerRPC");
+        //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId}) submitting death to ServerRPC");
         GameManager.Instance.SubmitDeathServerRpc(tippingAxis);
     }
 
@@ -260,7 +260,7 @@ public class PlayerController : NetworkBehaviour
         // should look at only synching x,z pos and y rot...
         // ...could 'hide' the player prefab on the network and have each client locally spawn/animate a dummy.
 
-        Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is running death animation on Client {id.Value}");
+        //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is running death animation on Client {id.Value}");
 
         float duration = 0.2f;
         float angle = -120f;

@@ -1,33 +1,47 @@
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.UI;
 using System.Net;
-using System.Net.Sockets;
-using TMPro;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine.SceneManagement;
+using UnityEngine.UIElements;
+using System.Collections.Generic;
 
 public class MainMenuUI : MonoBehaviour
 {
     [Header("UI Elements")]
-    public TMP_InputField ipInputField;
+    private UIDocument uiDocument;
+    public TextField ipInputField;
+
+    // individual buttons
     public Button hostButton;
     public Button joinButton;
-    public TMP_Text statusText;
+
+    // all buttons
+    private List<Button> allMenuButtons = new List<Button>();
+
+    private AudioSource audioSource;
 
     private void Start()
     {
-        hostButton.onClick.AddListener(OnHostClicked);
-        joinButton.onClick.AddListener(OnJoinClicked);
+        uiDocument = GetComponent<UIDocument>();
+        audioSource = GetComponent<AudioSource>();
+        hostButton = uiDocument.rootVisualElement.Q("HostButton") as Button;
+        joinButton = uiDocument.rootVisualElement.Q("JoinButton") as Button;
+        
 
-        statusText.text = "Host a game, or enter an IP and join a game.";
+        // register callbacks for each button, as well as 'any' button
+        hostButton.RegisterCallback<ClickEvent>(OnHostClicked);
+        joinButton.RegisterCallback<ClickEvent>(OnJoinClicked);
+        allMenuButtons = uiDocument.rootVisualElement.Query<Button>().ToList();
+        foreach (Button menuButton in allMenuButtons)
+        {
+            menuButton.RegisterCallback<ClickEvent>(OnAnyButtonClicked);
+        }
     }
 
-    private void OnHostClicked()
+    private void OnHostClicked(ClickEvent evt)
     {
         //Debug.Log("OnHostClicked was detected");
-
-        statusText.text = "Starting Host...";
 
         // Always clear previous callback before setting it again
         NetworkManager.Singleton.ConnectionApprovalCallback = null;
@@ -36,7 +50,7 @@ public class MainMenuUI : MonoBehaviour
         LoadLobbyScene();
     }
 
-    private void OnJoinClicked()
+    private void OnJoinClicked(ClickEvent evt)
     {
         //Debug.Log("OnJoinClicked was detected");
 
@@ -45,12 +59,10 @@ public class MainMenuUI : MonoBehaviour
 
         if (!IsValidAddress(ip))
         {
-            statusText.text = $"Invalid IP or hostname: {ip}";
             Debug.LogError($"Rejected invalid address: {ip}");
             return;
         }
 
-        statusText.text = $"Connecting to {ip}...";
         NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData(ip, 7777);
 
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
@@ -59,19 +71,21 @@ public class MainMenuUI : MonoBehaviour
         NetworkManager.Singleton.StartClient();
     }
 
+    private void OnAnyButtonClicked(ClickEvent evt)
+    {
+        // play button-click sound
+        audioSource.Play();
+    }
+
     private void OnClientConnected(ulong clientId)
     {
         //Debug.Log($"OnClientConnected was detected for clientID {clientId}");
 
         if (clientId == NetworkManager.Singleton.LocalClientId)
         {
-            //Debug.Log($"Connected! Client {clientId} is entering Lobby... ");    
-
-            statusText.text = "Connected! Entering Lobby...";
+            //Debug.Log($"Connected! Client {clientId} is entering Lobby... ");
             NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
             NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected;
-
-            //SceneManager.LoadScene("LobbyScene");
         }
     }
 
@@ -81,9 +95,7 @@ public class MainMenuUI : MonoBehaviour
 
         if (clientId == NetworkManager.Singleton.LocalClientId)
         {
-            Debug.Log($"Client {clientId} has been disconnected... ");  
-
-            statusText.text = "Failed to connect to host.";
+            Debug.Log($"Client {clientId} has been disconnected... ");
             NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
             NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected;
         }
@@ -108,7 +120,7 @@ public class MainMenuUI : MonoBehaviour
         response.Position = Vector3.zero;
         response.Rotation = Quaternion.identity;
     }
-    */    
+    */
 
     private bool IsValidAddress(string address)
     {
@@ -125,6 +137,16 @@ public class MainMenuUI : MonoBehaviour
         catch
         {
             return false;
+        }
+    }
+
+    private void OnDisable()
+    {
+        hostButton.UnregisterCallback<ClickEvent>(OnHostClicked);
+        joinButton.UnregisterCallback<ClickEvent>(OnJoinClicked);
+        foreach (Button menuButton in allMenuButtons)
+        {
+            menuButton.UnregisterCallback<ClickEvent>(OnAnyButtonClicked);
         }
     }
 }

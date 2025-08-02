@@ -23,7 +23,7 @@ public class GameplayUI : MonoBehaviour
 
     public void ShowGameOverBanner(bool isWinner)
     {
-        Debug.Log("Showing panel...");
+        //Debug.Log("Showing panel...");
         string message = isWinner ? "You Won!" : "Better Luck Next Time!";
         messageText.text = message;
 

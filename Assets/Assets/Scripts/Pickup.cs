@@ -40,11 +40,11 @@ public class Pickup : NetworkBehaviour
         //debugging
         if (other.CompareTag("Player"))
         {
-            Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is handling a pickup onTrigger for Client {other.transform.GetComponent<PlayerController>().id.Value}.");
+            //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is handling a pickup onTrigger for Client {other.transform.GetComponent<PlayerController>().id.Value}.");
         }
         else if (other.CompareTag("AI_Player"))
         {
-            Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is handling a pickup onTrigger for Client {other.transform.GetComponent<AIController>().id.Value}.");
+            //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is handling a pickup onTrigger for Client {other.transform.GetComponent<AIController>().id.Value}.");
         }
         
 
@@ -90,11 +90,15 @@ public class Pickup : NetworkBehaviour
             // Add more cases like Health, Shield, etc. when needed
         }
     }
+    
 
     public void ReturnToPool()
     {
+        // only server has authority to despawn pickups
+        if (!IsServer) return;
+
         // Unregister on expiration
-        platformData?.UnregisterPickup(this.gameObject); 
+        platformData?.UnregisterPickup(this.gameObject);
 
         // Tell Netcode to despawn this pickup prefab (but we're pooling so don’t destroy the GameObject!!)
         var netObj = GetComponent<NetworkObject>();
@@ -103,6 +107,6 @@ public class Pickup : NetworkBehaviour
             netObj.Despawn(destroy: false);
         }
 
-        AssetManager.Instance.ReturnAmmoSpawn(this.gameObject); 
+        AssetManager.Instance.ReturnAmmoSpawn(this.gameObject);
     }
 }

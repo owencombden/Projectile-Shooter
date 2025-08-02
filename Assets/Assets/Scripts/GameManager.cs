@@ -184,7 +184,7 @@ public class GameManager : NetworkBehaviour
         ulong senderClientId = rpcParams.Receive.SenderClientId;
         var deadPlayer = NetworkManager.Singleton.ConnectedClients[senderClientId].PlayerObject;
         ulong deadPlayerId = deadPlayer.GetComponent<PlayerController>().id.Value;
-        Debug.Log($"Server (Client {NetworkManager.Singleton.LocalClientId}) is handling a death for Client {deadPlayerId}");
+        //Debug.Log($"Server (Client {NetworkManager.Singleton.LocalClientId}) is handling a death for Client {deadPlayerId}");
 
         // Tell all clients to play the death animation
         GameManager.Instance.PlayPlayerDeathClientRpc(deadPlayerId, tippingAxis);
@@ -196,7 +196,7 @@ public class GameManager : NetworkBehaviour
     private IEnumerator DelayedDespawn(NetworkObject netObj, ulong playerId)
     {
         yield return new WaitForSeconds(2.0f); // must match FallOver duration
-        Debug.Log($"Death animation has finished, despawning Player {playerId}");
+        //Debug.Log($"Death animation has finished, despawning Player {playerId}");
 
         LevelManager.Instance.RemoveCharacter(playerId, true);
 
@@ -231,8 +231,8 @@ public class GameManager : NetworkBehaviour
         LevelManager.Instance?.CleanUpBeforeRestart();
 
         //REMOVE THIS, DEBUGGING
-        Debug.Log("Finished cleaning level.");
-        yield return new WaitForSeconds(2);
+        //Debug.Log("Finished cleaning level.");
+        //yield return new WaitForSeconds(2);
 
 
         Debug.Log("Loading Lobby Scene...");
@@ -256,7 +256,7 @@ public class GameManager : NetworkBehaviour
 
         bool isWinner = localPlayer.id.Value == winnerId;
 
-        Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} showing banner. Winner: {isWinner}");
+        //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} showing banner. Winner: {isWinner}");
 
         GameplayUI.Instance.ShowGameOverBanner(isWinner);
     }
@@ -273,12 +273,10 @@ public class GameManager : NetworkBehaviour
             return;
         }
 
-        Debug.Log($"[DeathAnim] Playing death animation on client {NetworkManager.Singleton.LocalClientId} for player {deadPlayerId}");
+        //Debug.Log($"[DeathAnim] Playing death animation on client {NetworkManager.Singleton.LocalClientId} for player {deadPlayerId}");
 
         player.StartCoroutine(player.FallOver(tippingAxis));
     }
-
-        
 
     private void OnClientDisconnected(ulong clientId)
     {

@@ -996,11 +996,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 74d8b9d88ed7fe04da7dc10c02f5f1b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   isPlayer: 0
-  acceleration: 5
-  deceleration: 0.1
   moveSpeed: 18
-  rotateSpeed: 220
+  rotateSpeed: 360
   aimAngleThreshold: 0.5
   maxAimTime: 1
   facingOverrideDuration: 1

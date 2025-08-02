@@ -167,8 +167,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  maxTotalCharacters: 2
-  extraAICount: 1
   xSpacing: 50
   zSpacing: 50
   allHexTileData: []
@@ -385,6 +383,8 @@ MonoBehaviour:
   hexTilePrefab: {fileID: 7540964941088420545, guid: e9df08929216a744a9b26a36be1fdbda, type: 3}
   bulletPrefab: {fileID: 2701259560517425325, guid: 2509e7912e1799e489d9d4249c212a54, type: 3}
   ammoSpawnPrefab: {fileID: 5240445054071135159, guid: a572922d108ce934d92f8d67d33388f1, type: 3}
+  groundHitParticlesPrefab: {fileID: 1391589557849848, guid: 4ac57ef98d391a64fb3fba450bb3e5a5, type: 3}
+  bulletHitParticlesPrefab: {fileID: 1371137744053984, guid: d789cbbfbf99ebd4a89eeb19e0e70409, type: 3}
 --- !u!4 &289987655
 Transform:
   m_ObjectHideFlags: 0
@@ -636,6 +636,8 @@ MonoBehaviour:
   cameraPitchSmooth: 0.8
   minPitch: -20
   maxPitch: 40
+  shakeDuration: 0
+  shakeIntensity: 0.1
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0

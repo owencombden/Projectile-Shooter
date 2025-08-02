@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
 using System.Linq;
@@ -43,16 +44,20 @@ public class LevelManager : NetworkBehaviour
     private HashSet<ulong> clientsConfirmedHexData = new();
     private HashSet<ulong> clientsConfirmedPlatformsSpawned = new();
 
+    // particles
+    float groundHitParticleDuration;
+    float bulletHitParticleDuration;
+    
     private void Awake()
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
     }
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    private void Start()
     {
-
+        groundHitParticleDuration = AssetManager.Instance.GetGroundHitParticlesDuration();
+        bulletHitParticleDuration = AssetManager.Instance.GetBulletHitParticlesDuration();
     }
 
     public void InitializeLevel()
@@ -81,8 +86,6 @@ public class LevelManager : NetworkBehaviour
             idCounter++;
         }
 
-        
-
         // generate the datastructure that stores all the information needed to spawn all the floor tiles
         GenerateAllHexTileData();
 
@@ -99,7 +102,6 @@ public class LevelManager : NetworkBehaviour
             SpawnAllCharacters();
             GameManager.Instance.TransitionToGameplay();
         }
-        
     }
 
     private void GenerateAllHexTileData()
@@ -287,12 +289,13 @@ public class LevelManager : NetworkBehaviour
         //Debug.Log($"Spawning characters.  There are {platformGameObjects.Count} platforms available.");
 
         // compute the center of all platforms (characters will face this center when spawned)
+        Vector2Int centerTileCoords = Vector2Int.zero;
         Vector3 centerPoint = Vector3.zero;
-        foreach (var platformGO in platformGameObjects.Values)
-        {
-            centerPoint += platformGO.transform.position;
+        foreach (var platform in platforms.Values)
+        {            
+            centerPoint += platform[centerTileCoords].transform.position;
         }
-        centerPoint /= platformGameObjects.Count;
+        centerPoint /= platforms.Values.Count;
 
         // assign characters to platforms
         List<ulong> platformIndices = new List<ulong>(platforms.Keys);
@@ -445,18 +448,18 @@ public class LevelManager : NetworkBehaviour
         List<HexTile> neighbours = HexUtils.GetHexTileNeighbours(thisHexTile, platforms[platformID]);
 
         // if this tile has a pickup, remove it
-        if (CheckForHexTilePickup(thisHexTile.transform.position, out RaycastHit hitData))
+        if (IsServer && CheckForHexTilePickup(thisHexTile.transform.position, out RaycastHit hitData))
         {
             tag = hitData.transform.tag;
+            Debug.Log($"Removing tile and found an object with tag: {tag}");
             if (tag == "Ammo")
             {
-                //hitData.transform.GetComponent<Pickup>().
+                hitData.transform.GetComponent<Pickup>().ReturnToPool();
             }
-
         }
 
         // reset the tile being destroyed
-            thisHexTile.startPos = Vector3.zero;
+        thisHexTile.startPos = Vector3.zero;
         thisHexTile.gridCoords = Vector2Int.zero;
         thisHexTile.neighbors.Clear();
 
@@ -484,15 +487,50 @@ public class LevelManager : NetworkBehaviour
     [ClientRpc]
     public void ApplyBlastDamageClientRpc(ulong platformID, Vector2Int originGridPos, float baseDamage, int blastRadius)
     {
-        // Skip for host — already applied on server side
-        if (IsHost) return;
+        // called on all clients
 
-        // This assumes you can find the tile and your map is in sync
+        //apply damage to local tileset on client
         HexTile originTile = platforms[platformID][originGridPos];
+        //cache the position, this tile may get destroyed
+        Vector3 originTilePos = originTile.transform.position;
         if (originTile != null)
         {
             originTile.ApplyBlastDamage(baseDamage, blastRadius);
         }
+
+        // spawn some ground-hit particles
+        Vector3 spawnPos = originTilePos;
+        spawnPos.y += 1f;
+        GameObject particles = AssetManager.Instance.GetGroundHitParticles(spawnPos, Quaternion.identity);
+        StartCoroutine(DisableAfter(particles, groundHitParticleDuration)); 
+    }
+
+    [ClientRpc]
+    public void ApplyBulletCollisionParticlesClientRPC(Vector3 spawnPos)
+    {
+        GameObject particles = AssetManager.Instance.GetBulletHitParticles(spawnPos, Quaternion.identity);
+        StartCoroutine(DisableAfter(particles, 3f)); 
+    }
+
+    private IEnumerator DisableAfter(GameObject particles, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        AssetManager.Instance.ReturnGroundHitParticles(particles);
+    }
+    
+    [ClientRpc]
+    public void ApplyCameraShakeClientRpc(bool hardShake, ClientRpcParams rpcParams = default)
+    {
+        // Code runs only on a targeted client 
+        float intensity = 0.5f;
+        float duration = 0.4f;
+        float hardShakeMultiplier = 2f;
+        if (hardShake)
+        {
+            intensity *= hardShakeMultiplier;
+            duration *= hardShakeMultiplier;
+        }               
+        Camera.main.GetComponent<CameraLook>()?.Shake(intensity, duration);        
     }
 
     private void CheckForGameOver()
@@ -501,7 +539,7 @@ public class LevelManager : NetworkBehaviour
         if (!IsServer) return;
 
         if (playerControllers.Count() == 1 && aiControllers.Count() <= 0)
-        {            
+        {
             var remainingPlayerController = playerControllers.First().Value;
             ulong remainingPlayerId = remainingPlayerController.id.Value;
             Debug.Log($"Game Over!  Player {remainingPlayerId} Won !!");
@@ -521,7 +559,7 @@ public class LevelManager : NetworkBehaviour
         // player cleanup
         foreach (var player in playerControllers.Values)
         {
-            Debug.Log($"Destroying Player {player.id.Value}");
+            //Debug.Log($"Destroying Player {player.id.Value}");
             if (player != null) Destroy(player.gameObject);
         }
         playerControllers.Clear();

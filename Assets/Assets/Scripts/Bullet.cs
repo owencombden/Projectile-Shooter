@@ -97,7 +97,7 @@ public class Bullet : NetworkBehaviour
             return;
         }
         else if (other.CompareTag("Ground"))
-        {            
+        {
             HexTile hexScript = other.GetComponentInParent<HexTile>();
             //Debug.Log($"{transform.name} triggered {hexScript.gridCoords}");
             if (hexScript != null)
@@ -106,14 +106,23 @@ public class Bullet : NetworkBehaviour
                 ulong platformId = hexScript.ownerId;
                 Vector2Int gridPos = hexScript.gridCoords;
 
-                // apply damage to the server's hexmap
+                // calculate the damage, and inform all clients to apply the damage locally 
                 float damage = GetBaseDamage();
                 int radius = GetBlastRadius();
-                hexScript.ApplyBlastDamage(damage, radius);
-
-                // inform clients to do the same                
                 LevelManager.Instance.ApplyBlastDamageClientRpc(platformId, gridPos, damage, radius);
             }
+
+            // apply camera shake on the player that owns this platform
+            ulong ownerID = hexScript.ownerId;
+            var rpcParams = new ClientRpcParams{
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = new[] { ownerID }
+                }
+            };
+            Debug.Log($"Shaking camera on character ID: {ownerID}");
+            bool hardShake = false;
+            LevelManager.Instance.ApplyCameraShakeClientRpc(hardShake, rpcParams);
         }
         
         DestroyBullet();
@@ -125,7 +134,7 @@ public class Bullet : NetworkBehaviour
 
         // server handles all collisions and should be the source of truth
         if (!IsServer) return;
-        
+
         Vector3 blastDirection = (collision.transform.position - startPos).normalized;
         blastDirection.y = 0;
 
@@ -137,6 +146,20 @@ public class Bullet : NetworkBehaviour
             {
                 //Debug.Log($"Bullet is applying blast force...");
                 player.ReceiveKnockbackBlastClientRpc(blastDirection, blastForce);
+
+                // apply camera shake on the player that was hit
+                ulong ownerID = player.id.Value;
+                var rpcParams = new ClientRpcParams
+                {
+                    Send = new ClientRpcSendParams
+                    {
+                        TargetClientIds = new[] { ownerID }
+                    }
+                };
+                Debug.Log($"Shaking camera on character ID: {ownerID}");
+                bool hardShake = true;
+                LevelManager.Instance.ApplyCameraShakeClientRpc(hardShake, rpcParams);
+
             }
 
             DestroyBullet();
@@ -151,6 +174,12 @@ public class Bullet : NetworkBehaviour
 
             DestroyBullet();
         }
+        else if (collision.collider.CompareTag("Bullet"))
+        {           
+            // play some bullet-on-bullet collision particles
+            LevelManager.Instance.ApplyBulletCollisionParticlesClientRPC(transform.position);
+        }
+
     }
 
     private float GetBaseDamage()
@@ -196,7 +225,10 @@ public class Bullet : NetworkBehaviour
         }
 
         // return object to the pool, OnDisable will be called to reset the bullet when disabled
-        AssetManager.Instance.ReturnBullet(gameObject);
-    }
-    
+        if (AssetManager.Instance != null && gameObject != null)
+        {
+            AssetManager.Instance.ReturnBullet(gameObject);
+        }
+        
+    }    
 }

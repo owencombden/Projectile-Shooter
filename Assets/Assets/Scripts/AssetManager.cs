@@ -13,6 +13,8 @@ public class AssetManager : MonoBehaviour
     [SerializeField] private GameObject hexTilePrefab;
     [SerializeField] private GameObject bulletPrefab;
     [SerializeField] private GameObject ammoSpawnPrefab;
+    [SerializeField] private GameObject groundHitParticlesPrefab;
+    [SerializeField] private GameObject bulletHitParticlesPrefab;
 
     private Dictionary<string, Queue<GameObject>> poolDict = new();
 
@@ -29,6 +31,8 @@ public class AssetManager : MonoBehaviour
         // Pool static props immediately:
         PrewarmPool("platform", platformPrefab, 10);
         PrewarmPool("hextile", hexTilePrefab, 1100);
+        PrewarmPool("groundHitParticles", groundHitParticlesPrefab, 50);
+        PrewarmPool("bulletHitParticles", bulletHitParticlesPrefab, 10);
 
         // Delay all networked pools until host/server is up:
         NetworkManager.Singleton.OnClientConnectedCallback += (clientId) =>
@@ -40,11 +44,9 @@ public class AssetManager : MonoBehaviour
             }
         };
     }
-
-    // Convenience wrappers
+    
     public GameObject GetAI(Vector3 position, Quaternion rotation)
     {
-        //Debug.Log("Getting an AI from the pool.");
         return GetFromPool("ai", aiPrefab, position, rotation);
     }
 
@@ -71,6 +73,36 @@ public class AssetManager : MonoBehaviour
     public void ReturnBullet(GameObject bullet)
     {
         ReturnToPool("bullet", bullet);
+    }
+
+    public GameObject GetBulletHitParticles(Vector3 position, Quaternion rotation)
+    {
+        return GetFromPool("bulletHitParticles", bulletHitParticlesPrefab, position, rotation);
+    }
+
+    public float GetBulletHitParticlesDuration()
+    {
+        return bulletHitParticlesPrefab.GetComponent<ParticleSystem>().main.duration;
+    }
+
+    public void ReturnBulletHitParticles(GameObject particles)
+    {
+        ReturnToPool("bulletHitParticles", particles);
+    }
+
+    public GameObject GetGroundHitParticles(Vector3 position, Quaternion rotation)
+    {
+        return GetFromPool("groundHitParticles", groundHitParticlesPrefab, position, rotation);
+    }
+
+    public float GetGroundHitParticlesDuration()
+    {
+        return groundHitParticlesPrefab.GetComponent<ParticleSystem>().main.duration;
+    }
+
+    public void ReturnGroundHitParticles(GameObject particles)
+    {
+        ReturnToPool("groundHitParticles", particles);
     }
 
     public GameObject GetHexTile(Vector3 position, Quaternion rotation)
@@ -140,14 +172,10 @@ public class AssetManager : MonoBehaviour
             obj = poolDict[key].Dequeue();
             obj.transform.SetPositionAndRotation(position, rotation);
             obj.SetActive(true);
-
-
         }
         else
         {
-            //Debug.Log($"...pool has NONE available!");
             obj = Instantiate(prefab, position, rotation);
-            //Debug.Log($"......created a new {obj.name}.");
         }
 
         return obj;
