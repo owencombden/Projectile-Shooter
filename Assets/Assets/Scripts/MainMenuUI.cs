@@ -10,11 +10,11 @@ public class MainMenuUI : MonoBehaviour
 {
     [Header("UI Elements")]
     private UIDocument uiDocument;
-    public TextField ipInputField;
+    private TextField ipInputField;
 
     // individual buttons
-    public Button hostButton;
-    public Button joinButton;
+    private Button hostButton;
+    private Button joinButton;
 
     // all buttons
     private List<Button> allMenuButtons = new List<Button>();
@@ -25,8 +25,10 @@ public class MainMenuUI : MonoBehaviour
     {
         uiDocument = GetComponent<UIDocument>();
         audioSource = GetComponent<AudioSource>();
+
         hostButton = uiDocument.rootVisualElement.Q("HostButton") as Button;
         joinButton = uiDocument.rootVisualElement.Q("JoinButton") as Button;
+        ipInputField = uiDocument.rootVisualElement.Q("IpTextField") as TextField;
         
 
         // register callbacks for each button, as well as 'any' button
@@ -37,7 +39,7 @@ public class MainMenuUI : MonoBehaviour
         {
             menuButton.RegisterCallback<ClickEvent>(OnAnyButtonClicked);
         }
-    }
+    }    
 
     private void OnHostClicked(ClickEvent evt)
     {
@@ -54,7 +56,7 @@ public class MainMenuUI : MonoBehaviour
     {
         //Debug.Log("OnJoinClicked was detected");
 
-        string ip = ipInputField.text;
+        string ip = ipInputField.value;
         if (string.IsNullOrWhiteSpace(ip)) ip = "127.0.0.1";
 
         if (!IsValidAddress(ip))
