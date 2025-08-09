@@ -5,7 +5,7 @@ using Unity.Netcode;
 public class CharacterShooter : NetworkBehaviour
 {
     public float maxSpeed = 350f;
-    public float maxHeight = 10f;  //make this a range, map it to distance
+    public float maxHeight = 10f;  // apoapsis
     public float maxAngle = 45f;  
     public float minAngle = 0;
     public float minInterceptTime = 0.1f;
@@ -22,18 +22,28 @@ public class CharacterShooter : NetworkBehaviour
 
     public NetworkVariable<int> currentAmmo;
     public int maxAmmo = 10;  
-    public float shootCooldown = 0.5f;
+    public float shootCooldown = 0.2f;
     public float lastShootTime;
+
+    public bool isHuman = false;
 
 
     void Start()
     {
-        if(!IsOwner) { return; }
+        if (!IsOwner) { return; }
 
         assetManager = GameObject.Find("AssetManager").GetComponent<AssetManager>();
         // gun and spawnpoint must be children of the character
         gun = transform.Find("Gun");
         spawnpoint = transform.Find("Gun/SpawnPoint");
+
+        isHuman = GetComponent<PlayerController>() == null ? false : true;
+
+        if (isHuman)
+        {
+            GameplayUI.Instance.SetMaxLimitOnAmmoProgressBar(maxAmmo);
+            GameplayUI.Instance.SetAmmoUI(currentAmmo.Value);
+        }        
     }
 
     // Update is called once per frame
@@ -46,6 +56,13 @@ public class CharacterShooter : NetworkBehaviour
     {
         currentAmmo.Value += amount;
         currentAmmo.Value = Mathf.Min(currentAmmo.Value, maxAmmo);
+
+        // set the UI
+        if (isHuman)
+        {
+            GameplayUI.Instance.SetAmmoUI(currentAmmo.Value);
+        }
+        
 
         //debugging
         if (transform.tag == "Player")
@@ -65,7 +82,7 @@ public class CharacterShooter : NetworkBehaviour
     }
 
     [ServerRpc]
-    public void SpawnBulletServerRPC(NetworkObjectReference shooterRef, ulong clientID,  Vector3 spawnPos, Vector3 shotVel)
+    public void SpawnBulletServerRPC(NetworkObjectReference shooterRef, ulong clientID, Vector3 spawnPos, Vector3 shotVel)
     {
         if (!NetworkManager.Singleton.IsServer) return;
 
@@ -82,7 +99,7 @@ public class CharacterShooter : NetworkBehaviour
         {
             Debug.LogWarning("Shooter script not found on NetworkObject");
             return;
-        }        
+        }
 
         GameObject bullet = AssetManager.Instance.GetBullet(spawnPos, Quaternion.identity);
         bullet.GetComponent<NetworkObject>().Spawn();
@@ -95,6 +112,14 @@ public class CharacterShooter : NetworkBehaviour
 
         // server handles ammo management
         shooter.currentAmmo.Value--;
+
+        // adjust ammo on UI
+        if (isHuman)
+        {
+            GameplayUI.Instance.SetAmmoUI(currentAmmo.Value);
+        }
+        
+
         //Debug.Log($"Server (Client {NetworkManager.Singleton.LocalClientId}) is reducing ammo for Client {clientID}.  Current Ammo is now {shooter.currentAmmo.Value}");
     }
     

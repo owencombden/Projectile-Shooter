@@ -120,7 +120,7 @@ public class Bullet : NetworkBehaviour
                     TargetClientIds = new[] { ownerID }
                 }
             };
-            Debug.Log($"Shaking camera on character ID: {ownerID}");
+            //Debug.Log($"Shaking camera on character ID: {ownerID}");
             bool hardShake = false;
             LevelManager.Instance.ApplyCameraShakeClientRpc(hardShake, rpcParams);
         }
@@ -156,7 +156,7 @@ public class Bullet : NetworkBehaviour
                         TargetClientIds = new[] { ownerID }
                     }
                 };
-                Debug.Log($"Shaking camera on character ID: {ownerID}");
+                //Debug.Log($"Shaking camera on character ID: {ownerID}");
                 bool hardShake = true;
                 LevelManager.Instance.ApplyCameraShakeClientRpc(hardShake, rpcParams);
 

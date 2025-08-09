@@ -1,56 +1,98 @@
 using UnityEngine;
 using System.Collections;
-using TMPro;
+using UnityEngine.UIElements;
 
 public class GameplayUI : MonoBehaviour
 {
     public static GameplayUI Instance;
 
-    [SerializeField] private CanvasGroup gameOverPanel;
-    [SerializeField] private TextMeshProUGUI messageText;
-    [SerializeField] private float gameOverFadeInDuration = 0.5f;
-    [SerializeField] private float gameOverPanelDuration = 3f;
+    [Header("UI Elements")]
+    private UIDocument uiDocument;
+
+    private Label pausedLabel;
+    private Label gameOverLabel;    
+    private Label noAmmoLabel;
+    private ProgressBar ammoProgressBar;
+
+    private bool noAmmoIsBusy = false;
 
     private void Awake()
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
 
-
-        gameOverPanel.alpha = 0f;
-        gameOverPanel.gameObject.SetActive(false);
+        uiDocument = GetComponent<UIDocument>();
+        pausedLabel = uiDocument.rootVisualElement.Q("PausedLabel") as Label;
+        pausedLabel.visible = false;
+        gameOverLabel = uiDocument.rootVisualElement.Q("GameOverLabel") as Label;
+        gameOverLabel.visible = false;
+        noAmmoLabel = uiDocument.rootVisualElement.Q("NoAmmoLabel") as Label;
+        noAmmoLabel.visible = false;
+        ammoProgressBar = uiDocument.rootVisualElement.Q("AmmoProgressBar") as ProgressBar;
     }
 
-    public void ShowGameOverBanner(bool isWinner)
+    public void DisplayGameOverMessage(string message)
     {
-        //Debug.Log("Showing panel...");
-        string message = isWinner ? "You Won!" : "Better Luck Next Time!";
-        messageText.text = message;
+        Debug.Log("UI has been triggered to show game over message");
+        gameOverLabel.text = message;
+        gameOverLabel.visible = true;
+        float duration = 5f;
 
-        gameOverPanel.gameObject.SetActive(true);
-        StartCoroutine(FadeInAndOut());
+        StartCoroutine(ClearGameOverMessage(duration));        
     }
 
-    private IEnumerator FadeInAndOut()
+    private IEnumerator ClearGameOverMessage(float duration)
     {
-        // Fade in
-        float t = 0f;
-        while (t < gameOverFadeInDuration)
-        {
-            t += Time.deltaTime;
-            gameOverPanel.alpha = t / gameOverFadeInDuration;
-            yield return null;
-        }
+        yield return new WaitForSeconds(duration);
+        gameOverLabel.visible = false;
+    }    
 
-        yield return new WaitForSeconds(gameOverPanelDuration);
+    public void DisplayNoAmmoMessage()
+    {
+        if(noAmmoIsBusy) { return; }        
+        noAmmoIsBusy = true;
 
-        // Fade to black (optional)
+        Debug.Log("UI has been triggered to show no ammo message");
+        noAmmoLabel.text = "!!  NO AMMO  !!";
+        noAmmoLabel.visible = true;
+        float duration = 1.5f;
 
-        // hide gameOver panel
-        gameOverPanel.alpha = 0f;
-        gameOverPanel.gameObject.SetActive(false);
+        StartCoroutine(ClearNoAmmoMessage(duration));
     }
-    
+
+    private IEnumerator ClearNoAmmoMessage(float duration)
+    {
+        yield return new WaitForSeconds(duration);
+        noAmmoLabel.visible = false;        
+        noAmmoIsBusy = false;
+    }
+
+    public void SetMaxLimitOnAmmoProgressBar(int currMaxValue)
+    {
+        ammoProgressBar.highValue = currMaxValue;
+    }
+
+    public void SetAmmoUI(int currValue)
+    {
+        if (currValue < 0) { return; }
+
+        ammoProgressBar.value = currValue;
+    }
+
+    public void DisplayPausedMessage()
+    {
+
+        Debug.Log("UI has been triggered to show pause message");
+        pausedLabel.text = "GAME IS PAUSED";
+        pausedLabel.visible = true;
+    }
+
+    public void ClearPausedMessage()
+    {
+        pausedLabel.text = "";
+        pausedLabel.visible = false;
+    }
+
     // this Instance is a global static reference.  Need to ensure that ref is cleared whenever reloading a scene.
     private void OnDestroy()
     {

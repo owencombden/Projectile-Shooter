@@ -451,7 +451,7 @@ public class LevelManager : NetworkBehaviour
         if (IsServer && CheckForHexTilePickup(thisHexTile.transform.position, out RaycastHit hitData))
         {
             tag = hitData.transform.tag;
-            Debug.Log($"Removing tile and found an object with tag: {tag}");
+            //Debug.Log($"Removing tile and found an object with tag: {tag}");
             if (tag == "Ammo")
             {
                 hitData.transform.GetComponent<Pickup>().ReturnToPool();

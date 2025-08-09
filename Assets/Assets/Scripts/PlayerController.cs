@@ -98,6 +98,8 @@ public class PlayerController : NetworkBehaviour
 
     private void HandleShootClicked()
     {
+        if (GameManager.Instance.GetGameState() == GameManager.GameState.GameOver) return;
+        if (PauseManager.Instance.isPaused.Value)  { return; }
         if (!IsOwner || playerDead) return;
 
         Transform clickedTarget = GetMouseClickTarget();
@@ -143,23 +145,23 @@ public class PlayerController : NetworkBehaviour
 
     private IEnumerator Shoot(Transform target)
     {
-
-        // wait until body rotates to face target
-        yield return StartCoroutine(motor.RotateTowardTarget(target));
-
         //check if can shoot
         var shooter = transform.GetComponent<CharacterShooter>();
         if (shooter.GetCurrentAmmo() <= 0)
         {
-            Debug.Log($"NO SHOT.  Client {NetworkManager.Singleton.LocalClientId} has no ammo.");
+            //Debug.Log($"NO SHOT.  Client {NetworkManager.Singleton.LocalClientId} has no ammo.");
+            GameplayUI.Instance.DisplayNoAmmoMessage();
             yield break;
         }
         if (Time.time - shooter.lastShootTime < shooter.shootCooldown)
         {
-            Debug.Log($"NO SHOT.  Client {NetworkManager.Singleton.LocalClientId} is still in cooldown.");
+            //Debug.Log($"NO SHOT.  Client {NetworkManager.Singleton.LocalClientId} is still in cooldown.");
             yield break;
         }
         shooter.lastShootTime = Time.time;
+
+        // wait until body rotates to face target
+        yield return StartCoroutine(motor.RotateTowardTarget(target));
 
         // check target tag
         if (target.tag == "Ground" || target.tag == "Player" || target.tag == "AI_Player")
@@ -190,7 +192,7 @@ public class PlayerController : NetworkBehaviour
             }
 
             float angleDist = Vector3.Angle(transform.forward, lookDir);
-            float rotateTime = angleDist / (2f * 200f);
+            float rotateTime = angleDist / (2f * 300f);
 
             //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is tracking the bullet.");
             StartCoroutine(shooter.RotateToFuturePos(lookDir, rotateTime));

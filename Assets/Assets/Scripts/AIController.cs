@@ -158,13 +158,13 @@ public class AIController : NetworkBehaviour
             var shooter = transform.GetComponent<CharacterShooter>();
             if (shooter.GetCurrentAmmo() <= 0)
             {
-                Debug.Log($"NO SHOT.  AI {id.Value} has no ammo.");
+                //Debug.Log($"NO SHOT.  AI {id.Value} has no ammo.");
                 isWaiting = false;
                 yield break;
             }
             if (Time.time - shooter.lastShootTime < shooter.shootCooldown)
             {
-                Debug.Log($"NO SHOT.  AI is still in cooldown.");
+                //Debug.Log($"NO SHOT.  AI is still in cooldown.");
                 isWaiting = false;
                 yield break;
             }    

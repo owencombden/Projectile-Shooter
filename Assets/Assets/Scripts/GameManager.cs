@@ -24,7 +24,15 @@ public class GameManager : NetworkBehaviour
 
     private HashSet<ulong> clientsLoadedScene = new(); // counter of clients that have connected
 
+    public NetworkVariable<bool> isGameOver = new NetworkVariable<bool>(
+        false,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server
+    );
+
     private ulong winnerID;
+
+    private int loadLobbyDelay = 7;
 
 
     /*
@@ -138,6 +146,7 @@ public class GameManager : NetworkBehaviour
     public void TransitionToGameOver(ulong winningId)
     {
         winnerID = winningId;
+        isGameOver.Value = true;
         SetGameState(GameState.GameOver);
     }
 
@@ -226,7 +235,7 @@ public class GameManager : NetworkBehaviour
         // ✅ Only call once, globally
         ShowGameOverBannerClientRpc(winnerId);
 
-        yield return new WaitForSeconds(4);
+        yield return new WaitForSeconds(loadLobbyDelay);
 
         LevelManager.Instance?.CleanUpBeforeRestart();
 
@@ -255,10 +264,13 @@ public class GameManager : NetworkBehaviour
         }
 
         bool isWinner = localPlayer.id.Value == winnerId;
-
         //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} showing banner. Winner: {isWinner}");
 
-        GameplayUI.Instance.ShowGameOverBanner(isWinner);
+        string message = isWinner ? "You Won!" : "Better Luck Next Time!";
+        int persistTime = 5;
+        int fadeTime = loadLobbyDelay - persistTime;
+        if(fadeTime<0) { Debug.LogError("loadLobbyDelay error!"); }
+        GameplayUI.Instance.DisplayGameOverMessage(message);
     }
 
     [ClientRpc]

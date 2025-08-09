@@ -1065,5 +1065,6 @@ MonoBehaviour:
   currentAmmo:
     m_InternalValue: 0
   maxAmmo: 10
-  shootCooldown: 0.5
+  shootCooldown: 0.2
   lastShootTime: 0
+  isHuman: 0

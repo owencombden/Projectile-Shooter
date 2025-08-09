@@ -1,0 +1,50 @@
+.label {
+    font-size: 50px;
+    color: rgb(255, 255, 255);
+    background-color: rgb(69, 128, 73);
+    text-shadow: 3.7px 2.4px 0 rgb(0, 0, 0);
+    height: 70px;
+    width: 188px;
+}
+
+.mystyle {
+    height: 205px;
+    width: 823px;
+    background-color: rgb(0, 0, 0);
+}
+
+.unity-progress-bar__progress {
+    height: 45px;
+    flex-shrink: 0;
+    flex-direction: column;
+}
+
+.unity-progress-bar__background {
+    flex-shrink: 0;
+    border-top-width: 0;
+    border-right-width: 0;
+    border-bottom-width: 0;
+    border-left-width: 0;
+    border-left-color: rgba(0, 0, 0, 0);
+    border-right-color: rgba(0, 0, 0, 0);
+    border-top-color: rgba(0, 0, 0, 0);
+    border-bottom-color: rgba(0, 0, 0, 0);
+    height: 50px;
+    background-color: rgba(0, 0, 0, 0.51);
+}
+
+.label {
+    font-size: 50px;
+    color: rgb(255, 255, 255);
+    background-color: rgb(69, 128, 73);
+    text-shadow: 3.7px 2.4px 3.5px rgba(0, 0, 0, 0.62);
+    height: 70px;
+    width: 188px;
+}
+
+.message_text {
+    font-size: 90px;
+    color: rgb(255, 255, 255);
+    text-shadow: 4.5px 4.8px 0 rgb(0, 0, 0);
+    -unity-font-style: bold;
+}

@@ -1,0 +1,22 @@
+<engine:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:engine="UnityEngine.UIElements" xmlns:editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI%20Toolkit/MainMenuStyle.uss?fileID=7433441132597879392&amp;guid=897a6b31854c4c44fb43ec89cd14ec8f&amp;type=3#MainMenuStyle" />
+    <engine:VisualElement name="LobbyContainer" style="flex-grow: 1; background-image: url(&quot;project://database/Assets/UI%20Toolkit/lobby_bkg.png?fileID=2800000&amp;guid=aeb162b073766334594c3e7df2f655a3&amp;type=3#lobby_bkg&quot;);">
+        <engine:VisualElement name="HeaderContainer" style="flex-grow: 1; height: 0; margin-bottom: -90px; background-image: none; background-size: 98% 100%;">
+            <engine:Label text="GAME  LOBBY" name="LobbyHeader" class="header" style="margin-top: 34px;" />
+        </engine:VisualElement>
+        <engine:VisualElement name="PlayersContainer" style="flex-grow: 1; flex-direction: column; width: 40%; height: 29%; align-self: center; align-content: auto; align-items: center; justify-content: center; right: auto; bottom: auto; left: auto; position: relative; border-top-width: 10px; background-color: rgba(74, 97, 140, 0.91); border-right-width: 10px; border-bottom-width: 10px; border-left-width: 10px; border-bottom-color: rgb(31, 28, 28); border-left-color: rgb(31, 28, 28); border-right-color: rgb(31, 28, 28); border-top-color: rgb(31, 28, 28); margin-top: 0; padding-top: 0;">
+            <engine:Label text="CONNECTED PLAYERS" name="ConnectedPlayersLabel" style="font-size: 50px; -unity-font-style: bold; border-bottom-color: rgb(7, 7, 7); border-bottom-width: 5px; border-top-width: 5px; border-right-width: 5px; border-left-width: 5px; border-left-color: rgb(7, 7, 7); border-right-color: rgb(7, 7, 7); border-top-color: rgb(7, 7, 7); width: 674px; -unity-text-align: upper-center; margin-top: 60px;" />
+            <engine:VisualElement name="ConnectedPlayersContainer" style="flex-grow: 1;">
+                <engine:Label text="&lt; empty &gt;" name="PlayerIP_Row_0" class="player_ip_label" style="margin-top: 29px;" />
+                <engine:Label text="&lt; empty &gt;" name="PlayerIP_Row_1" class="player_ip_label" />
+                <engine:Label text="&lt; empty &gt;" name="PlayerIP_Row_2" class="player_ip_label" />
+                <engine:Label text="&lt; empty &gt;" name="PlayerIP_Row_3" class="player_ip_label" />
+                <engine:Label text="&lt; empty &gt;" name="PlayerIP_Row_4" class="player_ip_label" />
+            </engine:VisualElement>
+        </engine:VisualElement>
+        <engine:VisualElement name="ButtonContainer" style="flex-grow: 1; flex-direction: row; height: 0; width: 100%; align-self: center; align-items: center;">
+            <engine:Button text="Back" name="BackButton" class="button" style="width: 20%; height: 40%; margin-left: 50px; background-image: url(&quot;project://database/Assets/UI%20Toolkit/kenney_ui-pack/PNG/Red/Double/button_rectangle_gloss.png?fileID=2800000&amp;guid=6443fe9b4996f0a4899ee5486b4662ad&amp;type=3#button_rectangle_gloss&quot;); -unity-background-image-tint-color: rgb(243, 180, 199);" />
+            <engine:Button text="Start Game" name="StartGameButton" class="button" style="margin-bottom: 2px; width: 30%; height: 40%; margin-left: 242px;" />
+        </engine:VisualElement>
+    </engine:VisualElement>
+</engine:UXML>

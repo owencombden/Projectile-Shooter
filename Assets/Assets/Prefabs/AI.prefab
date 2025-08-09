@@ -282,6 +282,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 74d8b9d88ed7fe04da7dc10c02f5f1b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   isPlayer: 0
   moveSpeed: 8
   rotateSpeed: 360
@@ -325,8 +326,9 @@ MonoBehaviour:
   currentAmmo:
     m_InternalValue: 0
   maxAmmo: 10
-  shootCooldown: 0.5
+  shootCooldown: 0.2
   lastShootTime: 0
+  isHuman: 0
 --- !u!143 &9067310580479264826
 CharacterController:
   m_ObjectHideFlags: 0

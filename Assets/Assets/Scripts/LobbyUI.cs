@@ -1,29 +1,56 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
+using UnityEngine.UIElements;
 
 public class LobbyUI : MonoBehaviour
 {
-    [Header("Player Name Slots")]
-    [SerializeField] private List<TextMeshProUGUI> playerNameTexts; // Drag & drop 5 TMP Texts in Inspector
+    [Header("UI Elements")]
+    private UIDocument uiDocument;
+    private List<Label> playerNameTexts;
 
-    [Header("Buttons")]
-    [SerializeField] private Button startGameButton;
-    [SerializeField] private Button leaveLobbyButton;
+    // individual buttons
+    private Button startGameButton;
+    private Button backButton;
+
+    // all buttons
+    private List<Button> allMenuButtons = new List<Button>();
+
+    private AudioSource audioSource;
 
     private void Awake()
     {
-        startGameButton.onClick.AddListener(OnStartGameClicked);
-        leaveLobbyButton.onClick.AddListener(OnLeaveLobbyClicked);
+        uiDocument = GetComponent<UIDocument>();
+        audioSource = GetComponent<AudioSource>();
+
+        startGameButton = uiDocument.rootVisualElement.Q("StartGameButton") as Button;
+        backButton = uiDocument.rootVisualElement.Q("BackButton") as Button;
 
         // Hide Start Game button if not Host
-        startGameButton.gameObject.SetActive(Unity.Netcode.NetworkManager.Singleton.IsHost);
+        if (!Unity.Netcode.NetworkManager.Singleton.IsHost)
+        {
+            startGameButton.style.display = DisplayStyle.None;
+        }        
 
+        // register callbacks for each button, as well as 'any' button
+        startGameButton.RegisterCallback<ClickEvent>(OnStartGameClicked);
+        backButton.RegisterCallback<ClickEvent>(OnBackClicked);
+        allMenuButtons = uiDocument.rootVisualElement.Query<Button>().ToList();
+        foreach (Button lobbyButton in allMenuButtons)
+        {
+            lobbyButton.RegisterCallback<ClickEvent>(OnAnyButtonClicked);
+        }
+
+        // get the list of labels that will display connected players
+        VisualElement connectedPlayersContainer = uiDocument.rootVisualElement.Q("ConnectedPlayersContainer");
+        playerNameTexts = connectedPlayersContainer.Query<Label>().ToList();
+
+        //Debug.Log($"PlayerNameTexts has {playerNameTexts.Count} players.");
+        
         // Clear all player labels on startup
         ClearAllPlayerNames();
     }
 
+    // called by LobbyManager when clients join/leave
     public void UpdatePlayerList(List<string> playerNames)
     {
         ClearAllPlayerNames();
@@ -42,15 +69,31 @@ public class LobbyUI : MonoBehaviour
         }
     }
 
-    private void OnStartGameClicked()
+    private void OnAnyButtonClicked(ClickEvent evt)
+    {
+        // play button-click sound
+        audioSource.Play();
+    }
+
+    private void OnStartGameClicked(ClickEvent evt)
     {
         //Debug.Log("Start Game clicked");
         LobbyManager.Instance?.StartGame();
     }
 
-    private void OnLeaveLobbyClicked()
+    private void OnBackClicked(ClickEvent evt)
     {
         //Debug.Log("Leave Lobby clicked");
         LobbyManager.Instance?.LeaveLobby();
+    }
+    
+    private void OnDisable()
+    {
+        startGameButton.UnregisterCallback<ClickEvent>(OnStartGameClicked);
+        backButton.UnregisterCallback<ClickEvent>(OnBackClicked);
+        foreach (Button menuButton in allMenuButtons)
+        {
+            menuButton.UnregisterCallback<ClickEvent>(OnAnyButtonClicked);
+        }
     }
 }

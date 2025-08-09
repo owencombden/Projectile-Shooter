@@ -8,7 +8,7 @@ public class CharacterMotor : NetworkBehaviour
     public bool isPlayer;
     
     [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private float rotateSpeed = 720f;
+    [SerializeField] private float rotateSpeed = 1500f;
     [SerializeField] private float aimAngleThreshold = 0.5f;
     [SerializeField] private float maxAimTime = 1f;
     [SerializeField] private float facingOverrideDuration = 1f;
