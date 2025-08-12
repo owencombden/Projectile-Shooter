@@ -4,7 +4,7 @@ public class CameraLook : MonoBehaviour
 {
     [Header("Follow Settings")]
     public Vector3 cameraOffset;
-    public float cameraRotateSpeed = 2f;
+    public float cameraRotateSpeed = .75f;
     public float cameraMoveSmooth = 0.1f;
     public float cameraRotateSmooth = 0.1f;
     public float cameraPitchSmooth = 0.1f;
@@ -17,10 +17,17 @@ public class CameraLook : MonoBehaviour
 
     private Transform player;
     private Transform cameraLookHere;
+    private Vector2 lookInput; //this is delivered to the camera by PlayerInputHandler
     private float currentYaw;
     private float currentPitch;
     private float shakeTimer;
     private Vector3 shakeOffset = Vector3.zero;
+
+    public void SetLookInput(Vector2 lookDelta)
+    {
+        lookInput = lookDelta.normalized;
+        Debug.Log($"Camera Look input is: ({lookInput})");
+    }
 
     public void SetTarget(Transform playerTransform, Transform lookPoint)
     {
@@ -38,13 +45,11 @@ public class CameraLook : MonoBehaviour
         if (player == null || cameraLookHere == null) return;
 
         // Handle orbit input
-        if (Input.GetMouseButton(1))
-        {
-            float mouseX = Input.GetAxis("Mouse X");
-            float mouseY = Input.GetAxis("Mouse Y");
 
-            currentYaw += mouseX * cameraRotateSpeed;
-            currentPitch -= mouseY * cameraRotateSpeed;
+        if (lookInput.sqrMagnitude > 0.001f)
+        {
+            currentYaw += lookInput.x * cameraRotateSpeed;
+            currentPitch -= lookInput.y * cameraRotateSpeed;
             currentPitch = Mathf.Clamp(currentPitch, minPitch, maxPitch);
         }
 

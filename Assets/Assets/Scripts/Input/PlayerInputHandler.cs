@@ -8,14 +8,18 @@ public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
 {
     public Vector2 MoveInput { get; private set; }
     public Vector2 LookInput { get; private set; }
+    private bool lookEnabled; // <- Tracks RMB state
+    
 
     public event Action OnShootClicked; // <- new clean event
 
     private PlayerInput playerInput;
+    private CameraLook cameraLookScript;
 
     private void Awake()
     {
         playerInput = GetComponent<PlayerInput>();
+        cameraLookScript = Camera.main.GetComponent<CameraLook>();
     }
 
     public override void OnNetworkSpawn()
@@ -39,15 +43,32 @@ public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
         }
     }
 
-    public void OnMove(InputAction.CallbackContext context) => MoveInput = context.ReadValue<Vector2>();
-    public void OnLook(InputAction.CallbackContext context) => LookInput = context.ReadValue<Vector2>();
+    // ---- Input Action Callbacks ----
+    public void OnMove(InputAction.CallbackContext context) 
+        => MoveInput = context.ReadValue<Vector2>();
+
+    public void OnLook(InputAction.CallbackContext context)
+    {
+
+        if (lookEnabled)  // if RMB is held (need to add 'or right joystick is active' here for mobile)
+        {
+            LookInput = context.ReadValue<Vector2>();
+            cameraLookScript.SetLookInput(LookInput);
+        }            
+        else
+            LookInput = Vector2.zero;
+    }
+
+    public void OnLookEnable(InputAction.CallbackContext context)
+    {
+        if (context.performed) lookEnabled = true;
+        else if (context.canceled) lookEnabled = false;
+    }
 
     public void OnShootTarget(InputAction.CallbackContext context)
     {
         if (context.performed)
-        {
-            OnShootClicked?.Invoke(); // ← only triggers once per click
-        }
+            OnShootClicked?.Invoke();
     }
 }
 
