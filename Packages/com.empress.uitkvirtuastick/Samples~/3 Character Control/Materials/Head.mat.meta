@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: da0732b8127c368438519c6389e3d326
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 325755
+  packageName: UITK VirtuaStick
+  packageVersion: 1.0.0
+  assetPath: Packages/com.empress.uitkvirtuastick/Samples~/3 Character Control/Materials/Head.mat
+  uploadId: 778391

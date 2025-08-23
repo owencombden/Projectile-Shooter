@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 44417991b1998d648be4607994834e68
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 325755
+  packageName: UITK VirtuaStick
+  packageVersion: 1.0.0
+  assetPath: Packages/com.empress.uitkvirtuastick/Runtime/Settings/RectColor.cs
+  uploadId: 778391

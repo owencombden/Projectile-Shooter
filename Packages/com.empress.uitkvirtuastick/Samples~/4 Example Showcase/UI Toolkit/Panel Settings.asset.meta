@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 9c16abc51b73100488f2473ad4e0faf7
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 325755
+  packageName: UITK VirtuaStick
+  packageVersion: 1.0.0
+  assetPath: Packages/com.empress.uitkvirtuastick/Samples~/4 Example Showcase/UI
+    Toolkit/Panel Settings.asset
+  uploadId: 778391

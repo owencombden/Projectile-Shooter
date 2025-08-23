@@ -1,0 +1,53 @@
+.vs-stick {
+    width: 300px;
+    height: 300px;
+    border-top-width: 12px;
+    border-right-width: 12px;
+    border-bottom-width: 12px;
+    border-left-width: 12px;
+    border-top-left-radius: 300px;
+    border-top-right-radius: 300px;
+    border-bottom-right-radius: 300px;
+    border-bottom-left-radius: 300px;
+    border-left-color: rgb(255, 255, 255);
+    border-right-color: rgb(255, 255, 255);
+    border-top-color: rgb(134, 134, 134);
+    border-bottom-color: rgb(134, 134, 134);
+    align-items: center;
+    justify-content: space-around;
+    background-color: rgba(45, 45, 45, 0.61);
+}
+
+.vs-handle {
+    border-top-left-radius: 300px;
+    border-top-right-radius: 300px;
+    border-bottom-right-radius: 300px;
+    border-bottom-left-radius: 300px;
+    background-color: rgb(57, 57, 57);
+    border-top-width: 10px;
+    border-right-width: 10px;
+    border-bottom-width: 10px;
+    border-left-width: 10px;
+    width: 35%;
+    height: 35%;
+    border-left-color: rgb(255, 255, 255);
+    border-right-color: rgb(255, 255, 255);
+    border-top-color: rgb(255, 255, 255);
+    border-bottom-color: rgb(255, 255, 255);
+}
+
+.vs-arrow {
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    margin-left: 235px;
+    margin-right: -74px;
+    margin-top: 15px;
+    margin-bottom: 18px;
+    -unity-background-image-tint-color: rgb(217, 217, 217);
+    background-image: url("project://database/Assets/Samples/UITK%20VirtuaStick/1.0.0/2%20USS%20Styles/Textures/Directional_Arrow.png?fileID=2800000&guid=ca47fab98fac1ef4bb7caf4a6062b1ce&type=3#Directional_Arrow");
+}

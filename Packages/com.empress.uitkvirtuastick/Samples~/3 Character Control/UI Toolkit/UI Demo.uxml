@@ -1,0 +1,21 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <ui:VisualElement name="Root" style="flex-grow: 1; justify-content: flex-end; position: absolute; top: 0; left: 0; right: 0; bottom: 0;">
+        <ui:Label text="&lt;b&gt;VirtuaStick - Character Control&lt;/b&gt;&#10;&#10;&lt;color=#FFD700&gt;Use &lt;b&gt;two VirtuaSticks&lt;/b&gt; to control a player and camera.&lt;/color&gt;&#10;&#10;- Left Stick: &lt;i&gt;Character movement&lt;/i&gt;  &#10;- Right Stick: &lt;i&gt;Camera rotation&lt;/i&gt;  &#10;- Adjust both sticks in real-time:&#10;  &lt;i&gt;→ Dynamic mode&lt;/i&gt;  &#10;  &lt;i&gt;→ Axis restriction&lt;/i&gt;  &#10;  &lt;i&gt;→ Show debug info&lt;/i&gt;&#10;&#10;&lt;b&gt;Integration Guide:&lt;/b&gt;  &#10;1. Add VirtuaStick via UXML or &lt;i&gt;VirtuaStickProcedural&lt;/i&gt;  &#10;2. Add &lt;b&gt;OnScreenVirtuaStick&lt;/b&gt; component  &#10;3. Set &lt;b&gt;binding path&lt;/b&gt; to your Input Action  &#10;4. Reference the action in your &lt;i&gt;character or camera controller&lt;/i&gt;&#10;" name="Help" style="position: absolute; -unity-text-align: middle-left; font-size: 20px; background-color: rgba(0, 0, 0, 0.24); border-top-left-radius: 10px; border-top-right-radius: 10px; border-bottom-right-radius: 10px; border-bottom-left-radius: 10px; white-space: normal; flex-shrink: 1; width: 764px; align-self: flex-end; top: 0; flex-grow: 1; padding-top: 15px; padding-right: 15px; padding-bottom: 15px; padding-left: 15px; color: rgb(255, 255, 255); margin-top: 0; margin-bottom: 0; margin-right: 0; margin-left: 0;" />
+        <ui:VisualElement name="Stick_Buttons" style="flex-grow: 0; margin-right: 10px; flex-direction: row; width: 50%; top: 0; position: absolute;">
+            <ui:VisualElement name="Left_Stick" style="background-color: rgba(36, 36, 36, 0.71);">
+                <ui:Label text="Left Stick" display-tooltip-when-elided="true" style="font-size: 15px; color: rgb(255, 255, 255); -unity-font-style: bold; margin-left: 6px;" />
+                <ui:Button text="Dynamic: ON" display-tooltip-when-elided="true" name="Dynamic" focusable="false" style="font-size: 18px;" />
+                <ui:Button text="Axis: Horizontal" display-tooltip-when-elided="true" name="Axis" focusable="false" style="font-size: 18px;" />
+                <ui:Button text="Show Stick Area: ON" display-tooltip-when-elided="true" name="ShowStickArea" focusable="false" style="font-size: 18px;" />
+                <ui:Button text="Debug Info: ON" display-tooltip-when-elided="true" name="DebugInfo" focusable="false" style="font-size: 18px;" />
+            </ui:VisualElement>
+            <ui:VisualElement name="Right_Stick" style="background-color: rgba(36, 36, 36, 0.71);">
+                <ui:Label text="Right Stick" display-tooltip-when-elided="true" style="font-size: 15px; color: rgb(255, 255, 255); -unity-font-style: bold; margin-left: 6px;" />
+                <ui:Button text="Dynamic: ON" display-tooltip-when-elided="true" name="Dynamic" focusable="false" style="font-size: 18px;" />
+                <ui:Button text="Axis: Horizontal" display-tooltip-when-elided="true" name="Axis" focusable="false" style="font-size: 18px;" />
+                <ui:Button text="Show Stick Area: ON" display-tooltip-when-elided="true" name="ShowStickArea" focusable="false" style="font-size: 18px;" />
+                <ui:Button text="Debug Info: ON" display-tooltip-when-elided="true" name="DebugInfo" focusable="false" style="font-size: 18px;" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

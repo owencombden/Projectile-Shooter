@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 5a8094bbdf1a6dd47b8a0e2c98682db5
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 325755
+  packageName: UITK VirtuaStick
+  packageVersion: 1.0.0
+  assetPath: Packages/com.empress.uitkvirtuastick/Runtime/VirtuaStick.UxmlFactory.cs
+  uploadId: 778391

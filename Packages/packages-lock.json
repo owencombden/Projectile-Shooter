@@ -1,5 +1,13 @@
 {
   "dependencies": {
+    "com.empress.uitkvirtuastick": {
+      "version": "file:com.empress.uitkvirtuastick",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {
+        "com.unity.inputsystem": "1.14.0"
+      }
+    },
     "com.unity.burst": {
       "version": "1.8.18",
       "depth": 1,

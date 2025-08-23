@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 26eba2141809b1c428142955f9f3d9a0
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 325755
+  packageName: UITK VirtuaStick
+  packageVersion: 1.0.0
+  assetPath: Packages/com.empress.uitkvirtuastick/Samples~/3 Character Control/Readme.txt
+  uploadId: 778391

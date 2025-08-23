@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 0ff0b4650ee043d4e803bfc0aba95a66
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 112000000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 325755
+  packageName: UITK VirtuaStick
+  packageVersion: 1.0.0
+  assetPath: Packages/com.empress.uitkvirtuastick/Samples~/3 Character Control/Scene
+    Data/LightingData.asset
+  uploadId: 778391

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 43444d479558a6d4d80a5b8fc9000e94
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 325755
+  packageName: UITK VirtuaStick
+  packageVersion: 1.0.0
+  assetPath: Packages/com.empress.uitkvirtuastick/Samples~/3 Character Control/Materials/Character.mat
+  uploadId: 778391

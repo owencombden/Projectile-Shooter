@@ -1,0 +1,10 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/Samples/UITK%20VirtuaStick/1.0.0/2%20USS%20Styles/Neon.uss?fileID=7433441132597879392&amp;guid=81f82838b4ca4694783d0ce9a13f76f2&amp;type=3#Neon" />
+    <ui:VisualElement name="Root" style="flex-grow: 1; justify-content: flex-end; background-color: rgb(50, 50, 55);">
+        <Empress.UITK.VirtuaStick name="VirtuaStick" stick-size="300" stick-offset="-100,80" handle-limit="40" style-source="USS" handle-move-radius="50" dynamic="false" style="flex-grow: 1;" />
+        <ui:Label text="&lt;b&gt;VirtuaStick - USS Styles&lt;/b&gt;&#10;&#10;&lt;color=#FFD700&gt;Test how your UI theme affects VirtuaStick.&lt;/color&gt;&#10;&#10;- Click the button to apply different &lt;b&gt;USS styles&lt;/b&gt;.&#10;- See how the visuals update in real-time.&#10;- Use this to preview integration with your game’s UI design.&#10;&#10;&lt;i&gt;No code changes required — fully USS driven.&lt;/i&gt;&#10;" name="Help" style="position: absolute; -unity-text-align: middle-left; font-size: 24px; background-color: rgba(0, 0, 0, 0.24); border-top-left-radius: 10px; border-top-right-radius: 10px; border-bottom-right-radius: 10px; border-bottom-left-radius: 10px; white-space: normal; flex-shrink: 1; width: 764px; align-self: flex-end; top: 0; flex-grow: 1; padding-top: 15px; padding-right: 15px; padding-bottom: 15px; padding-left: 15px; margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0; color: rgb(255, 255, 255);" />
+        <ui:VisualElement name="Buttons" style="flex-grow: 1; width: 200px; position: absolute; left: 45%; bottom: 28%;">
+            <ui:Button text="Style: USS Name" display-tooltip-when-elided="true" name="Style_Button" focusable="false" style="font-size: 18px;" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

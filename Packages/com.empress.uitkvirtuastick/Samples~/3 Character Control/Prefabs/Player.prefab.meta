@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: cb60fdbcf680b1a4f910bcd837ac972f
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 325755
+  packageName: UITK VirtuaStick
+  packageVersion: 1.0.0
+  assetPath: Packages/com.empress.uitkvirtuastick/Samples~/3 Character Control/Prefabs/Player.prefab
+  uploadId: 778391

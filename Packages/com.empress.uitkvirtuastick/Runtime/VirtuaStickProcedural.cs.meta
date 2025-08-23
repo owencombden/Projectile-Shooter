@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: dd911fc9dd8b5df479de836cad2a234e
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 325755
+  packageName: UITK VirtuaStick
+  packageVersion: 1.0.0
+  assetPath: Packages/com.empress.uitkvirtuastick/Runtime/VirtuaStickProcedural.cs
+  uploadId: 778391

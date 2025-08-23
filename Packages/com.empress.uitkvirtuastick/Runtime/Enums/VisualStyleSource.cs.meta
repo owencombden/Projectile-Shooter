@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 87f34f84d1631454c9135ba70a0bae60
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 325755
+  packageName: UITK VirtuaStick
+  packageVersion: 1.0.0
+  assetPath: Packages/com.empress.uitkvirtuastick/Runtime/Enums/VisualStyleSource.cs
+  uploadId: 778391

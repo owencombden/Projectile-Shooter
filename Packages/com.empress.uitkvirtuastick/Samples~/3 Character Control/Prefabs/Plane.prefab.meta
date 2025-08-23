@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 485701be09892294999c6fdefc630c47
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 325755
+  packageName: UITK VirtuaStick
+  packageVersion: 1.0.0
+  assetPath: Packages/com.empress.uitkvirtuastick/Samples~/3 Character Control/Prefabs/Plane.prefab
+  uploadId: 778391

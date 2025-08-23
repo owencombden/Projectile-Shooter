@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: badc29efeca0e2f428a6772e11770a8a
+AssemblyDefinitionImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 325755
+  packageName: UITK VirtuaStick
+  packageVersion: 1.0.0
+  assetPath: Packages/com.empress.uitkvirtuastick/Runtime/Empress.UITKVirtuaStick.Runtime.asmdef
+  uploadId: 778391

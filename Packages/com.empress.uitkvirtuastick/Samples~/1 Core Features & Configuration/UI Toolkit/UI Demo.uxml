@@ -1,0 +1,45 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="True">
+    <Style src="project://database/Assets/Samples/UITK%20VirtuaStick/1.0.0/1%20Core%20Features%20&amp;%20Configuration/UI%20Toolkit/UI%20Demo.uss?fileID=7433441132597879392&amp;guid=8446f8b389e627743b3e0dfbe3c695e7&amp;type=3#UI Demo" />
+    <ui:VisualElement name="Background" style="background-color: rgb(50, 50, 55); position: absolute; left: 0; top: 0; right: 0; bottom: 0;" />
+    <ui:VisualElement name="UI_Controls" style="background-color: rgb(31, 31, 31); padding-left: 10px; padding-top: 10px; padding-right: 10px; padding-bottom: 10px; align-self: flex-end; width: 25%; position: absolute; bottom: 0; top: 0;">
+        <ui:Label text="&lt;color=#55FFF5&gt;Use the right-side panel to test core features in real-time:&lt;/color&gt; toggle &lt;b&gt;Dynamic Mode&lt;/b&gt;, set &lt;b&gt;Axis Restriction&lt;/b&gt;, change &lt;b&gt;Movement Radius&lt;/b&gt;, and enable &lt;b&gt;Debug Visuals&lt;/b&gt;. &lt;i&gt;This demo helps you understand how VirtuaStick responds to different settings during gameplay.&lt;/i&gt;&#10;" name="Hint" class="runtime-inspector font-style" style="font-size: 18px; white-space: normal; -unity-font-style: italic; background-color: rgb(14, 14, 14); border-top-left-radius: 14px; border-top-right-radius: 14px; border-bottom-right-radius: 14px; border-bottom-left-radius: 14px; padding-top: 10px; padding-right: 18px; padding-bottom: 10px; padding-left: 18px; color: rgb(218, 218, 218);" />
+        <ui:ScrollView name="ScrollView" mouse-wheel-scroll-size="4" style="height: 100%;">
+            <ui:Label text="Settings" name="Settings_Label" class="runtime-inspector font-style" style="-unity-font-style: bold; font-size: 40px; color: rgb(106, 255, 125);" />
+            <ui:VisualElement name="Space" style="height: 20px;" />
+            <ui:DropdownField label="Axis Constraint" name="Axis_Constraint" choices="Free,Horizontal,Vertical" index="0" focusable="false" class="font-style" />
+            <ui:Toggle label="Dynamic" name="Dynamic" focusable="false" value="true" class="runtime-inspector font-style" />
+            <ui:Toggle label="Debug Info" name="Debug_Mode" focusable="false" value="true" class="runtime-inspector font-style" />
+            <ui:Slider picking-mode="Ignore" label="Stick Area X" high-value="75" show-input-field="true" value="40" name="Stick_Rect_X" focusable="false" low-value="20" class="font-style" />
+            <ui:Slider picking-mode="Ignore" label="Stick Area Y" high-value="100" show-input-field="true" value="40" name="Stick_Rect_Y" focusable="false" low-value="40" class="font-style" />
+            <ui:Slider picking-mode="Ignore" label="Stick Offset X" high-value="100" show-input-field="true" value="40" name="Stick_Offset_X" focusable="false" class="font-style" />
+            <ui:Slider picking-mode="Ignore" label="Stick Offset Y" high-value="100" show-input-field="true" value="40" name="Stick_Offset_Y" focusable="false" class="font-style" />
+            <ui:Slider picking-mode="Ignore" label="Stick Size" high-value="1920" show-input-field="true" value="300" name="Stick_Size" focusable="false" low-value="60" class="font-style" />
+            <ui:Slider label="Handle Size" value="40" name="Handle_Size" show-input-field="true" focusable="false" high-value="100" class="font-style" />
+            <ui:Slider label="Handle Move Radius" value="40" name="Handle_Move_Radius" show-input-field="true" focusable="false" high-value="100" class="font-style" />
+            <ui:Toggle label="Directional Arrow" name="Directional_Arrow" focusable="false" value="true" class="runtime-inspector font-style" />
+            <ui:Slider label="Directional Arrow Smooth" value="0.1" name="Directional_Arrow_Smooth" show-input-field="true" focusable="false" high-value="2" low-value="0.01" class="font-style" />
+            <ui:Label text="Styling" name="Styling_Label" class="runtime-inspector font-style" style="-unity-font-style: bold; font-size: 40px; color: rgb(106, 255, 125);" />
+            <ui:Foldout text="Stick" focusable="false" name="Stick_Style" value="false" class="font-style">
+                <ui:Slider label="Border" value="40" name="Border" show-input-field="true" focusable="false" high-value="150" class="font-style" />
+                <ui:Slider label="Radius" value="40" name="Radius" show-input-field="true" focusable="false" high-value="600" class="font-style" />
+                <ui:DropdownField label="Background Color" value="#1A1A1A80" name="Background_Color" focusable="false" class="font-style" />
+                <ui:DropdownField label="Color Top/Bottom" value="#796B8FCC" name="Color_Top_Bottom" focusable="false" class="font-style" />
+                <ui:DropdownField label="Color Left/Right" value="#A08CC1CC" name="Color_Left_Right" focusable="false" class="font-style" />
+            </ui:Foldout>
+            <ui:Foldout text="Handle" focusable="false" name="Handle_Style" value="false" class="font-style">
+                <ui:Slider label="Border" value="40" name="Border" show-input-field="true" focusable="false" high-value="100" class="font-style" />
+                <ui:Slider label="Radius" value="40" name="Radius" show-input-field="true" focusable="false" high-value="600" class="font-style" />
+                <ui:DropdownField label="Background Color" value="#1A1A1A80" name="Background_Color" focusable="false" class="font-style" />
+                <ui:DropdownField label="Color Top/Bottom" value="#796B8FCC" name="Color_Top_Bottom" focusable="false" class="font-style" />
+                <ui:DropdownField label="Color Left/Right" value="#A08CC1CC" name="Color_Left_Right" focusable="false" class="font-style" />
+            </ui:Foldout>
+            <ui:Foldout text="Arrow" focusable="false" name="Arrow_Style" value="false" class="font-style">
+                <ui:Slider label="Border" value="40" name="Border" show-input-field="true" focusable="false" high-value="100" class="font-style" />
+                <ui:Slider label="Radius" value="40" name="Radius" show-input-field="true" focusable="false" high-value="600" class="font-style" />
+                <ui:Slider label="Offset" value="40" name="Offset" show-input-field="true" focusable="false" high-value="100" class="font-style" />
+                <ui:DropdownField label="Color" value="#1A1A1A80" name="Background_Color" focusable="false" class="font-style" />
+            </ui:Foldout>
+        </ui:ScrollView>
+        <ui:Button text="Reset Values" display-tooltip-when-elided="true" name="Reset_Values" style="margin-right: 60px; margin-left: 60px; font-size: 20px; border-top-left-radius: 8px; border-top-right-radius: 8px; border-bottom-right-radius: 8px; border-bottom-left-radius: 8px; padding-top: 6px; padding-right: 6px; padding-bottom: 6px; padding-left: 6px; margin-top: 10px;" />
+    </ui:VisualElement>
+</ui:UXML>

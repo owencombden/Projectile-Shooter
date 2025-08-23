@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: d9f01f4440612c243ba27d9e4adc5ba2
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 325755
+  packageName: UITK VirtuaStick
+  packageVersion: 1.0.0
+  assetPath: Packages/com.empress.uitkvirtuastick/README.md
+  uploadId: 778391

@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 44ffe8c8a6929f54a9db824a65c2d8eb
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 12388, guid: 0000000000000000e000000000000000, type: 0}
+  disableValidation: 0
+AssetOrigin:
+  serializedVersion: 1
+  productId: 325755
+  packageName: UITK VirtuaStick
+  packageVersion: 1.0.0
+  assetPath: Packages/com.empress.uitkvirtuastick/Samples~/1 Core Features & Configuration/UI
+    Toolkit/UnityDefaultRuntimeTheme.tss
+  uploadId: 778391

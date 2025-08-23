@@ -13,6 +13,7 @@ public class PlayerController : NetworkBehaviour
     private CharacterMotor motor;
     private CharacterShooter shooter;
     private ICharacterInputProvider input;
+    private PlayerInputHandler handler;
     private Vector3 lastGroundPos;
     private Vector3 storedTippingAxis;
     private bool isAvoidingWater = false;
@@ -42,7 +43,7 @@ public class PlayerController : NetworkBehaviour
 
     void Start()
     {
-        PlayerInputHandler handler = GetComponent<PlayerInputHandler>();
+        handler = GetComponent<PlayerInputHandler>();
         handler.OnShootClicked += HandleShootClicked;
     }
 
@@ -102,7 +103,7 @@ public class PlayerController : NetworkBehaviour
         if (PauseManager.Instance.isPaused.Value)  { return; }
         if (!IsOwner || playerDead) return;
 
-        Transform clickedTarget = GetMouseClickTarget();
+        Transform clickedTarget = handler.GetPointerTarget();
         if (clickedTarget == null) return;
         if (clickedTarget.tag == "Water") return;
         if (clickedTarget.tag == "Ground" && IsOwnPlatform(clickedTarget)) return;
@@ -213,14 +214,7 @@ public class PlayerController : NetworkBehaviour
 
         return Physics.SphereCast(rayStart, rayRadius, rayDir, out hitData, rayLength);
     }
-
-    private Transform GetMouseClickTarget()
-    {
-        Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
-        if (Physics.Raycast(ray, out RaycastHit hit)) { return hit.transform; }
-        return null;
-    }
-
+    
     [ClientRpc]
     public void ReceiveKnockbackBlastClientRpc(Vector3 direction, float force, ClientRpcParams rpcParams = default)
     {

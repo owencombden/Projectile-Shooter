@@ -81,7 +81,7 @@ public class HexTileSynchVerifier : NetworkBehaviour
             }
             else
             {
-                Debug.Log($"✅ Client {kvp.Key} is in sync.");
+                //Debug.Log($"✅ Client {kvp.Key} is in sync.");
             }
         }
     }

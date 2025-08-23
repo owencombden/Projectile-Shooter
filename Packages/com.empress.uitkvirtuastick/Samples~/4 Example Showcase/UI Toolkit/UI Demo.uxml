@@ -1,0 +1,27 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <ui:VisualElement name="Root" style="flex-grow: 1; background-color: rgb(50, 50, 55); padding-top: 210px; align-items: center;">
+        <ui:VisualElement name="Sticks" style="width: 75%; flex-grow: 1; position: absolute; top: 27%;">
+            <ui:VisualElement name="Stick_1_2" style="flex-direction: row; margin-bottom: 20px; flex-grow: 1;">
+                <ui:VisualElement name="1" style="margin-bottom: 20px; flex-grow: 1;">
+                    <Empress.UITK.Demo.VirtuaStickDpad stick-size="300" stick-offset="-100,80" handle-limit="40" axis-arrow-color="#00F1FFFF" min-fade="0.2" fade-duration="0.52" dynamic="false" directional-arrow="false" handle-move-radius="60" style="flex-grow: 1;" />
+                    <ui:Label text="Dpad" display-tooltip-when-elided="true" style="color: rgb(255, 255, 255); -unity-text-align: middle-center; font-size: 30px;" />
+                </ui:VisualElement>
+                <ui:VisualElement name="2" style="margin-bottom: 20px; flex-grow: 1;">
+                    <Empress.UITK.Demo.VirtuaSticPuzzleDpad stick-size="300" stick-offset="-100,80" handle-limit="40" axis-arrow-color="#00F1FFFF" min-fade="0.2" fade-duration="0.52" dynamic="false" directional-arrow="false" style="flex-grow: 1;" />
+                    <ui:Label text="Puzzle Dpad" display-tooltip-when-elided="true" style="color: rgb(255, 255, 255); -unity-text-align: middle-center; font-size: 30px;" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="Stick_3_4" style="flex-direction: row; flex-grow: 1;">
+                <ui:VisualElement name="2" style="margin-bottom: 20px; flex-grow: 1;">
+                    <Empress.UITK.Demo.VirtuaStick2DPlatformer style-source="USS" arrows-spacing="52.15" style="flex-grow: 1;" />
+                    <ui:Label text="2D Platformer" display-tooltip-when-elided="true" style="color: rgb(255, 255, 255); -unity-text-align: middle-center; font-size: 30px;" />
+                </ui:VisualElement>
+                <ui:VisualElement name="2" style="margin-bottom: 20px; flex-grow: 1;">
+                    <Empress.UITK.Demo.VirtuaStickRacingPad style="flex-grow: 1;" />
+                    <ui:Label text="Racing Pad" display-tooltip-when-elided="true" style="color: rgb(255, 255, 255); -unity-text-align: middle-center; font-size: 30px;" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:Label text="&lt;b&gt;VirtuaStick - Showcase&lt;/b&gt;&#10;&#10;&lt;color=#FFD700&gt;This scene features 4 custom sticks:&lt;/color&gt; &lt;b&gt;D-Pad&lt;/b&gt; (classic layout with a visual pad), &lt;b&gt;Puzzle D-Pad&lt;/b&gt; (2D axis only, no handle), &lt;b&gt;2D Platformer&lt;/b&gt; (horizontal-only with arrows), and &lt;b&gt;Racing Pad&lt;/b&gt; (steering wheel with internal input). &lt;i&gt;Each variation extends VirtuaStick and is ideal for specific control styles.&lt;/i&gt;&#10;" name="Help" style="position: absolute; -unity-text-align: middle-left; font-size: 22px; -unity-font-style: normal; background-color: rgba(0, 0, 0, 0.24); border-top-left-radius: 10px; border-top-right-radius: 10px; border-bottom-right-radius: 10px; border-bottom-left-radius: 10px; white-space: normal; flex-shrink: 1; width: 764px; align-self: flex-end; top: 0; flex-grow: 1; padding-top: 15px; padding-right: 15px; padding-bottom: 15px; padding-left: 15px; color: rgb(255, 255, 255); margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0;" />
+    </ui:VisualElement>
+</ui:UXML>

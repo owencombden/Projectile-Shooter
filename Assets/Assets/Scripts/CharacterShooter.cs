@@ -39,6 +39,7 @@ public class CharacterShooter : NetworkBehaviour
 
         isHuman = GetComponent<PlayerController>() == null ? false : true;
 
+        // configure ammo ui
         if (isHuman)
         {
             GameplayUI.Instance.SetMaxLimitOnAmmoProgressBar(maxAmmo);

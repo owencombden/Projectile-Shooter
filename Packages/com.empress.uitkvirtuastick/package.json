@@ -1,0 +1,48 @@
+{
+  "name": "com.empress.uitkvirtuastick",
+  "displayName": "UITK VirtuaStick",
+  "version": "1.0.0",
+  "unity": "2023.3",
+  "description": "A lightweight virtual joystick designed natively for Unity's UI Toolkit, offering plug-and-play touch controls with full Input System compatibility. Ideal for mobile games, editor tools, or any UITK-based project requiring precise input.",
+  "keywords": [
+    "ui",
+    "toolkit",
+    "visual",
+    "elements",
+    "joystick",
+    "virtual",
+    "unity"
+  ],
+  "author": {
+    "name": "Empress Games",
+    "url": "https://github.com/Empress-Games/"
+  },
+  "license": "Proprietary",
+  "category": "UI",
+  "hideInEditor": false,
+  "dependencies": {
+    "com.unity.inputsystem": "1.14.0"
+  },
+  "samples": [
+    {
+      "displayName": "1 Core Features & Configuration",
+      "description": "Explore VirtuaStick's core functionality with full runtime customization. Adjust stick radius, axis modes, dynamic positioning, and visual feedback—all in real time.",
+      "path": "Samples~/1 Core Features & Configuration"
+    },
+    {
+      "displayName": "2 USS Styles",
+      "description": "Customize VirtuaStick's look using Unity Style Sheets (USS). Switch themes live and explore how USS affects visuals like backgrounds, borders, and handle styling.",
+      "path": "Samples~/2 USS Styles"
+    },
+    {
+      "displayName": "3 Character Control",
+      "description": "Dual-stick demo for mobile-style gameplay. Connect VirtuaStick to character and camera controllers using Unity’s Input System, with UI toggles for runtime behavior.",
+      "path": "Samples~/3 Character Control"
+    },
+    {
+      "displayName": "4 Example Showcase",
+      "description": "Discover four joystick variants tailored for different genres: D-Pad, Puzzle, Platformer, and Racing. Each is a subclass of VirtuaStick, ready for extension and reuse.",
+      "path": "Samples~/4 Example Showcase"
+    }
+  ]
+}
