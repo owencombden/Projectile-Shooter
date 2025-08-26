@@ -996,8 +996,8 @@ MonoBehaviour:
   handleSizePercent: 43
   axisConstraint: 0
   dynamic: 1
-  showStickArea: 1
-  debugInfo: 1
+  showStickArea: 0
+  debugInfo: 0
   debugAlign: 2
   debugInfoSize: 14.3
   handleMoveRadius: 55

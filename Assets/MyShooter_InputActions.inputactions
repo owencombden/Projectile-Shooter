@@ -94,7 +94,7 @@
                 {
                     "name": "",
                     "id": "322da755-69ac-4663-9fea-71877347abed",
-                    "path": "<Mouse>/leftButton",
+                    "path": "<Pointer>/press",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -105,7 +105,7 @@
                 {
                     "name": "",
                     "id": "d7a9b2d1-f8f9-41a0-8376-543b8ead4bcb",
-                    "path": "<Touchscreen>/primaryTouch/tap",
+                    "path": "<Touchscreen>/touch*/press",
                     "interactions": "",
                     "processors": "",
                     "groups": "",

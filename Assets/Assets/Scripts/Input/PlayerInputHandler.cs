@@ -1,8 +1,8 @@
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Users;
 using Unity.Netcode;
+using UnityEngine.InputSystem.EnhancedTouch;
 
 
 public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
@@ -23,6 +23,8 @@ public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
     {
         playerInput = GetComponent<PlayerInput>();
         cameraLookScript = Camera.main.GetComponent<CameraLook>();
+
+        EnhancedTouchSupport.Enable();
     }
 
     public override void OnNetworkSpawn()
@@ -43,6 +45,15 @@ public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
                 // FORCE TOUCH CONTROLS
                 //playerInput.SwitchCurrentControlScheme("Touch", Touchscreen.current, Mouse.current);
             }
+        }
+    }
+
+    void Update()
+    {
+        foreach (var t in UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches)
+        {
+            if (t.phase == UnityEngine.InputSystem.TouchPhase.Began)
+                Debug.Log($"[TOUCH DETECTED] id={t.touchId} pos={t.screenPosition}");
         }
     }
 
