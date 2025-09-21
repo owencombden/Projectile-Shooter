@@ -9,8 +9,8 @@ public class LevelManager : NetworkBehaviour
     public static LevelManager Instance;
 
     [Header("Game Setup")]
-    private int maxTotalCharacters = 2; // Total includes players + AI
-    private int extraAICount = 0;
+    private int maxTotalCharacters = 4; // Total includes players + AI
+    private int extraAICount = 3;
 
     [Header("Platform Settings")]
     [SerializeField] private float xSpacing = 60f;

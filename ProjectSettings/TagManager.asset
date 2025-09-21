@@ -9,6 +9,9 @@ TagManager:
   - Ammo
   - Bullet
   - AI_Player
+  - FxTemporaire
+  - MoveStick
+  - LookStick
   layers:
   - Default
   - TransparentFX

@@ -3,7 +3,6 @@ using UnityEngine.InputSystem;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
-using System.Linq;
 
 public class PlayerController : NetworkBehaviour
 {
@@ -97,18 +96,27 @@ public class PlayerController : NetworkBehaviour
 
         }
 
-    private void HandleShootClicked()
+    private void HandleShootClicked(Vector2 screenPos)
     {
+
+        Debug.Log("Player Controller has detected that shoot was clicked.");
         if (GameManager.Instance.GetGameState() == GameManager.GameState.GameOver) return;
         if (PauseManager.Instance.isPaused.Value)  { return; }
         if (!IsOwner || playerDead) return;
 
-        Transform clickedTarget = handler.GetPointerTarget();
+        // get the transform that was hit
+        Transform clickedTarget = null;
+        Ray ray = Camera.main.ScreenPointToRay(screenPos);
+        if (Physics.Raycast(ray, out RaycastHit hit))
+        {
+            clickedTarget = hit.transform;
+        }
+        
+        // filter the things we don't want to hit
         if (clickedTarget == null) return;
         if (clickedTarget.tag == "Water") return;
         if (clickedTarget.tag == "Ground" && IsOwnPlatform(clickedTarget)) return;
-
-        //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} clicked on something.");
+        
         StartCoroutine(Shoot(clickedTarget));
     }
 

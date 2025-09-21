@@ -1,3 +1,6 @@
+//*  SET THIS SAME SCRIPT TO WORK WITH TRADITIONAL UNITY UI
+//  SEARCH FOR GAMEPLAYUI IN SOLUTION AND REINSTATE EVERYTHING
+
 using UnityEngine;
 using System.Collections;
 using UnityEngine.UIElements;
@@ -99,3 +102,5 @@ public class GameplayUI : MonoBehaviour
         if (Instance == this) Instance = null;
     }    
 }
+
+

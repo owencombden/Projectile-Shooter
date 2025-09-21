@@ -478,7 +478,7 @@ Transform:
   m_GameObject: {fileID: 7372973247718353663}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
-  m_LocalPosition: {x: -0.009, y: -0, z: -1.2}
+  m_LocalPosition: {x: -0.009, y: -0, z: -2.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -849,22 +849,6 @@ MonoBehaviour:
         m_CallState: 2
     m_ActionId: 35440c67-8024-444a-8e09-049fa1e7888f
     m_ActionName: 'Gameplay/Movement[/Keyboard/w,/Keyboard/s,/Keyboard/a,/Keyboard/d]'
-  - m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 1966942426940044548}
-        m_TargetAssemblyTypeName: PlayerInputHandler, Assembly-CSharp
-        m_MethodName: OnShootTarget
-        m_Mode: 0
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-    m_ActionId: 4bf349b8-56d7-4303-b2c2-4312c6175bf7
-    m_ActionName: 'Gameplay/Shooting[/Mouse/leftButton]'
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: 
   m_DefaultActionMap: Gameplay
@@ -883,6 +867,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
+  movementJoystickRect: {fileID: 0}
+  lookJoystickRect: {fileID: 0}
 --- !u!114 &-2084219818745628202
 MonoBehaviour:
   m_ObjectHideFlags: 0
