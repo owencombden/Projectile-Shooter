@@ -96,7 +96,7 @@ public class PlayerController : NetworkBehaviour
 
         }
 
-    private void HandleShootClicked(Vector2 screenPos)
+    private void HandleShootClicked(Transform target)
     {
 
         Debug.Log("Player Controller has detected that shoot was clicked.");
@@ -105,19 +105,14 @@ public class PlayerController : NetworkBehaviour
         if (!IsOwner || playerDead) return;
 
         // get the transform that was hit
-        Transform clickedTarget = null;
-        Ray ray = Camera.main.ScreenPointToRay(screenPos);
-        if (Physics.Raycast(ray, out RaycastHit hit))
-        {
-            clickedTarget = hit.transform;
-        }
+        Debug.Log($"Player will shoot at {target.tag}");
         
         // filter the things we don't want to hit
-        if (clickedTarget == null) return;
-        if (clickedTarget.tag == "Water") return;
-        if (clickedTarget.tag == "Ground" && IsOwnPlatform(clickedTarget)) return;
+        if (target == null) return;
+        if (target.tag == "Water") return;
+        if (target.tag == "Ground" && IsOwnPlatform(target)) return;
         
-        StartCoroutine(Shoot(clickedTarget));
+        StartCoroutine(Shoot(target));
     }
 
     private bool IsOwnPlatform(Transform clickedTarget)

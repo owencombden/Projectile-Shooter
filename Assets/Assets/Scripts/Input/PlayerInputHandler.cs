@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using System.Collections.Generic;
 using UnityEngine.InputSystem;
 using Unity.Netcode;
 using UnityEngine.InputSystem.EnhancedTouch;
@@ -8,6 +9,7 @@ using UnityEngine.InputSystem.EnhancedTouch;
 public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
 {
     private PlayerInput playerInput;
+    private Camera playerCamera;
     private CameraLook cameraLookScript;
 
     private Vector2 moveInput;
@@ -21,15 +23,17 @@ public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
     [SerializeField] private RectTransform movementJoystickRect;
     [SerializeField] private RectTransform lookJoystickRect;
 
-    public event Action<Vector2> OnShootClicked;
+    float aimAssistRadius = 70f; // screen-space pixels
+    public event Action<Transform> OnShootClicked;
     Vector3 lastShootScreenPos = Vector3.zero;
 
-    
+
 
     private void Awake()
     {
         playerInput = GetComponent<PlayerInput>();
-        cameraLookScript = Camera.main.GetComponent<CameraLook>();
+        playerCamera = Camera.main;
+        cameraLookScript = playerCamera.GetComponent<CameraLook>();
     }
 
     public override void OnNetworkSpawn()
@@ -86,8 +90,8 @@ public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
         HandleMouseShoot();
 #elif UNITY_ANDROID || UNITY_IOS
         HandleTouchShoot();
-        #endif
-        
+#endif
+
     }
 
     void HandleMouseShoot()
@@ -95,9 +99,33 @@ public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
         if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
         {
             Vector2 screenPos = Mouse.current.position.ReadValue();
-            if (!IsOverJoystick(screenPos))
+
+            // if the click is over UI, ignore it.
+            // can add other UI elements here (pause, settings, etc)
+            if (IsOverJoystick(screenPos)) return;
+            
+            // get the clicked target
+            Transform clickedTarget = null;
+            Ray ray = Camera.main.ScreenPointToRay(screenPos);
+            if (Physics.Raycast(ray, out RaycastHit hit))
             {
-                OnShootClicked?.Invoke(screenPos);
+                clickedTarget = hit.transform;
+            }
+
+            if (clickedTarget && clickedTarget.tag == "Ground")
+            {
+                OnShootClicked?.Invoke(clickedTarget);
+            }
+            else
+            {
+                // shooting at something other than 'ground'.  use aim assist
+                // get the closest targetPos (within radius) to the click/tap position
+                Transform closestTarget = GetClosestTarget(screenPos, aimAssistRadius);
+                if (closestTarget != null)
+                {
+                    OnShootClicked?.Invoke(closestTarget);
+                }
+                
             }
         }
     }
@@ -109,9 +137,32 @@ public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
             if (touch.phase == UnityEngine.InputSystem.TouchPhase.Began)
             {
                 Vector2 screenPos = touch.screenPosition;
-                if (!IsOverJoystick(screenPos))
+
+                // filter out touches we don't care about (can add other UI buttons here)
+                if (IsOverJoystick(screenPos)) return;
+
+                // get the tapped target
+                Transform tappedTarget = null;
+                Ray ray = Camera.main.ScreenPointToRay(screenPos);
+                if (Physics.Raycast(ray, out RaycastHit hit))
                 {
-                    OnShootClicked?.Invoke(screenPos);
+                    tappedTarget = hit.transform;
+                }
+
+                if (tappedTarget && tappedTarget.tag == "Ground")
+                {
+                    OnShootClicked?.Invoke(tappedTarget);
+                }
+                else
+                {
+                    // shooting at something other than 'ground'.  use aim assist
+                    // get the closest targetPos (within radius) to the click/tap position
+                    Transform closestTarget = GetClosestTarget(screenPos, aimAssistRadius);
+                    if (closestTarget != null)
+                    {
+                        OnShootClicked?.Invoke(closestTarget);
+                        break;
+                    }                    
                 }
             }
         }
@@ -119,7 +170,7 @@ public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
 
     // helper: check if screen position overlaps a joystick rect
     bool IsOverJoystick(Vector2 screenPos)
-    {                
+    {
         // Check if point is inside either joystick
         if (RectTransformUtility.RectangleContainsScreenPoint(movementJoystickRect, screenPos, null))
         {
@@ -131,7 +182,37 @@ public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
         }
 
         return false;
-    }    
+    }
+    
+    public Transform GetClosestTarget(Vector2 screenPos, float radius)
+    {
+        List<Targetable> targets = TargetManager.Instance.GetTargets();
+        Transform bestTarget = null;
+        float bestDist = Mathf.Infinity;
+
+        foreach (var t in targets)
+        {
+            // World -> Screen
+            Vector3 screenPoint = playerCamera.WorldToScreenPoint(t.transform.position);
+            //Debug.Log($"------------------------------------------");
+            //Debug.Log($"Calculating for {t.transform.name} with WorldToScreenPoint {screenPoint}");
+            //Debug.Log($"Distance from tap is {Vector2.Distance(screenPos, screenPoint)}");
+
+
+            // Ignore things behind the camera
+            if (screenPoint.z < 0) continue;
+
+            float dist = Vector2.Distance(screenPos, screenPoint);
+
+            if (dist < radius && dist < bestDist)
+            {
+                bestDist = dist;
+                bestTarget = t.transform;
+            }
+        }
+
+        return bestTarget;
+    }
 }
 
 

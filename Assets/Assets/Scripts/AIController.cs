@@ -6,7 +6,7 @@ using Unity.Netcode;
 [RequireComponent(typeof(CharacterMotor), typeof(CharacterShooter), typeof(AIInputHandler))]
 public class AIController : NetworkBehaviour
 {
-    public bool allow_AI_Shooting = true;  // use this to turn off AI shooting while testing
+    private bool allow_AI_Shooting = true;  // use this to turn off AI shooting while testing
 
     public float rotationSpeed = 360f; // degrees per second
 
