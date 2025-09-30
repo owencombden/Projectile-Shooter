@@ -9,8 +9,8 @@ public class LevelManager : NetworkBehaviour
     public static LevelManager Instance;
 
     [Header("Game Setup")]
-    private int maxTotalCharacters = 4; // Total includes players + AI
-    private int extraAICount = 3;
+    private int maxTotalCharacters = 2; // Total includes players + AI
+    private int extraAICount = 1;
 
     [Header("Platform Settings")]
     [SerializeField] private float xSpacing = 60f;
@@ -21,14 +21,13 @@ public class LevelManager : NetworkBehaviour
     // inner dictionary stores all of the hexTiles for that platform, indexable by grid-coord    
     // platforms[platformID]                 -> get all tiles for that platform
     // platforms[platformID][gridPos]        -> get any tile in O(1)
-    // platforms[platformID].Remove(gridPos) -> remove tile from dictionary    
-    private Dictionary<ulong, Dictionary<Vector2Int, HexTile>> platforms = new();  // 2D hexmaps
-    private Dictionary<ulong, GameObject> platformGameObjects = new();             // gameobjs  
-
-    // could also implement this HashSet if things get slow
+    // platforms[platformID].Remove(gridPos) -> remove tile from dictionary
+    // NOTE:  could also implement this HashSet if things get slow
     // an inner hashset is faster, could be good if wanted to apply something across all tiles (ie: collision detection?)
     // would have to keep the Dict(Dict) and maintain two collections when adding/removing tiles and platforms
-    // private Dictionary<int, HashSet<HexTile>> activeTiles = new();    
+    // private Dictionary<int, HashSet<HexTile>> activeTiles = new();            
+    private Dictionary<ulong, Dictionary<Vector2Int, HexTile>> platforms = new();  // 2D hexmaps
+    private Dictionary<ulong, GameObject> platformGameObjects = new();             // gameobjs      
 
     private Dictionary<ulong, PlayerController> playerControllers = new();
     private Dictionary<ulong, AIController> aiControllers = new();
@@ -422,21 +421,64 @@ public class LevelManager : NetworkBehaviour
         return avg / platformTiles.Count;
     }
 
-    public void RemoveCharacter(ulong removingId, bool isPlayer)
+    public bool CheckForWinner()
     {
+        Debug.Log($"Level Manager is checking for winner...");
+        if (playerControllers.Count == 1 && aiControllers.Count == 0)
+        {
+            Debug.Log($"...we have a winner with id {playerControllers.First().Value.id.Value}");
+            return true;
+        }
+        else if (playerControllers.Count == 0 && aiControllers.Count == 1)
+        {
+            Debug.Log($"...we have a winner with id {aiControllers.First().Value.id.Value}");
+            return true;
+        }
+        else
+        {
+            Debug.Log($"...no winner yet.");
+            return false;
+        }
+    }
+
+    public (NetworkObject winnerNetObj, ulong winnerId, bool winnerIsHuman) GetWinnerDetails()
+    {
+        if (playerControllers.Count == 1 && aiControllers.Count == 0)
+        {
+            Debug.Log($"LevelManager is getting details for a human winner");
+            NetworkObject winnerNetObj = playerControllers.First().Value.GetComponent<NetworkObject>();
+            ulong winnerId = winnerNetObj.GetComponent<PlayerController>().id.Value;
+            bool winnerIsHuman = true;
+            return (winnerNetObj, winnerId, winnerIsHuman);
+        }
+        else if (playerControllers.Count == 0 && aiControllers.Count == 1)
+        {
+            Debug.Log($"LevelManager is getting details for an AI winner");
+            NetworkObject winnerNetObj = aiControllers.First().Value.GetComponent<NetworkObject>();
+            ulong winnerId = winnerNetObj.GetComponent<AIController>().id.Value;
+            bool winnerIsHuman = false;
+            return (winnerNetObj, winnerId, winnerIsHuman);
+        }
+        else
+        {
+            return (null, ulong.MaxValue, false);
+        }
+    }
+
+    public void RemoveCharacter(ulong deadId, bool isPlayer)
+    {
+        Debug.Log($"Level Manager is removing character with ID {deadId}.  Is human? {isPlayer}");
         // server only
         if (!IsServer) return;
 
         if (isPlayer)
         {
-            playerControllers.Remove(removingId);
+            playerControllers.Remove(deadId);
         }
         else
         {
-            aiControllers.Remove(removingId);
+            aiControllers.Remove(deadId);
         }
-
-        CheckForGameOver();
     }
 
     public void RemoveHexTile(ulong platformID, Vector2Int gridPos)
@@ -532,28 +574,7 @@ public class LevelManager : NetworkBehaviour
         }               
         Camera.main.GetComponent<CameraLook>()?.Shake(intensity, duration);        
     }
-
-    private void CheckForGameOver()
-    {
-        // server only
-        if (!IsServer) return;
-
-        if (playerControllers.Count() == 1 && aiControllers.Count() <= 0)
-        {
-            var remainingPlayerController = playerControllers.First().Value;
-            ulong remainingPlayerId = remainingPlayerController.id.Value;
-            Debug.Log($"Game Over!  Player {remainingPlayerId} Won !!");
-            GameManager.Instance.TransitionToGameOver(remainingPlayerId);
-        }
-        else if (aiControllers.Count() == 1 && playerControllers.Count() <= 0)
-        {
-            var remainingAIController = aiControllers.First().Value;
-            ulong remainingAIId = remainingAIController.id.Value;
-            Debug.Log($"Game Over! AI {remainingAIId} Won !!");
-            GameManager.Instance.TransitionToGameOver(remainingAIId);
-        }
-    }
-
+    
     public void CleanUpBeforeRestart()
     {
         // player cleanup

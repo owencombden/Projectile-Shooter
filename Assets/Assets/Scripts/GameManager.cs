@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 using Unity.Netcode;
 using System.Linq;
-using UnityEngine.UIElements;
 
 public class GameManager : NetworkBehaviour
 {
@@ -29,32 +28,6 @@ public class GameManager : NetworkBehaviour
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server
     );
-
-    private ulong winnerID;
-
-    private int loadLobbyDelay = 7;
-
-
-    /*
-    POTENTIAL GAME FLOW
-    --------------------
-    [Scene Load Phase]
-    → Host + Clients enter GameScene via network scene loading
-    → Each client (including host) fires `OnLoadComplete`
-    → Each client sends "SceneLoaded" to host
-
-    [Tile Sync Phase]
-    → Host waits until all clients have sent "SceneLoaded"
-    → Host generates platform and tile data
-    → Host sends platform and tile data to all clients via RPC
-    → Each client (and host) uses that data to spawn tiles
-    → Each client sends "TilesSpawned" to host
-
-    [Game Start Phase]
-    → Host waits until all clients have sent "TilesSpawned"
-    → Host sends `StartGameClientRpc()` to begin gameplay
-    */
-
 
 
     private void OnEnable()
@@ -141,14 +114,7 @@ public class GameManager : NetworkBehaviour
     public void TransitionToGameplay()
     {
         SetGameState(GameState.Gameplay);
-    }
-
-    public void TransitionToGameOver(ulong winningId)
-    {
-        winnerID = winningId;
-        isGameOver.Value = true;
-        SetGameState(GameState.GameOver);
-    }
+    }    
 
     private void SetGameState(GameState newState)
     {
@@ -169,7 +135,6 @@ public class GameManager : NetworkBehaviour
                 //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} has started the game!");
                 break;
             case GameState.GameOver:
-                HandleGameOver();
                 break;
         }
     }
@@ -186,91 +151,23 @@ public class GameManager : NetworkBehaviour
         LevelManager.Instance.InitializeLevel(); // Create method to call platform/character spawn
     }
 
-    [ServerRpc(RequireOwnership = false)]
-    public void SubmitDeathServerRpc(Vector3 tippingAxis, ServerRpcParams rpcParams = default)
-    {
-        // which client called this?
-        ulong senderClientId = rpcParams.Receive.SenderClientId;
-        var deadPlayer = NetworkManager.Singleton.ConnectedClients[senderClientId].PlayerObject;
-        ulong deadPlayerId = deadPlayer.GetComponent<PlayerController>().id.Value;
-        //Debug.Log($"Server (Client {NetworkManager.Singleton.LocalClientId}) is handling a death for Client {deadPlayerId}");
-
-        // Tell all clients to play the death animation
-        GameManager.Instance.PlayPlayerDeathClientRpc(deadPlayerId, tippingAxis);
-
-        // Wait til finished, then despawn
-        StartCoroutine(DelayedDespawn(deadPlayer, deadPlayerId));        
-    }
-
-    private IEnumerator DelayedDespawn(NetworkObject netObj, ulong playerId)
-    {
-        yield return new WaitForSeconds(2.0f); // must match FallOver duration
-        //Debug.Log($"Death animation has finished, despawning Player {playerId}");
-
-        LevelManager.Instance.RemoveCharacter(playerId, true);
-
-        //if (GameManager.Instance.GetGameState() == GameManager.GameState.GameOver)
-            //yield break;
-
-        if (netObj.IsSpawned)
-            netObj.Despawn(false);
-
-        AssetManager.Instance.ReturnPlayer(netObj.gameObject);
-    } 
-
-    private void HandleGameOver()
+    public void SubmitAIDeath(NetworkObject losingAI, ulong losingAI_Id)
     {
         if (!IsServer) return;
+        
+        LevelManager.Instance.RemoveCharacter(losingAI_Id, false);
+        TargetManager.Instance.UnregisterTarget(losingAI.GetComponent<Targetable>());
 
-        Debug.Log($"GameManager has ended the game!  Winning player had id: {winnerID}");
-
-        StartCoroutine(HandleGameOverSequence(winnerID));
-    }
-
-    private IEnumerator HandleGameOverSequence(ulong winnerId)
-    {
-        // delay before showing banner
-        //yield return new WaitForSeconds(0.5f);
-
-        // ✅ Only call once, globally
-        ShowGameOverBannerClientRpc(winnerId);
-
-        yield return new WaitForSeconds(loadLobbyDelay);
-
-        LevelManager.Instance?.CleanUpBeforeRestart();
-
-        //REMOVE THIS, DEBUGGING
-        //Debug.Log("Finished cleaning level.");
-        //yield return new WaitForSeconds(2);
-
-
-        Debug.Log("Loading Lobby Scene...");
-        NetworkManager.Singleton.SceneManager.LoadScene("LobbyScene", LoadSceneMode.Single);
-    }
-
-    [ClientRpc]
-    private void ShowGameOverBannerClientRpc(ulong winnerId)
-    {
-        // Called on ALL clients (host too)
-
-        // Find local player
-        var localPlayer = FindObjectsByType<PlayerController>(FindObjectsSortMode.None)
-            .FirstOrDefault(p => p.IsOwner);
-
-        if (localPlayer == null)
+        // despawn the loser, return him to the pool.
+        if (losingAI && losingAI.IsSpawned)
         {
-            Debug.LogWarning("Local player not found on client.");
-            return;
+            Debug.Log($"Despawining a losing AI with id {losingAI_Id}");
+            losingAI.Despawn(false);
+            AssetManager.Instance.ReturnAI(losingAI.gameObject);
         }
 
-        bool isWinner = localPlayer.id.Value == winnerId;
-        //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} showing banner. Winner: {isWinner}");
-
-        string message = isWinner ? "You Won!" : "Better Luck Next Time!";
-        int persistTime = 5;
-        int fadeTime = loadLobbyDelay - persistTime;
-        if(fadeTime<0) { Debug.LogError("loadLobbyDelay error!"); }
-        GameplayUI.Instance.DisplayGameOverMessage(message);
+        // check for game over and handle process
+        StartCoroutine(HandleGameOverSequence()); 
     }
 
     [ClientRpc]
@@ -285,10 +182,117 @@ public class GameManager : NetworkBehaviour
             return;
         }
 
-        //Debug.Log($"[DeathAnim] Playing death animation on client {NetworkManager.Singleton.LocalClientId} for player {deadPlayerId}");
+        Debug.Log($"[DeathAnim] Playing death animation on client {NetworkManager.Singleton.LocalClientId} for player {deadPlayerId}");
 
         player.StartCoroutine(player.FallOver(tippingAxis));
     }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void SubmitDeathServerRpc(Vector3 tippingAxis, ServerRpcParams rpcParams = default)
+    {
+        // which client called this?
+        ulong senderClientId = rpcParams.Receive.SenderClientId;
+        var deadPlayer = NetworkManager.Singleton.ConnectedClients[senderClientId].PlayerObject;
+        ulong deadPlayerId = deadPlayer.GetComponent<PlayerController>().id.Value;
+        Debug.Log($"Server (Client {NetworkManager.Singleton.LocalClientId}) is handling a death for Client {deadPlayerId}");
+
+        // Tell all clients to play the death animation
+        GameManager.Instance.PlayPlayerDeathClientRpc(deadPlayerId, tippingAxis);
+        
+        StartCoroutine(HandlePlayerLostSequence(deadPlayer, deadPlayerId));        
+    }
+
+    private IEnumerator HandlePlayerLostSequence(NetworkObject losingPlayer, ulong losingId)
+    {
+        // Wait til death animation finished, then begin loss-sequence
+        yield return new WaitForSeconds(0.75f);
+        Debug.Log($"Death animation has finished, despawning Player {losingId}");
+
+        LevelManager.Instance.RemoveCharacter(losingId, true);
+        TargetManager.Instance.UnregisterTarget(losingPlayer.GetComponent<Targetable>());
+
+        // show the 'you lost' banner, client-side, on the dead player
+        if (losingPlayer.gameObject != null && losingPlayer.gameObject.TryGetComponent<PlayerController>(out var losingController))
+        {
+            losingController.TellClientToShowYouLostBanner();
+        }
+
+        // Wait til banner animation finished, then despawn the loser
+        //yield return new WaitForSeconds(5.0f);
+
+        // despawn the loser, return him to the pool.
+        if (losingPlayer && losingPlayer.IsSpawned)
+        {
+            Debug.Log($"Despawining the loser with id {losingId}");
+            losingPlayer.Despawn(false);
+            AssetManager.Instance.ReturnPlayer(losingPlayer.gameObject);
+
+            // do something else here?  send them back to lobby, or show another player-camera?
+        }
+
+        // check for game over and handle process
+        StartCoroutine(HandleGameOverSequence());
+
+        yield break;       
+    }
+
+    // may be called
+    private IEnumerator HandleGameOverSequence()
+    {
+        // should be called by server only!!
+
+        // check for game over
+        Debug.Log($"GameManager is checking for game over");
+        bool gameIsOver = LevelManager.Instance.CheckForWinner();
+
+        if (!gameIsOver) yield break;
+
+        // game is over
+        Debug.Log($"Game is over!");
+        isGameOver.Value = true;
+        SetGameState(GameState.GameOver);
+
+        // get the details on the winner
+        (NetworkObject winningPlayer,
+        ulong winnerId,
+        bool winnerIsHuman) = LevelManager.Instance.GetWinnerDetails();
+        
+
+        if (winnerIsHuman)
+        {
+            // show banner for winner
+            if (winningPlayer != null && winningPlayer.TryGetComponent<PlayerController>(out var winningController))
+            {
+                winningController.TellClientToShowYouWonBanner();
+            }
+
+            // banner delay
+            Debug.Log($"Human Player {winnerId} was the winner!");
+            yield return new WaitForSeconds(5.0f);
+
+            // despawn the human winner
+            Debug.Log($"Despawining the winner");
+            winningPlayer.Despawn(false);
+            AssetManager.Instance.ReturnPlayer(winningPlayer.gameObject);
+        }
+        else
+        {
+            // ai won, do ai celebrations here
+            Debug.Log($"AI {winnerId} was the winner!");
+
+            yield return new WaitForSeconds(5.0f);
+
+            // despawn the ai winner
+            Debug.Log($"Despawining the winner");
+            winningPlayer.Despawn(false);
+            AssetManager.Instance.ReturnAI(winningPlayer.gameObject);
+        }
+
+        // cleanup and go to lobby
+        Debug.Log("Loading Lobby Scene...");
+        LevelManager.Instance?.CleanUpBeforeRestart();
+        NetworkManager.Singleton.SceneManager.LoadScene("LobbyScene", LoadSceneMode.Single);
+    }    
 
     private void OnClientDisconnected(ulong clientId)
     {

@@ -287,7 +287,6 @@ public class AIController : NetworkBehaviour
     public void KillEnemy(Vector3 feetPosition, Vector3 tippingAxis)
     {
         isDead = true;
-        LevelManager.Instance.RemoveCharacter(id.Value, false);
 
         StartCoroutine(TipAndFall(tippingAxis));
     }
@@ -320,19 +319,7 @@ public class AIController : NetworkBehaviour
             yield return null;
         }
 
-        DestroyEnemy();
-    }
-
-    void DestroyEnemy()
-    {
-        // Tell Netcode to despawn this player (but we're pooling so don’t destroy the GameObject!!)
-        var netObj = GetComponent<NetworkObject>();
-        if (netObj != null && netObj.IsSpawned)
-        {
-            netObj.Despawn(destroy: false);
-        }
-
-        // return the AI to the pool
-        AssetManager.Instance.ReturnAI(gameObject);
+        // this AI has died.  Remove from play and check for gameover, 
+        GameManager.Instance.SubmitAIDeath(GetComponent<NetworkObject>(), id.Value);
     }
 }

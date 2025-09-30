@@ -94,24 +94,24 @@ public class PlayerController : NetworkBehaviour
 
         //checking for shooting using the event in PlayerInputHandler
 
-        }
+    }
 
     private void HandleShootClicked(Transform target)
     {
 
         Debug.Log("Player Controller has detected that shoot was clicked.");
         if (GameManager.Instance.GetGameState() == GameManager.GameState.GameOver) return;
-        if (PauseManager.Instance.isPaused.Value)  { return; }
+        if (PauseManager.Instance.isPaused.Value) { return; }
         if (!IsOwner || playerDead) return;
 
         // get the transform that was hit
         Debug.Log($"Player will shoot at {target.tag}");
-        
+
         // filter the things we don't want to hit
         if (target == null) return;
         if (target.tag == "Water") return;
         if (target.tag == "Ground" && IsOwnPlatform(target)) return;
-        
+
         StartCoroutine(Shoot(target));
     }
 
@@ -217,7 +217,7 @@ public class PlayerController : NetworkBehaviour
 
         return Physics.SphereCast(rayStart, rayRadius, rayDir, out hitData, rayLength);
     }
-    
+
     [ClientRpc]
     public void ReceiveKnockbackBlastClientRpc(Vector3 direction, float force, ClientRpcParams rpcParams = default)
     {
@@ -230,8 +230,8 @@ public class PlayerController : NetworkBehaviour
 
         float duration = 1.25f;
         motor.ApplyBlastForce(direction, force, duration, true);
-    }     
-    
+    }
+
     public void SetPlayerHexMap(Dictionary<Vector2Int, HexTile> platform)
     {
         hexMap = platform;
@@ -246,7 +246,7 @@ public class PlayerController : NetworkBehaviour
 
         // Store tipping axis so server can use it too
         storedTippingAxis = tippingAxis;
-        
+
         // Tell the server to handle the rest (despawn, return to pool)
         //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId}) submitting death to ServerRPC");
         GameManager.Instance.SubmitDeathServerRpc(tippingAxis);
@@ -288,5 +288,49 @@ public class PlayerController : NetworkBehaviour
         transform.position = fallDestination;
     }
 
-           
+    public void TellClientToShowYouLostBanner()
+    {
+        var rpcParams = new ClientRpcParams
+        {
+            Send = new ClientRpcSendParams
+            {
+                TargetClientIds = new[] { OwnerClientId }
+            }
+        };
+
+        ShowYouLostBannerClientRpc(rpcParams);
+    }
+
+    [ClientRpc]
+    private void ShowYouLostBannerClientRpc(ClientRpcParams rpcParams = default)
+    {
+        Debug.Log($"Displaying 'you lost' banner for player {id}");
+        // Only executes on the targeted client’s PlayerController
+        string message = "Better Luck Next Time!";        
+        GameplayUI.Instance.DisplayGameOverMessage(message);
+    }
+
+    public void TellClientToShowYouWonBanner()
+    {
+        var rpcParams = new ClientRpcParams
+        {
+            Send = new ClientRpcSendParams
+            {
+                TargetClientIds = new[] { OwnerClientId }
+            }
+        };
+
+        ShowYouWonBannerClientRpc(rpcParams);
+    }
+
+    [ClientRpc]
+    private void ShowYouWonBannerClientRpc(ClientRpcParams rpcParams = default)
+    {
+        Debug.Log($"Displaying 'you won' banner for player {id}");
+
+        // Only executes on the targeted client’s PlayerController
+        string message = "You are the winner!";
+        GameplayUI.Instance.DisplayGameOverMessage(message);
+    }
+
 }
