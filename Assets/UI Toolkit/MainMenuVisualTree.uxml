@@ -1,11 +1,28 @@
 <engine:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:engine="UnityEngine.UIElements" xmlns:editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="project://database/Assets/UI%20Toolkit/MainMenuStyle.uss?fileID=7433441132597879392&amp;guid=897a6b31854c4c44fb43ec89cd14ec8f&amp;type=3#MainMenuStyle" />
-    <engine:VisualElement name="MainMenuBackground" style="flex-grow: 1; align-self: center; align-content: auto; justify-content: flex-start; background-color: rgb(142, 188, 197); width: 1920px; height: 1080px; background-image: url(&quot;project://database/Assets/UI%20Toolkit/main_menu_bkg.png?fileID=2800000&amp;guid=b2315eb77bbd81c4480cb143a4245081&amp;type=3#main_menu_bkg&quot;); top: 0; flex-basis: 115%; flex-direction: column; -unity-background-scale-mode: scale-and-crop;">
-        <engine:Label text="&lt;To Do: Get Game Name&gt;" name="Label_1" class="header" style="align-self: center; align-content: auto; top: 0; margin-top: 46px; -unity-text-outline-width: 2px; -unity-text-outline-color: rgb(0, 0, 0); text-shadow: 2.7px 2.5px 5.6px rgb(0, 0, 0); border-bottom-width: 302px;" />
-        <engine:VisualElement style="background-color: rgba(0, 0, 0, 0); width: 32%; height: 134%; align-self: flex-start; justify-content: center; margin-top: 225px; margin-left: 12%; flex-direction: column; margin-bottom: 0; margin-right: 0;">
+    <engine:VisualElement name="MainMenuBackground" style="align-self: center; align-content: auto; justify-content: flex-start; background-color: rgb(142, 188, 197); width: 100%; height: 1080px; background-image: url(&quot;project://database/Assets/UI%20Toolkit/main_menu_bkg.png?fileID=2800000&amp;guid=b2315eb77bbd81c4480cb143a4245081&amp;type=3#main_menu_bkg&quot;); top: 0; -unity-background-scale-mode: scale-and-crop;">
+        <engine:Label text="NoNameYet  Shooter" name="TitleLabel" class="header" style="align-self: center; align-content: auto; top: 0; margin-top: 46px; -unity-text-outline-width: 2px; -unity-text-outline-color: rgb(0, 0, 0); text-shadow: 2.7px 2.5px 5.6px rgb(0, 0, 0);" />
+        <engine:VisualElement enabled="true" name="OldMainMenuContainer" style="background-color: rgba(0, 0, 0, 0); width: 32%; height: 36%; align-self: flex-start; justify-content: center; flex-direction: column; align-content: auto; bottom: -508px; left: 141px; display: none; align-items: center;">
             <engine:Button text="Host Game" name="HostButton" class="button" style="margin-bottom: 60px; margin-top: 0;" />
             <engine:Button text="Join Game" name="JoinButton" class="button" style="margin-top: 25px; margin-bottom: 25px;" />
             <engine:TextField label="JOIN IP:" placeholder-text="127.0.0.1" tooltip="Leave blank for local host." hide-placeholder-on-focus="true" name="IpTextField" style="align-items: flex-start; align-self: auto; justify-content: flex-start; font-size: 34px; -unity-font-style: bold; width: 458px; -unity-text-align: lower-left; word-spacing: -15px; background-color: rgb(106, 159, 214); opacity: 1; padding-left: 13px; color: rgba(2, 2, 2, 0.58); border-top-color: rgb(0, 0, 0); border-left-color: rgb(0, 0, 0); border-right-color: rgb(0, 0, 0); border-bottom-color: rgb(0, 0, 0); border-top-width: 4px; border-right-width: 4px; border-bottom-width: 4px; border-left-width: 4px; border-top-left-radius: 21px; border-top-right-radius: 21px; border-bottom-right-radius: 21px; border-bottom-left-radius: 21px; margin-top: 2px;" />
+        </engine:VisualElement>
+        <engine:VisualElement enabled="true" name="MainMenuContainer" style="background-color: rgba(0, 0, 0, 0); width: 32%; height: 36%; align-self: flex-start; justify-content: space-around; flex-direction: column; align-content: auto; bottom: -508px; left: 141px; display: none; align-items: center;">
+            <engine:Button text="Single Player" name="SinglePlayerGameButton" class="button" />
+            <engine:Button text="Multiplayer" name="MultiplayerGameButton" class="button" />
+            <engine:Button text="Quit Game" name="QuitGameButton" class="button" />
+        </engine:VisualElement>
+        <engine:VisualElement enabled="true" name="SinglePlayerContainer" style="background-color: rgba(0, 0, 0, 0); width: 32%; height: 36%; align-self: flex-start; justify-content: space-around; flex-direction: column; align-content: auto; bottom: -508px; left: 141px; display: flex; align-items: center;">
+            <engine:VisualElement name="NumberofEnemies" style="flex-grow: 0; width: 74%; height: 19%; flex-direction: row; justify-content: flex-start; align-items: center; align-content: center;">
+                <engine:Label text="Number of Enemies" name="NumEnemiesLabel" class="menuLabelText" style="margin-right: 0; -unity-text-align: upper-left; align-items: auto; align-content: auto; width: 78%;" />
+                <engine:DropdownField choices="0,1,2,3" name="NumEnemiesDropdown" index="3" class="menuLabelText" style="justify-content: flex-start; align-content: auto; align-items: center; flex-grow: 1; width: auto; scale: 1 1; -unity-text-align: upper-right; color: rgb(255, 255, 255); text-shadow: 3.3px 1.7px 0.5px rgb(0, 0, 0);" />
+            </engine:VisualElement>
+            <engine:VisualElement name="EnemiesCanShoot" style="flex-grow: 0; width: 74%; height: 15%; flex-direction: row; align-self: auto; align-items: center; flex-shrink: 0;">
+                <engine:Label text="Enemies Can Shoot" name="CanShootLabel" class="menuLabelText" style="margin-right: 0; -unity-text-align: upper-left; align-items: auto; align-content: auto; width: 92%;" />
+                <engine:Toggle toggle-on-label-click="false" value="true" style="flex-shrink: 0; flex-grow: 1; align-self: auto; align-content: auto; align-items: center; height: auto; width: auto; justify-content: flex-start; scale: 2 2;" />
+            </engine:VisualElement>
+            <engine:Button text="Start Single Player" name="StartSingleGameButton" class="button" />
+            <engine:Button text="Back" name="SinglePlayerBackButton" class="button" />
         </engine:VisualElement>
     </engine:VisualElement>
 </engine:UXML>

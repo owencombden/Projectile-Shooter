@@ -28,29 +28,20 @@
 .header {
     align-items: auto;
     align-self: center;
-    font-size: 100px;
+    font-size: 101px;
     color: rgb(255, 255, 255);
+    -unity-font-definition: url("project://database/Library/unity%20default%20resources?fileID=10102&guid=0000000000000000e000000000000000&type=0#LegacyRuntime");
+    -unity-font-style: bold;
 }
 
-.button {
-    font-size: 50px;
-    width: 74%;
-    height: 19%;
-    align-self: auto;
-    border-top-left-radius: 15px;
-    border-top-right-radius: 15px;
-    border-bottom-right-radius: 15px;
-    border-bottom-left-radius: 15px;
-    background-image: url("project://database/Assets/UI%20Toolkit/kenney_ui-pack/PNG/Blue/Default/button_rectangle_gloss.png?fileID=2800000&guid=6e1913d2806ea4b48b3fc0c1bd5b90a5&type=3#button_rectangle_gloss");
+.menuLabelText {
+    -unity-font-definition: url("project://database/Library/unity%20default%20resources?fileID=10102&guid=0000000000000000e000000000000000&type=0#LegacyRuntime");
+    font-size: 40px;
     color: rgb(255, 255, 255);
     -unity-font-style: bold;
-    -unity-font-definition: url("project://database/Library/unity%20default%20resources?fileID=10102&guid=0000000000000000e000000000000000&type=0#LegacyRuntime");
-    justify-content: flex-start;
-    border-bottom-width: 0;
-    align-content: auto;
-    align-items: auto;
-    -unity-background-image-tint-color: rgba(180, 184, 243, 0.55);
-    -unity-text-align: middle-center;
-    text-shadow: 2px 3.2px 3px rgb(0, 0, 0);
-    margin-bottom: 0;
+    text-shadow: 2.3px 2.1px 2.1px rgba(0, 0, 0, 0.82);
+    width: 74%;
+    align-items: stretch;
+    flex-shrink: 1;
+    -unity-text-align: upper-right;
 }
