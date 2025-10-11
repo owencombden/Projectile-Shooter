@@ -17,8 +17,8 @@ public class GameManager : NetworkBehaviour
 
     public static GameManager Instance;
     public AssetManager assetManager;
-    public bool allowEnemies = true;
 
+    private GameSettingsData gameSettings;
     private GameState currentState = GameState.None;
 
     private HashSet<ulong> clientsLoadedScene = new(); // counter of clients that have connected
@@ -83,7 +83,14 @@ public class GameManager : NetworkBehaviour
 
             if (clientsLoadedScene.Count == totalClients)
             {
-                //Debug.Log("All clients have loaded the scene.");
+                Debug.Log("All clients have loaded the scene.");
+
+                //Debug.Log($"Reading Game Settings.  AI can shoot? {GameSettings.EnemiesCanShoot}");
+
+                // apply the game settings to host and all clients
+                gameSettings = GameSettings.ToData();
+                ApplySettingsClientRpc(gameSettings);
+
                 SetGameState(GameState.Setup);
             }
         }
@@ -91,6 +98,17 @@ public class GameManager : NetworkBehaviour
         {
             //Debug.Log($"Client {clientId} has already been included in the clientsLoadedScene list!");
         }
+    }
+
+    [ClientRpc]
+    private void ApplySettingsClientRpc(GameSettingsData settings)
+    {
+        gameSettings = settings;
+
+        Debug.Log($"[Client] Received settings: {gameSettings.enemyCount} enemies, shoot={gameSettings.enemiesCanShoot}, isMultiplayer={gameSettings.gameIsMultiplayer}");
+
+        // next step, apply the game settings to gameplay here 
+        // ex:  LevelManager.Instance.numEnemies = gameSettings.enemyCount;
     }
     
     private void Awake()
@@ -109,6 +127,11 @@ public class GameManager : NetworkBehaviour
 
         if (currentState != GameState.Gameplay) return;
         
+    }
+
+    public bool IsMultiplayerGame()
+    {
+        return gameSettings.gameIsMultiplayer;
     }
 
     public void TransitionToGameplay()
@@ -292,39 +315,94 @@ public class GameManager : NetworkBehaviour
         Debug.Log("Loading Lobby Scene...");
         LevelManager.Instance?.CleanUpBeforeRestart();
         NetworkManager.Singleton.SceneManager.LoadScene("LobbyScene", LoadSceneMode.Single);
-    }    
+    }
 
+
+    // these are called if the server or client quits during gameplay
+    [ServerRpc(RequireOwnership = false)]
+    public void EndGameServerRpc()
+    {
+        Debug.Log("ServerRpc: Host is ending the game.");
+
+        // host is quitting, tell all clients (including the host) the game is over
+        EndGameClientRpc();
+    }
+
+    [ClientRpc]
+    private void EndGameClientRpc()
+    {
+        // called by all connected clients
+        Debug.Log("ClientRpc: All players (including host) cleaning up.");
+        CleanupAndReturnToMenu();
+    }
+
+    private void CleanupAndReturnToMenu()
+    {
+        // called by all connected clients
+        ulong clientId = NetworkManager.Singleton.LocalClientId;
+
+        RemoveThisClientFromPlayServerRpc(clientId);        
+
+        Debug.Log("Shutting down the network manager.");
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+            NetworkManager.Singleton.Shutdown();
+
+        Debug.Log("Heading to main menu scene.");
+        SceneManager.LoadScene("MainMenuScene");
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void RemoveThisClientFromPlayServerRpc(ulong clientId)
+    {
+        Debug.Log($"ServerRpc: Server is removing client {clientId} from the game.");
+
+        // remove the player from LevelManager collection
+        LevelManager.Instance.RemoveCharacter(clientId, true);   
+
+        // despawn from the network
+        if (NetworkManager.Singleton.SpawnManager.GetPlayerNetworkObject(clientId) is NetworkObject playerObj)
+        {
+            Debug.Log("Despawning the network object.");
+            playerObj.Despawn();
+        } 
+    }
+
+
+    [ServerRpc(RequireOwnership = false)]
+    public void NotifyServerClientIsQuittingServerRpc(ulong clientId)
+    {
+        Debug.Log($"Client {clientId} is quitting the game.");
+        // do cleanup or notify other players here
+
+        // remove the player from LevelManager collection
+        LevelManager.Instance.RemoveCharacter(clientId, true);
+
+        // do other 'client has left the game' things here...
+
+        // despawn from the network
+        if (NetworkManager.Singleton.SpawnManager.GetPlayerNetworkObject(clientId) is NetworkObject playerObj)
+        {
+            Debug.Log("Despawning the network object.");
+            playerObj.Despawn();
+        }
+        
+        // Optionally, force-disconnect that client (safety net)
+        if (NetworkManager.Singleton.ConnectedClients.ContainsKey(clientId))
+            NetworkManager.Singleton.DisconnectClient(clientId);        
+    }
+
+
+    // called when a network connection is broken
     private void OnClientDisconnected(ulong clientId)
     {
-        Debug.Log($"Client {clientId} disconnected.");
-
-        // Only the host should clean up and check win/loss
-        if (!NetworkManager.Singleton.IsHost) return;
-
-        var playerObj = NetworkManager.Singleton.ConnectedClients
-            .Where(kvp => kvp.Key == clientId)
-            .Select(kvp => kvp.Value.PlayerObject)
-            .FirstOrDefault();
-
-        if (playerObj == null)
+        Debug.Log("Entering OnClientDisconnected");
+        if (NetworkManager.Singleton.IsServer)
         {
-            Debug.LogWarning($"No PlayerObject found for disconnected client {clientId}");
-            return;
+            Debug.Log($"This is the server.  Client {clientId} has disconnected");
+
+            // remove the player from LevelManager collection
+            LevelManager.Instance.RemoveCharacter(clientId, true);                           
         }
-
-        // Optional: Show visual effect, log, etc.
-        Debug.Log($"Destroying PlayerObject for client {clientId}");
-
-        // Try to clean up character from LevelManager
-        var playerController = playerObj.GetComponent<PlayerController>();
-        if (playerController != null)
-        {
-            LevelManager.Instance.RemoveCharacter(playerController.id.Value, isPlayer: true);
-        }
-
-        // Despawn network object (host authority)
-        if (playerObj != null && playerObj.IsSpawned)
-            playerObj.Despawn();
     }
 
     // this Instance is a global static reference.  Need to ensure that ref is cleared whenever reloading a scene.

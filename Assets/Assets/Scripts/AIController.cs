@@ -6,8 +6,6 @@ using Unity.Netcode;
 [RequireComponent(typeof(CharacterMotor), typeof(CharacterShooter), typeof(AIInputHandler))]
 public class AIController : NetworkBehaviour
 {
-    private bool allow_AI_Shooting = true;  // use this to turn off AI shooting while testing
-
     public float rotationSpeed = 360f; // degrees per second
 
     [SerializeField] private float waypointThreshold = 0.5f;
@@ -173,7 +171,7 @@ public class AIController : NetworkBehaviour
             shooter.lastShootTime = Time.time;
 
             // check target tag
-            if (target.tag == "Ground" || target.tag == "Player" || target.tag == "AI_Player")
+            if (target && (target.tag == "Ground" || target.tag == "Player" || target.tag == "AI_Player"))
             {
                 float fineTune = 0.97f;  //finetune range if needed
                 float distToTarget = Vector3.Distance(transform.position, target.transform.position) * fineTune;
@@ -185,10 +183,7 @@ public class AIController : NetworkBehaviour
 
                 // request server to shoot in the direction the gun is pointing
                 //Debug.Log($"AI {id.Value} is requesting a shot from the server.");
-                if (allow_AI_Shooting)
-                {
-                    shooter.SpawnBulletServerRPC(GetComponent<NetworkObject>(), id.Value, shooter.spawnpoint.position, shotVelocity);
-                }
+                shooter.SpawnBulletServerRPC(GetComponent<NetworkObject>(), id.Value, shooter.spawnpoint.position, shotVelocity);
 
                 //PauseManager.Instance.TogglePauseServerRpc();
                 }
@@ -213,10 +208,7 @@ public class AIController : NetworkBehaviour
                     Vector3 shotVelocity = shooter.ShootAtEnemyBullet();
 
                     //Debug.Log($"AI {id.Value} is shooting at the bullet.");
-                    if (allow_AI_Shooting)
-                    {
-                        shooter.SpawnBulletServerRPC(GetComponent<NetworkObject>(), id.Value, shooter.spawnpoint.position, shotVelocity);
-                    }                    
+                    shooter.SpawnBulletServerRPC(GetComponent<NetworkObject>(), id.Value, shooter.spawnpoint.position, shotVelocity);             
                 }   
         }
 

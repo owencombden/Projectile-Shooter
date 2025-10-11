@@ -1,7 +1,7 @@
 .button {
     font-size: 50px;
-    width: 74%;
-    height: 19%;
+    width: 60%;
+    height: 20%;
     align-self: auto;
     border-top-left-radius: 15px;
     border-top-right-radius: 15px;

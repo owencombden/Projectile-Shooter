@@ -437,6 +437,7 @@ public class LevelManager : NetworkBehaviour
         else
         {
             Debug.Log($"...no winner yet.");
+            Debug.Log($"There are {playerControllers.Count} humans and {aiControllers.Count} AI remaining.");
             return false;
         }
     }
@@ -467,10 +468,12 @@ public class LevelManager : NetworkBehaviour
 
     public void RemoveCharacter(ulong deadId, bool isPlayer)
     {
-        Debug.Log($"Level Manager is removing character with ID {deadId}.  Is human? {isPlayer}");
+        
         // server only
         if (!IsServer) return;
 
+        Debug.Log($"Level Manager is removing character with ID {deadId}.  Is human? {isPlayer}");
+        
         if (isPlayer)
         {
             playerControllers.Remove(deadId);

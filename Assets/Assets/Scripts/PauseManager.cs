@@ -19,7 +19,11 @@ public class PauseManager : NetworkBehaviour
 
     private void Start()
     {
-        isPaused.Value = false;
+        if (IsServer)
+        {
+            isPaused.Value = false;
+        }
+        
         isPaused.OnValueChanged += HandlePauseChanged;
     }
 
