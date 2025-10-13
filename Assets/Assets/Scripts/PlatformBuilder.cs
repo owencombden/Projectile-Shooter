@@ -44,7 +44,7 @@ public class PlatformBuilder : MonoBehaviour
 
         if (hexPositions.Count != hexGridCoords.Count)
         {
-            Debug.Log("BuildHexMap error!  Mismatched positions and gridcoords.");
+            //Debug.Log("BuildHexMap error!  Mismatched positions and gridcoords.");
             return (null, null);
         }
 

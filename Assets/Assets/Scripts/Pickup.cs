@@ -36,25 +36,11 @@ public class Pickup : NetworkBehaviour
     {        
         // only server has authority to detect pickup collisions
         if (!IsServer) return;
-
-        //debugging
-        if (other.CompareTag("Player"))
-        {
-            //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is handling a pickup onTrigger for Client {other.transform.GetComponent<PlayerController>().id.Value}.");
-        }
-        else if (other.CompareTag("AI_Player"))
-        {
-            //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is handling a pickup onTrigger for Client {other.transform.GetComponent<AIController>().id.Value}.");
-        }
-        
-
         
         if (other.CompareTag("Player") || other.CompareTag("AI_Player"))
         {
             ApplyPickupEffect(other.gameObject);
-
             onCollectedCallback?.Invoke(other.gameObject);
-
             ReturnToPool();
         }
     }

@@ -184,7 +184,7 @@ public class GameManager : NetworkBehaviour
         // despawn the loser, return him to the pool.
         if (losingAI && losingAI.IsSpawned)
         {
-            Debug.Log($"Despawining a losing AI with id {losingAI_Id}");
+            //Debug.Log($"Despawining a losing AI with id {losingAI_Id}");
             losingAI.Despawn(false);
             AssetManager.Instance.ReturnAI(losingAI.gameObject);
         }
@@ -205,7 +205,7 @@ public class GameManager : NetworkBehaviour
             return;
         }
 
-        Debug.Log($"[DeathAnim] Playing death animation on client {NetworkManager.Singleton.LocalClientId} for player {deadPlayerId}");
+        //Debug.Log($"[DeathAnim] Playing death animation on client {NetworkManager.Singleton.LocalClientId} for player {deadPlayerId}");
 
         player.StartCoroutine(player.FallOver(tippingAxis));
     }
@@ -217,7 +217,7 @@ public class GameManager : NetworkBehaviour
         ulong senderClientId = rpcParams.Receive.SenderClientId;
         var deadPlayer = NetworkManager.Singleton.ConnectedClients[senderClientId].PlayerObject;
         ulong deadPlayerId = deadPlayer.GetComponent<PlayerController>().id.Value;
-        Debug.Log($"Server (Client {NetworkManager.Singleton.LocalClientId}) is handling a death for Client {deadPlayerId}");
+        //Debug.Log($"Server (Client {NetworkManager.Singleton.LocalClientId}) is handling a death for Client {deadPlayerId}");
 
         // Tell all clients to play the death animation
         GameManager.Instance.PlayPlayerDeathClientRpc(deadPlayerId, tippingAxis);
@@ -229,7 +229,7 @@ public class GameManager : NetworkBehaviour
     {
         // Wait til death animation finished, then begin loss-sequence
         yield return new WaitForSeconds(0.75f);
-        Debug.Log($"Death animation has finished, despawning Player {losingId}");
+        //Debug.Log($"Death animation has finished, despawning Player {losingId}");
 
         LevelManager.Instance.RemoveCharacter(losingId, true);
         TargetManager.Instance.UnregisterTarget(losingPlayer.GetComponent<Targetable>());
@@ -246,7 +246,7 @@ public class GameManager : NetworkBehaviour
         // despawn the loser, return him to the pool.
         if (losingPlayer && losingPlayer.IsSpawned)
         {
-            Debug.Log($"Despawining the loser with id {losingId}");
+            //Debug.Log($"Despawining the loser with id {losingId}");
             losingPlayer.Despawn(false);
             AssetManager.Instance.ReturnPlayer(losingPlayer.gameObject);
 
@@ -265,13 +265,13 @@ public class GameManager : NetworkBehaviour
         // should be called by server only!!
 
         // check for game over
-        Debug.Log($"GameManager is checking for game over");
+        //Debug.Log($"GameManager is checking for game over");
         bool gameIsOver = LevelManager.Instance.CheckForWinner();
 
         if (!gameIsOver) yield break;
 
         // game is over
-        Debug.Log($"Game is over!");
+        //Debug.Log($"Game is over!");
         isGameOver.Value = true;
         SetGameState(GameState.GameOver);
 
@@ -290,29 +290,29 @@ public class GameManager : NetworkBehaviour
             }
 
             // banner delay
-            Debug.Log($"Human Player {winnerId} was the winner!");
+            //Debug.Log($"Human Player {winnerId} was the winner!");
             yield return new WaitForSeconds(5.0f);
 
             // despawn the human winner
-            Debug.Log($"Despawining the winner");
+            //Debug.Log($"Despawining the winner");
             winningPlayer.Despawn(false);
             AssetManager.Instance.ReturnPlayer(winningPlayer.gameObject);
         }
         else
         {
             // ai won, do ai celebrations here
-            Debug.Log($"AI {winnerId} was the winner!");
+            //Debug.Log($"AI {winnerId} was the winner!");
 
             yield return new WaitForSeconds(5.0f);
 
             // despawn the ai winner
-            Debug.Log($"Despawining the winner");
+            //Debug.Log($"Despawining the winner");
             winningPlayer.Despawn(false);
             AssetManager.Instance.ReturnAI(winningPlayer.gameObject);
         }
 
         // cleanup and go to lobby
-        Debug.Log("Loading Lobby Scene...");
+        //Debug.Log("Loading Lobby Scene...");
         LevelManager.Instance?.CleanUpBeforeRestart();
         NetworkManager.Singleton.SceneManager.LoadScene("LobbyScene", LoadSceneMode.Single);
     }
@@ -322,7 +322,7 @@ public class GameManager : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     public void EndGameServerRpc()
     {
-        Debug.Log("ServerRpc: Host is ending the game.");
+        //Debug.Log("ServerRpc: Host is ending the game.");
 
         // host is quitting, tell all clients (including the host) the game is over
         EndGameClientRpc();
@@ -332,7 +332,7 @@ public class GameManager : NetworkBehaviour
     private void EndGameClientRpc()
     {
         // called by all connected clients
-        Debug.Log("ClientRpc: All players (including host) cleaning up.");
+        //Debug.Log("ClientRpc: All players (including host) cleaning up.");
         CleanupAndReturnToMenu();
     }
 
@@ -343,18 +343,18 @@ public class GameManager : NetworkBehaviour
 
         RemoveThisClientFromPlayServerRpc(clientId);        
 
-        Debug.Log("Shutting down the network manager.");
+        //Debug.Log("Shutting down the network manager.");
         if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
             NetworkManager.Singleton.Shutdown();
 
-        Debug.Log("Heading to main menu scene.");
+        //Debug.Log("Heading to main menu scene.");
         SceneManager.LoadScene("MainMenuScene");
     }
 
     [ServerRpc(RequireOwnership = false)]
     public void RemoveThisClientFromPlayServerRpc(ulong clientId)
     {
-        Debug.Log($"ServerRpc: Server is removing client {clientId} from the game.");
+        //Debug.Log($"ServerRpc: Server is removing client {clientId} from the game.");
 
         // remove the player from LevelManager collection
         LevelManager.Instance.RemoveCharacter(clientId, true);   
@@ -362,7 +362,7 @@ public class GameManager : NetworkBehaviour
         // despawn from the network
         if (NetworkManager.Singleton.SpawnManager.GetPlayerNetworkObject(clientId) is NetworkObject playerObj)
         {
-            Debug.Log("Despawning the network object.");
+            //Debug.Log("Despawning the network object.");
             playerObj.Despawn();
         } 
     }
@@ -371,7 +371,7 @@ public class GameManager : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     public void NotifyServerClientIsQuittingServerRpc(ulong clientId)
     {
-        Debug.Log($"Client {clientId} is quitting the game.");
+        //Debug.Log($"Client {clientId} is quitting the game.");
         // do cleanup or notify other players here
 
         // remove the player from LevelManager collection
@@ -382,7 +382,7 @@ public class GameManager : NetworkBehaviour
         // despawn from the network
         if (NetworkManager.Singleton.SpawnManager.GetPlayerNetworkObject(clientId) is NetworkObject playerObj)
         {
-            Debug.Log("Despawning the network object.");
+            //Debug.Log("Despawning the network object.");
             playerObj.Despawn();
         }
         
@@ -395,10 +395,10 @@ public class GameManager : NetworkBehaviour
     // called when a network connection is broken
     private void OnClientDisconnected(ulong clientId)
     {
-        Debug.Log("Entering OnClientDisconnected");
+        //Debug.Log("Entering OnClientDisconnected");
         if (NetworkManager.Singleton.IsServer)
         {
-            Debug.Log($"This is the server.  Client {clientId} has disconnected");
+            //Debug.Log($"This is the server.  Client {clientId} has disconnected");
 
             // remove the player from LevelManager collection
             LevelManager.Instance.RemoveCharacter(clientId, true);                           

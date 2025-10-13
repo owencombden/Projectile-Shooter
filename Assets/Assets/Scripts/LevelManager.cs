@@ -9,8 +9,8 @@ public class LevelManager : NetworkBehaviour
     public static LevelManager Instance;
 
     [Header("Game Setup")]
-    private int maxTotalCharacters = 4; // Total includes players + AI
-    private int extraAICount = 3;
+    private int maxTotalCharacters = 2; // Total includes players + AI
+    private int extraAICount = 0;
 
     [Header("Platform Settings")]
     [SerializeField] private float xSpacing = 60f;
@@ -423,21 +423,21 @@ public class LevelManager : NetworkBehaviour
 
     public bool CheckForWinner()
     {
-        Debug.Log($"Level Manager is checking for winner...");
+        //Debug.Log($"Level Manager is checking for winner...");
         if (playerControllers.Count == 1 && aiControllers.Count == 0)
         {
-            Debug.Log($"...we have a winner with id {playerControllers.First().Value.id.Value}");
+            //Debug.Log($"...we have a winner with id {playerControllers.First().Value.id.Value}");
             return true;
         }
         else if (playerControllers.Count == 0 && aiControllers.Count == 1)
         {
-            Debug.Log($"...we have a winner with id {aiControllers.First().Value.id.Value}");
+            //Debug.Log($"...we have a winner with id {aiControllers.First().Value.id.Value}");
             return true;
         }
         else
         {
-            Debug.Log($"...no winner yet.");
-            Debug.Log($"There are {playerControllers.Count} humans and {aiControllers.Count} AI remaining.");
+            //Debug.Log($"...no winner yet.");
+            //Debug.Log($"There are {playerControllers.Count} humans and {aiControllers.Count} AI remaining.");
             return false;
         }
     }
@@ -446,7 +446,7 @@ public class LevelManager : NetworkBehaviour
     {
         if (playerControllers.Count == 1 && aiControllers.Count == 0)
         {
-            Debug.Log($"LevelManager is getting details for a human winner");
+            //Debug.Log($"LevelManager is getting details for a human winner");
             NetworkObject winnerNetObj = playerControllers.First().Value.GetComponent<NetworkObject>();
             ulong winnerId = winnerNetObj.GetComponent<PlayerController>().id.Value;
             bool winnerIsHuman = true;
@@ -454,7 +454,7 @@ public class LevelManager : NetworkBehaviour
         }
         else if (playerControllers.Count == 0 && aiControllers.Count == 1)
         {
-            Debug.Log($"LevelManager is getting details for an AI winner");
+            //Debug.Log($"LevelManager is getting details for an AI winner");
             NetworkObject winnerNetObj = aiControllers.First().Value.GetComponent<NetworkObject>();
             ulong winnerId = winnerNetObj.GetComponent<AIController>().id.Value;
             bool winnerIsHuman = false;
@@ -472,7 +472,7 @@ public class LevelManager : NetworkBehaviour
         // server only
         if (!IsServer) return;
 
-        Debug.Log($"Level Manager is removing character with ID {deadId}.  Is human? {isPlayer}");
+        //Debug.Log($"Level Manager is removing character with ID {deadId}.  Is human? {isPlayer}");
         
         if (isPlayer)
         {

@@ -106,14 +106,14 @@ public class MainMenuUI : NetworkBehaviour
 
     private void OnSettingsClicked(ClickEvent evt)
     {
-        Debug.Log("switching to multi player menu container");
+        //Debug.Log("switching to multi player menu container");
         mainMenuContainer.style.display     = DisplayStyle.None;
         settingsMenuContainer.style.display = DisplayStyle.Flex;
     }
 
     private void OnSettingsBackClicked(ClickEvent evt)
     {
-        Debug.Log("switching to multi player menu container");
+        //Debug.Log("switching to multi player menu container");
         settingsMenuContainer.style.display = DisplayStyle.None;
         mainMenuContainer.style.display     = DisplayStyle.Flex;
     }
@@ -132,7 +132,7 @@ public class MainMenuUI : NetworkBehaviour
 
     private void OnMultiPlayerMenuClicked(ClickEvent evt)
     {
-        Debug.Log("switching to multi player menu container");
+        //Debug.Log("switching to multi player menu container");
         mainMenuContainer.style.display = DisplayStyle.None;
         multiPlayerMenuContainer.style.display = DisplayStyle.Flex;
     } 
@@ -195,7 +195,7 @@ public class MainMenuUI : NetworkBehaviour
 
         if (clientId == NetworkManager.Singleton.LocalClientId)
         {
-            Debug.Log($"Client {clientId} has been disconnected... ");
+            //Debug.Log($"Client {clientId} has been disconnected... ");
             NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
             NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected;
         }

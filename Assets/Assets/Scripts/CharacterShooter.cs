@@ -27,6 +27,10 @@ public class CharacterShooter : NetworkBehaviour
 
     public bool isHuman = false;
 
+    private void Awake()
+    {
+        currentAmmo.OnValueChanged += OnAmmoChanged;
+    }
 
     void Start()
     {
@@ -44,7 +48,16 @@ public class CharacterShooter : NetworkBehaviour
         {
             GameplayUI.Instance.SetMaxLimitOnAmmoProgressBar(maxAmmo);
             GameplayUI.Instance.SetAmmoUI(currentAmmo.Value);
-        }        
+        }
+    }
+    
+    private void OnAmmoChanged(int previous, int current)
+    {
+        // Only update UI for the local human player
+        if (IsOwner && isHuman)
+        {
+            GameplayUI.Instance.SetAmmoUI(current);
+        }
     }
 
     // Update is called once per frame
@@ -56,25 +69,7 @@ public class CharacterShooter : NetworkBehaviour
     public void AddAmmo(int amount)
     {
         currentAmmo.Value += amount;
-        currentAmmo.Value = Mathf.Min(currentAmmo.Value, maxAmmo);
-
-        // set the UI
-        if (isHuman)
-        {
-            GameplayUI.Instance.SetAmmoUI(currentAmmo.Value);
-        }
-        
-
-        //debugging
-        if (transform.tag == "Player")
-        {
-            //Debug.Log($"Added {amount} ammo for Client {OwnerClientId}.  Current Ammo: {GetCurrentAmmo()}.");
-        }
-        else if (transform.tag == "AI_Player")
-        {
-            //Debug.Log($"Added {amount} ammo for AI {transform.GetComponent<AIController>().id.Value}.  Current Ammo: {GetCurrentAmmo()}.");
-        }
-        
+        currentAmmo.Value = Mathf.Min(currentAmmo.Value, maxAmmo);        
     }
 
     public int GetCurrentAmmo()
@@ -111,15 +106,8 @@ public class CharacterShooter : NetworkBehaviour
 
         //Debug.Log($"Server (Client {NetworkManager.Singleton.LocalClientId}) is spawning a bullet for Client {clientID}");
 
-        // server handles ammo management
-        shooter.currentAmmo.Value--;
-
-        // adjust ammo on UI
-        if (isHuman)
-        {
-            GameplayUI.Instance.SetAmmoUI(currentAmmo.Value);
-        }
-        
+        // server handles ammo management (UI is updated with OnAmmoChanged callback)
+        shooter.currentAmmo.Value--;        
 
         //Debug.Log($"Server (Client {NetworkManager.Singleton.LocalClientId}) is reducing ammo for Client {clientID}.  Current Ammo is now {shooter.currentAmmo.Value}");
     }

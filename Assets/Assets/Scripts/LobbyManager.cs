@@ -78,7 +78,7 @@ public class LobbyManager : NetworkBehaviour
         //Debug.Log($"[ClientRpc] Received player list with {names.Length} entries");
         if (lobbyUI == null)
         {
-            Debug.LogWarning("LobbyUI is null on client!");
+            //Debug.LogWarning("LobbyUI is null on client!");
         }
 
         

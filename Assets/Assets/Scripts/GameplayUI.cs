@@ -91,7 +91,7 @@ public class GameplayUI : NetworkBehaviour
     private void OnOptionsButtonClicked(ClickEvent evt)
     {
         // hide the gameplay ui, show the options menu
-        Debug.Log("switching to single player menu container");
+        //Debug.Log("switching to single player menu container");
         gameplayUIContainer.style.display = DisplayStyle.None;
         optionsContainer.style.display = DisplayStyle.Flex;
     }
@@ -99,7 +99,7 @@ public class GameplayUI : NetworkBehaviour
     private void OnOptionsBackButtonClicked(ClickEvent evt)
     {
         // hide the gameplay ui, show the options menu
-        Debug.Log("switching to single player menu container");
+        //Debug.Log("switching to single player menu container");
         optionsContainer.style.display = DisplayStyle.None;
         gameplayUIContainer.style.display = DisplayStyle.Flex;
     }
@@ -108,12 +108,12 @@ public class GameplayUI : NetworkBehaviour
     {
         if (NetworkManager.Singleton.IsHost)
         {
-            Debug.Log("GameplayUI has detected that the host is quitting.");
+            //Debug.Log("GameplayUI has detected that the host is quitting.");
             GameManager.Instance.EndGameServerRpc(); // notify everyone
         }
         else
         {
-            Debug.Log("GameplayUI has detected that a client is quitting.");
+            //Debug.Log("GameplayUI has detected that a client is quitting.");
             ulong clientId = NetworkManager.Singleton.LocalClientId;
             GameManager.Instance.NotifyServerClientIsQuittingServerRpc(clientId);            
 
@@ -135,7 +135,7 @@ public class GameplayUI : NetworkBehaviour
     public void DisplayPausedMessage()
     {
 
-        Debug.Log("UI has been triggered to show pause message");
+        //Debug.Log("UI has been triggered to show pause message");
         pausedLabel.text = "GAME IS PAUSED";
         pausedLabel.visible = true;
     }
@@ -148,7 +148,7 @@ public class GameplayUI : NetworkBehaviour
 
     public void DisplayGameOverMessage(string message)
     {
-        Debug.Log("UI has been triggered to show game over message");
+        //Debug.Log("UI has been triggered to show game over message");
         gameOverLabel.text = message;
         gameOverLabel.visible = true;
         float duration = 5f;
@@ -167,7 +167,7 @@ public class GameplayUI : NetworkBehaviour
         if(noAmmoIsBusy) { return; }        
         noAmmoIsBusy = true;
 
-        Debug.Log("UI has been triggered to show no ammo message");
+        //Debug.Log("UI has been triggered to show no ammo message");
         noAmmoLabel.text = "!!  NO AMMO  !!";
         noAmmoLabel.visible = true;
         float duration = 1.5f;

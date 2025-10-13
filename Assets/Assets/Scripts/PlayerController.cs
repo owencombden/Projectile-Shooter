@@ -99,13 +99,13 @@ public class PlayerController : NetworkBehaviour
     private void HandleShootClicked(Transform target)
     {
 
-        Debug.Log("Player Controller has detected that shoot was clicked.");
+        //Debug.Log("Player Controller has detected that shoot was clicked.");
         if (GameManager.Instance.GetGameState() == GameManager.GameState.GameOver) return;
         if (PauseManager.Instance.isPaused.Value) { return; }
         if (!IsOwner || playerDead) return;
 
         // get the transform that was hit
-        Debug.Log($"Player will shoot at {target.tag}");
+        //Debug.Log($"Player will shoot at {target.tag}");
 
         // filter the things we don't want to hit
         if (target == null) return;
@@ -304,7 +304,7 @@ public class PlayerController : NetworkBehaviour
     [ClientRpc]
     private void ShowYouLostBannerClientRpc(ClientRpcParams rpcParams = default)
     {
-        Debug.Log($"Displaying 'you lost' banner for player {id}");
+        //Debug.Log($"Displaying 'you lost' banner for player {id}");
         // Only executes on the targeted client’s PlayerController
         string message = "Better Luck Next Time!";        
         GameplayUI.Instance.DisplayGameOverMessage(message);
@@ -326,7 +326,7 @@ public class PlayerController : NetworkBehaviour
     [ClientRpc]
     private void ShowYouWonBannerClientRpc(ClientRpcParams rpcParams = default)
     {
-        Debug.Log($"Displaying 'you won' banner for player {id}");
+        //Debug.Log($"Displaying 'you won' banner for player {id}");
 
         // Only executes on the targeted client’s PlayerController
         string message = "You are the winner!";

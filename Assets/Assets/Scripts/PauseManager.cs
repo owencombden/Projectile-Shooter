@@ -46,7 +46,7 @@ public class PauseManager : NetworkBehaviour
     public void TogglePauseServerRpc()  // public for debugging....make this private 
     {
         isPaused.Value = !isPaused.Value;
-        Debug.Log($"Pause state set to: {isPaused.Value} by client {OwnerClientId}");
+        //Debug.Log($"Pause state set to: {isPaused.Value} by client {OwnerClientId}");
     }
 
     private void HandlePauseChanged(bool oldValue, bool newValue)
