@@ -1,4 +1,5 @@
 {
+    "version": 1,
     "name": "MyShooter_InputActions",
     "maps": [
         {
@@ -9,6 +10,15 @@
                     "name": "Movement",
                     "type": "Value",
                     "id": "35440c67-8024-444a-8e09-049fa1e7888f",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "Look",
+                    "type": "Value",
+                    "id": "a28d177f-a80d-4a51-9cee-5d2c89fc2eb5",
                     "expectedControlType": "Vector2",
                     "processors": "",
                     "interactions": "",
@@ -79,6 +89,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "Movement",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "a050b079-6138-4bbe-ba96-03d38b342e47",
+                    "path": "<Gamepad>/rightStick",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Look",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

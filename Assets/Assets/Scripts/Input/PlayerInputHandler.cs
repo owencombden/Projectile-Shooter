@@ -14,6 +14,7 @@ public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
 
     private Vector2 moveInput;
     private Vector2 lookInput;
+    private float lookSensitivity = 1f;
     private bool shootAtTarget;
 
     public Vector2 MoveInput => moveInput;
@@ -53,21 +54,16 @@ public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
         {
             // Find actions by name (must match your InputActionAsset)
             var moveAction = playerInput.actions["Movement"];
-            //var lookAction = playerInput.actions["Look"];
+            var lookAction = playerInput.actions["Look"];
 
             // --- Move ---
-            moveAction.performed += ctx =>
-            {
-                moveInput = ctx.ReadValue<Vector2>();
-            };
-            moveAction.canceled += ctx =>
-            {
-                moveInput = Vector2.zero;
-            };
+            moveAction.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
+            moveAction.canceled += ctx => moveInput = Vector2.zero;
 
             // --- Look ---
-            //lookAction.performed += ctx => lookInput = ctx.ReadValue<Vector2>();
-            //lookAction.canceled += ctx => lookInput = Vector2.zero;
+            lookAction.performed += ctx => lookInput = ctx.ReadValue<Vector2>();
+            lookAction.canceled += ctx => lookInput = Vector2.zero;
+            SetLookSensitivity();
 
             // --- Shoot ---
             // moved this to Update for polling taps.
@@ -86,12 +82,34 @@ public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
 
     void Update()
     {
+        if (!IsOwner) return;
+
+        //LOOK (mouse or right-joystick)    
+        if (cameraLookScript != null)
+        {
+            Vector2 look = lookInput * lookSensitivity;
+            cameraLookScript.SetLookInput(look);
+        }
+
+        // SHOOT (mouse or tap-screen)
 #if UNITY_EDITOR || UNITY_STANDALONE
         HandleMouseShoot();
 #elif UNITY_ANDROID || UNITY_IOS
         HandleTouchShoot();
 #endif
+    }
+    
+    void SetLookSensitivity()
+    {
+#if UNITY_STANDALONE || UNITY_EDITOR
+        // Mouse delta is usually high-frequency, so scale it down
+        lookSensitivity = 0.1f;
+#endif
 
+#if UNITY_ANDROID || UNITY_IOS
+        // Joystick gives small values (0–1), scale them up
+        lookSensitivity= 0.3f;
+#endif        
     }
 
     void HandleMouseShoot()

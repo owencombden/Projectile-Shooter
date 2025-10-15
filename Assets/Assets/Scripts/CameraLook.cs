@@ -4,6 +4,7 @@ public class CameraLook : MonoBehaviour
 {
     [Header("Follow Settings")]
     public Vector3 cameraOffset;
+    public float cameraMinHeight = 1.5f;
     public float cameraRotateSpeed = .75f;
     public float cameraMoveSmooth = 0.1f;
     public float cameraRotateSmooth = 0.1f;
@@ -25,7 +26,7 @@ public class CameraLook : MonoBehaviour
 
     public void SetLookInput(Vector2 lookDelta)
     {
-        lookInput = lookDelta.normalized;
+        lookInput = lookDelta;  // we are setting look-sensitivity in PlayerInputHandler.Update()
         Debug.Log($"Camera Look input is: ({lookInput})");
     }
 
@@ -73,7 +74,13 @@ public class CameraLook : MonoBehaviour
             }
         }
 
-        transform.position = smoothedPosition + shakeOffset;
+        smoothedPosition += shakeOffset;
+
+        // clamp vertical position so camera never goes below minHeight
+        if (smoothedPosition.y < cameraMinHeight)
+            smoothedPosition.y = cameraMinHeight;
+
+        transform.position = smoothedPosition;
 
         // Always look at the target
         transform.LookAt(cameraLookHere);

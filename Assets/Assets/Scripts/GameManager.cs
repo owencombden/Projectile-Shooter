@@ -314,7 +314,7 @@ public class GameManager : NetworkBehaviour
         // cleanup and go to lobby
         //Debug.Log("Loading Lobby Scene...");
         LevelManager.Instance?.CleanUpBeforeRestart();
-        NetworkManager.Singleton.SceneManager.LoadScene("LobbyScene", LoadSceneMode.Single);
+        NetworkManager.Singleton.SceneManager.LoadScene("MainMenuScene", LoadSceneMode.Single);
     }
 
 
