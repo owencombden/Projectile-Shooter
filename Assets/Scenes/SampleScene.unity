@@ -297,6 +297,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1d49382dbd29cca4f8dbed63f5b6a467, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!82 &241345736
 AudioSource:
   m_ObjectHideFlags: 0
@@ -676,6 +677,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cameraOffset: {x: 0, y: 0, z: -34}
+  cameraMinHeight: 1.5
   cameraRotateSpeed: 2
   cameraMoveSmooth: 40
   cameraRotateSmooth: 40
@@ -822,7 +824,7 @@ GameObject:
   - component: {fileID: 487980906}
   m_Layer: 0
   m_Name: MobileControls
-  m_TagString: Untagged
+  m_TagString: MobileControls
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1228,10 +1230,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   align: 3
-  stickArea: {x: 36.4, y: 36.3}
-  stickOffset: {x: -190, y: -50.03}
-  stickPixels: 199
-  handleSizePercent: 43
+  stickArea: {x: 25, y: 35}
+  stickOffset: {x: 0, y: 0}
+  stickPixels: 130
+  handleSizePercent: 50
   axisConstraint: 0
   dynamic: 1
   showStickArea: 0
@@ -1246,10 +1248,10 @@ MonoBehaviour:
     background: {fileID: 0}
     backgroundTint: {r: 0, g: 0, b: 0, a: 0}
     border:
-      top: 20
-      bottom: 20
-      left: 20
-      right: 20
+      top: 10
+      bottom: 10
+      left: 10
+      right: 10
     borderColor:
       top: {r: 0.85, g: 0.82, b: 0.9, a: 0.8}
       bottom: {r: 0.85, g: 0.82, b: 0.9, a: 0.8}
@@ -1299,10 +1301,10 @@ MonoBehaviour:
       left: 0
       right: 20
     borderColor:
-      top: {r: 0.95, g: 0.8, b: 0.95, a: 1}
-      bottom: {r: 0.95, g: 0.8, b: 0.95, a: 1}
-      left: {r: 0.95, g: 0.8, b: 0.95, a: 1}
-      right: {r: 0.95, g: 0.8, b: 0.95, a: 1}
+      top: {r: 0.13725491, g: 0.20784315, b: 0.41176474, a: 1}
+      bottom: {r: 0.13725491, g: 0.20784315, b: 0.4156863, a: 1}
+      left: {r: 0.13725491, g: 0.20784315, b: 0.4156863, a: 1}
+      right: {r: 0.13725491, g: 0.20784315, b: 0.4156863, a: 1}
     radius:
       top: 300
       bottom: 300
@@ -1316,7 +1318,7 @@ MonoBehaviour:
   arrow:
     color: {r: 0, g: 0, b: 0, a: 0}
     background: {fileID: 2800000, guid: b7ba28c00c9c40f4eae716ab774c9d21, type: 3}
-    backgroundTint: {r: 0.95, g: 0.8, b: 0.95, a: 1}
+    backgroundTint: {r: 0.14293341, g: 0.21097364, b: 0.41509432, a: 1}
     border:
       top: 0
       bottom: 0
@@ -1516,7 +1518,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   assetManager: {fileID: 289987654}
-  allowEnemies: 1
   isGameOver:
     m_InternalValue: 0
 --- !u!4 &1266648210
@@ -1980,10 +1981,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   align: 4
-  stickArea: {x: 36.4, y: 36.3}
-  stickOffset: {x: 158.6, y: -50.03}
-  stickPixels: 199
-  handleSizePercent: 43
+  stickArea: {x: 25, y: 35}
+  stickOffset: {x: 0, y: 0}
+  stickPixels: 130
+  handleSizePercent: 50
   axisConstraint: 0
   dynamic: 1
   showStickArea: 0
@@ -1998,10 +1999,10 @@ MonoBehaviour:
     background: {fileID: 0}
     backgroundTint: {r: 0, g: 0, b: 0, a: 0}
     border:
-      top: 20
-      bottom: 20
-      left: 20
-      right: 20
+      top: 10
+      bottom: 10
+      left: 10
+      right: 10
     borderColor:
       top: {r: 0.85, g: 0.82, b: 0.9, a: 0.8}
       bottom: {r: 0.85, g: 0.82, b: 0.9, a: 0.8}
@@ -2051,10 +2052,10 @@ MonoBehaviour:
       left: 0
       right: 20
     borderColor:
-      top: {r: 0.95, g: 0.8, b: 0.95, a: 1}
-      bottom: {r: 0.95, g: 0.8, b: 0.95, a: 1}
-      left: {r: 0.95, g: 0.8, b: 0.95, a: 1}
-      right: {r: 0.95, g: 0.8, b: 0.95, a: 1}
+      top: {r: 0.13725491, g: 0.20784315, b: 0.4156863, a: 1}
+      bottom: {r: 0.13725491, g: 0.20784315, b: 0.4156863, a: 1}
+      left: {r: 0.13725491, g: 0.20784315, b: 0.4156863, a: 1}
+      right: {r: 0.13725491, g: 0.20784315, b: 0.4156863, a: 1}
     radius:
       top: 300
       bottom: 300
@@ -2068,7 +2069,7 @@ MonoBehaviour:
   arrow:
     color: {r: 0, g: 0, b: 0, a: 0}
     background: {fileID: 2800000, guid: b7ba28c00c9c40f4eae716ab774c9d21, type: 3}
-    backgroundTint: {r: 0.95, g: 0.8, b: 0.95, a: 1}
+    backgroundTint: {r: 0.13725491, g: 0.20784315, b: 0.4156863, a: 1}
     border:
       top: 0
       bottom: 0

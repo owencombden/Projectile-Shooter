@@ -27,7 +27,7 @@ public class CameraLook : MonoBehaviour
     public void SetLookInput(Vector2 lookDelta)
     {
         lookInput = lookDelta;  // we are setting look-sensitivity in PlayerInputHandler.Update()
-        Debug.Log($"Camera Look input is: ({lookInput})");
+        //Debug.Log($"Camera Look input is: ({lookInput})");
     }
 
     public void SetTarget(Transform playerTransform, Transform lookPoint)
@@ -46,8 +46,7 @@ public class CameraLook : MonoBehaviour
         if (player == null || cameraLookHere == null) return;
 
         // Handle orbit input
-
-        if (lookInput.sqrMagnitude > 0.001f)
+        if (lookInput.sqrMagnitude > 0.01f)
         {
             currentYaw += lookInput.x * cameraRotateSpeed;
             currentPitch -= lookInput.y * cameraRotateSpeed;
@@ -73,7 +72,6 @@ public class CameraLook : MonoBehaviour
                 shakeOffset = Vector3.zero;
             }
         }
-
         smoothedPosition += shakeOffset;
 
         // clamp vertical position so camera never goes below minHeight

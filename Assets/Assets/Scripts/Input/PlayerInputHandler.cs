@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine.InputSystem;
 using Unity.Netcode;
 using UnityEngine.InputSystem.EnhancedTouch;
+using Empress.UITK;
 
 [RequireComponent(typeof(PlayerInput))]
 public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
@@ -15,16 +16,17 @@ public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
     private Vector2 moveInput;
     private Vector2 lookInput;
     private float lookSensitivity = 1f;
+    private bool mouseLookActive = false;
     private bool shootAtTarget;
 
     public Vector2 MoveInput => moveInput;
     public Vector2 LookInput => lookInput;
     public bool ShootAtTarget => shootAtTarget;
 
-    [SerializeField] private RectTransform movementJoystickRect;
-    [SerializeField] private RectTransform lookJoystickRect;
+    [SerializeField] private VirtuaStickProcedural movementJoystick;
+    [SerializeField] private VirtuaStickProcedural lookJoystick;
 
-    float aimAssistRadius = 100f; // screen-space pixels
+    float aimAssistRadius = 120f; // screen-space pixels
     public event Action<Transform> OnShootClicked;
     Vector3 lastShootScreenPos = Vector3.zero;
 
@@ -52,33 +54,52 @@ public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
 
         if (playerInput != null)
         {
-            // Find actions by name (must match your InputActionAsset)
+            // turn on/off the mobile UI controls depending on the build 
+            GameObject mobileControls = GameObject.FindGameObjectWithTag("MobileControls");
+#if UNITY_EDITOR || UNITY_STANDALONE
+            mobileControls.SetActive(false);
+#elif UNITY_ANDROID || UNITY_IOS
+            mobileControls.SetActive(true);
+            movementJoystick = GameObject.FindGameObjectWithTag("MoveStick").GetComponent<VirtuaStickProcedural>();
+            lookJoystick     = GameObject.FindGameObjectWithTag("LookStick").GetComponent<VirtuaStickProcedural>();
+#endif
+
+            // Find actions by name (must match the InputAction project settings)
             var moveAction = playerInput.actions["Movement"];
             var lookAction = playerInput.actions["Look"];
+            var activateMouseLookAction = playerInput.actions["ActivateMouseLook"];
 
-            // --- Move ---
-            moveAction.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
-            moveAction.canceled += ctx => moveInput = Vector2.zero;
+            // setup callbacks, see helpers below.  Triggered by the actions above
+            moveAction.performed += OnMovePerformed;
+            moveAction.canceled += OnMoveCanceled;
+            lookAction.performed += OnLookPerformed;
+            lookAction.canceled += OnLookCanceled;
+            activateMouseLookAction.performed += OnMouseLookPerformed;
+            activateMouseLookAction.canceled += OnMouseLookCanceled;
 
-            // --- Look ---
-            lookAction.performed += ctx => lookInput = ctx.ReadValue<Vector2>();
-            lookAction.canceled += ctx => lookInput = Vector2.zero;
+            // Shooting has been moved to Update (polling taps)
+
+            // finish setting up
             SetLookSensitivity();
-
-            // --- Shoot ---
-            // moved this to Update for polling taps.
-
             EnhancedTouchSupport.Enable();
             playerInput.ActivateInput();
         }
     }
 
-    void Start()
+    // callback helpers
+    void OnMovePerformed(InputAction.CallbackContext ctx) => moveInput = ctx.ReadValue<Vector2>();
+    void OnMoveCanceled(InputAction.CallbackContext ctx) => moveInput = Vector2.zero;
+    void OnLookPerformed(InputAction.CallbackContext ctx)
     {
-        //get the joystick rects (for filtering shot attempts)
-        movementJoystickRect = GameObject.FindGameObjectWithTag("MoveStick").GetComponent<RectTransform>();
-        lookJoystickRect = GameObject.FindGameObjectWithTag("LookStick").GetComponent<RectTransform>();
+        if (mouseLookActive || (movementJoystick && lookJoystick))
+            lookInput = ctx.ReadValue<Vector2>();
+        else
+            lookInput = Vector2.zero;
     }
+    void OnLookCanceled(InputAction.CallbackContext ctx) => lookInput = Vector2.zero;
+    void OnMouseLookPerformed(InputAction.CallbackContext ctx) => mouseLookActive = true;
+    void OnMouseLookCanceled(InputAction.CallbackContext ctx) => mouseLookActive = false;
+
 
     void Update()
     {
@@ -86,7 +107,7 @@ public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
 
         //LOOK (mouse or right-joystick)    
         if (cameraLookScript != null)
-        {
+        {            
             Vector2 look = lookInput * lookSensitivity;
             cameraLookScript.SetLookInput(look);
         }
@@ -98,17 +119,15 @@ public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
         HandleTouchShoot();
 #endif
     }
-    
+
     void SetLookSensitivity()
     {
 #if UNITY_STANDALONE || UNITY_EDITOR
         // Mouse delta is usually high-frequency, so scale it down
         lookSensitivity = 0.1f;
-#endif
-
-#if UNITY_ANDROID || UNITY_IOS
+#elif UNITY_ANDROID || UNITY_IOS
         // Joystick gives small values (0–1), scale them up
-        lookSensitivity= 0.3f;
+        lookSensitivity = 1.5f;
 #endif        
     }
 
@@ -120,8 +139,8 @@ public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
 
             // if the click is over UI, ignore it.
             // can add other UI elements here (pause, settings, etc)
-            if (IsOverJoystick(screenPos)) return;
-            
+            //if (IsOverJoystick(screenPos)) return;
+
             // get the clicked target
             Transform clickedTarget = null;
             Ray ray = Camera.main.ScreenPointToRay(screenPos);
@@ -143,7 +162,7 @@ public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
                 {
                     OnShootClicked?.Invoke(closestTarget);
                 }
-                
+
             }
         }
     }
@@ -180,7 +199,7 @@ public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
                     {
                         OnShootClicked?.Invoke(closestTarget);
                         break;
-                    }                    
+                    }
                 }
             }
         }
@@ -189,19 +208,24 @@ public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
     // helper: check if screen position overlaps a joystick rect
     bool IsOverJoystick(Vector2 screenPos)
     {
-        // Check if point is inside either joystick
-        if (RectTransformUtility.RectangleContainsScreenPoint(movementJoystickRect, screenPos, null))
-        {
-            return true;
-        }
-        if (RectTransformUtility.RectangleContainsScreenPoint(lookJoystickRect, screenPos, null))
-        {
-            return true;
-        }
+        // Calculate screen size
+        float screenW = Screen.width;
+        float screenH = Screen.height;
 
-        return false;
+        // --- Move Joystick Area (bottom-left corner) ---
+        float moveWidth = screenW * (movementJoystick.stickArea.x / 100f);
+        float moveHeight = screenH * (movementJoystick.stickArea.y / 100f);
+        Rect moveRect = new Rect(0f, 0f, moveWidth, moveHeight); // origin = bottom-left
+
+        // --- Look Joystick Area (bottom-right corner) ---
+        float lookWidth = screenW * (lookJoystick.stickArea.x / 100f);
+        float lookHeight = screenH * (lookJoystick.stickArea.y / 100f);
+        Rect lookRect = new Rect(screenW - lookWidth, 0f, lookWidth, lookHeight); // origin = bottom-right
+
+        // --- Check if point lies within either rect ---
+        return moveRect.Contains(screenPos) || lookRect.Contains(screenPos);
     }
-    
+
     public Transform GetClosestTarget(Vector2 screenPos, float radius)
     {
         List<Targetable> targets = TargetManager.Instance.GetTargets();
@@ -231,5 +255,33 @@ public class PlayerInputHandler : NetworkBehaviour, ICharacterInputProvider
 
         return bestTarget;
     }
+
+    private new void OnDestroy()
+    {
+        if (!IsOwner) return;
+
+        if (playerInput != null)
+        {
+            var moveAction = playerInput.actions["Movement"];
+            var lookAction = playerInput.actions["Look"];
+            var activateMouseLookAction = playerInput.actions["ActivateMouseLook"];
+
+            // Unsubscribe to prevent memory leaks or duplicate callbacks
+            moveAction.performed -= OnMovePerformed;
+            moveAction.canceled -= OnMoveCanceled;
+            lookAction.performed -= OnLookPerformed;
+            lookAction.canceled -= OnLookCanceled;
+            activateMouseLookAction.performed -= OnMouseLookPerformed;
+            activateMouseLookAction.canceled -= OnMouseLookCanceled;
+        }
+
+        // Disable touch system
+        if (EnhancedTouchSupport.enabled)
+            EnhancedTouchSupport.Disable();
+
+        // Clear event subscribers (optional but safe)
+        OnShootClicked = null;
+    }
+
 }
 

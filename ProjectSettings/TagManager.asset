@@ -12,6 +12,7 @@ TagManager:
   - FxTemporaire
   - MoveStick
   - LookStick
+  - MobileControls
   layers:
   - Default
   - TransparentFX
