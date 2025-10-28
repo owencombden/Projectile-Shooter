@@ -21,6 +21,7 @@ public class AIController : NetworkBehaviour
 
     private Dictionary<Vector2Int, HexTile> hexMap;
 
+    private bool enemyCanShoot = true;  //set by LevelManager from GameSettingsData
     private Vector3 currentDestination;
     private bool isWaiting = false;
     public bool isBeingKnockedBack = false;
@@ -30,10 +31,15 @@ public class AIController : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         if (!IsServer) return;   // only the server runs AI logic
-        
+
         motor = GetComponent<CharacterMotor>();
         shooter = GetComponent<CharacterShooter>();
         input = GetComponent<AIInputHandler>();
+    }
+    
+    public void ConfigureEnemySettings(bool canShoot)
+    {
+        enemyCanShoot = canShoot;
     }
 
 
@@ -147,14 +153,13 @@ public class AIController : NetworkBehaviour
         isWaiting = true;
 
         Transform target = GetRandomTarget();
-        if (target != null)
+        if (enemyCanShoot && target != null)
         {
             //Debug.Log($"AI {id.Value} is attempting a shot.");
 
             // rotate body
-            yield return StartCoroutine(motor.RotateTowardTarget(target));
+            yield return StartCoroutine(motor.RotateTowardTarget(target));            
 
-            //check if can shoot
             var shooter = transform.GetComponent<CharacterShooter>();
             if (shooter.GetCurrentAmmo() <= 0)
             {
@@ -186,30 +191,30 @@ public class AIController : NetworkBehaviour
                 shooter.SpawnBulletServerRPC(GetComponent<NetworkObject>(), id.Value, shooter.spawnpoint.position, shotVelocity);
 
                 //PauseManager.Instance.TogglePauseServerRpc();
-                }
-                else if (target.tag == "Bullet")
+            }
+            else if (target.tag == "Bullet")
+            {
+                //Debug.Log($"AI {id.Value} is trying to shoot at a bullet.");
+                Vector3 lookDir = shooter.AimAtEnemyBullet(target);
+
+                if (lookDir == Vector3.zero)
                 {
-                    //Debug.Log($"AI {id.Value} is trying to shoot at a bullet.");
-                    Vector3 lookDir = shooter.AimAtEnemyBullet(target);
+                    //Debug.Log($"NO SHOT. AI  {id.Value} couldn't get a tracking vector.");
+                    isWaiting = false;
+                    yield break;
+                }
 
-                    if (lookDir == Vector3.zero)
-                    {
-                        //Debug.Log($"NO SHOT. AI  {id.Value} couldn't get a tracking vector.");
-                        isWaiting = false;
-                        yield break;
-                    }
+                float angleDist = Vector3.Angle(transform.forward, lookDir);
+                float rotateTime = angleDist / (2f * 200f);
 
-                    float angleDist = Vector3.Angle(transform.forward, lookDir);
-                    float rotateTime = angleDist / (2f * 200f);
+                //Debug.Log($"AI {id.Value} is tracking the bullet.");
+                StartCoroutine(shooter.RotateToFuturePos(lookDir, rotateTime));
 
-                    //Debug.Log($"AI {id.Value} is tracking the bullet.");
-                    StartCoroutine(shooter.RotateToFuturePos(lookDir, rotateTime));
+                Vector3 shotVelocity = shooter.ShootAtEnemyBullet();
 
-                    Vector3 shotVelocity = shooter.ShootAtEnemyBullet();
-
-                    //Debug.Log($"AI {id.Value} is shooting at the bullet.");
-                    shooter.SpawnBulletServerRPC(GetComponent<NetworkObject>(), id.Value, shooter.spawnpoint.position, shotVelocity);             
-                }   
+                //Debug.Log($"AI {id.Value} is shooting at the bullet.");
+                shooter.SpawnBulletServerRPC(GetComponent<NetworkObject>(), id.Value, shooter.spawnpoint.position, shotVelocity);             
+            }   
         }
 
         // Pick a new destination

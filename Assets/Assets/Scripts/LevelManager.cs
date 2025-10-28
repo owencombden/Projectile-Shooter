@@ -8,9 +8,9 @@ public class LevelManager : NetworkBehaviour
 {
     public static LevelManager Instance;
 
-    [Header("Game Setup")]
-    private int maxTotalCharacters = 1; // Total includes players + AI
-    private int extraAICount = 4;
+    [Header("Game Settings")]
+    private int extraAICount = -1;  // set on/by the host from GameSettingsData
+    private bool enemiesCanShoot = true;
 
     [Header("Platform Settings")]
     [SerializeField] private float xSpacing = 60f;
@@ -35,8 +35,7 @@ public class LevelManager : NetworkBehaviour
     // tracking the initial synch of hextiles data across the network.
     [SerializeField] private List<HexTileData> allHexTileData = new();
 
-    // track the clients    
-    private int expectedClientCount = -1;
+    // track the clients
     ulong[] characterIds = Enumerable.Repeat(ulong.MaxValue, 15).ToArray();  // careful, max 15 ids! initialize each position with a MaxValue placeholder
 
     // ClientRPC callback tracking
@@ -59,28 +58,34 @@ public class LevelManager : NetworkBehaviour
         bulletHitParticleDuration = AssetManager.Instance.GetBulletHitParticlesDuration();
     }
 
+    public void ConfigureSettings(GameSettingsData settings)
+    {
+        extraAICount = settings.enemyCount;
+        enemiesCanShoot = settings.enemiesCanShoot;
+
+        // configure other settings here....
+    }
+
     public void InitializeLevel()
     {
         // server/host only here!
+        if (!IsHost) return;
 
-        //Debug.Log("Level Manager is Initalializing the level");
-
-        // get the number of expected clients (excluding the host) that we have to communicate with
-        expectedClientCount = NetworkManager.Singleton.ConnectedClientsList.Count - 1;
+        Debug.Log("[Server] LevelManager is Initalializing the level");
 
         int idCounter = 0;
         // get the human ids
         for (int i = 0; i < NetworkManager.Singleton.ConnectedClientsList.Count; i++)
         {
             characterIds[i] = NetworkManager.Singleton.ConnectedClientsList[i].ClientId;
-            //Debug.Log($"Created human player with id: {characterIds[i]}");
+            Debug.Log($"Created human player with id: {characterIds[i]}");
             idCounter++;
         }
         // generate and append any AI ids
         for (int i = 0; i < extraAICount; i++)
         {
             ulong aiID = 100 + (ulong)idCounter;
-            //Debug.Log($"Created AI player with id: {aiID}");
+            Debug.Log($"Created AI player with id: {aiID}");
             characterIds[idCounter] = aiID;
             idCounter++;
         }
@@ -106,13 +111,10 @@ public class LevelManager : NetworkBehaviour
     private void GenerateAllHexTileData()
     {
         int humanCount = NetworkManager.Singleton.ConnectedClientsList.Count;
-        int totalCharacters = Mathf.Max(humanCount + extraAICount, maxTotalCharacters);
-
-        // put this back for num platforms based on num total characters
-        int gridSize = Mathf.CeilToInt(Mathf.Sqrt(totalCharacters));
+        int totalCharacters = humanCount + extraAICount;
 
         int platformsSpawned = 0;
-
+        int gridSize = Mathf.CeilToInt(Mathf.Sqrt(totalCharacters));
         for (int row = 0; row < gridSize && platformsSpawned < totalCharacters; row++)
         {
             for (int col = 0; col < gridSize && platformsSpawned < totalCharacters; col++)
@@ -167,9 +169,9 @@ public class LevelManager : NetworkBehaviour
         if (!NetworkManager.Singleton.IsServer) return;
 
         clientsConfirmedHexData.Add(clientId);
-        //Debug.Log($"[HexSync] Client {clientId} confirmed tile data receipt ({clientsConfirmedHexData.Count}/{expectedClientCount})");
+        //Debug.Log($"[HexSync] Client {clientId} confirmed tile data receipt ({clientsConfirmedHexData.Count}/{NetworkManager.Singleton.ConnectedClientsList.Count - 1})");
 
-        if (clientsConfirmedHexData.Count >= expectedClientCount)
+        if (clientsConfirmedHexData.Count >= NetworkManager.Singleton.ConnectedClientsList.Count - 1) //exclude the host, count connected clients only
         {
             //Debug.Log("[HexSync] All clients are ready to spawn platforms!");
             ReadyToSpawnPlatformsClientRpc();
@@ -256,9 +258,9 @@ public class LevelManager : NetworkBehaviour
             clientsConfirmedPlatformsSpawned.Add(NetworkManager.Singleton.LocalClientId);
         }
 
-        //Debug.Log($"[PlatformSync] Client {clientId} confirmed finished spawning platforms.  receipt ({clientsConfirmedPlatformsSpawned.Count}/{expectedClientCount + 1})");  //include host
+        //Debug.Log($"[PlatformSync] Client {clientId} confirmed finished spawning platforms.  receipt ({clientsConfirmedPlatformsSpawned.Count}/{NetworkManager.Singleton.ConnectedClientsList.Count})");  //include host
 
-        if (clientsConfirmedPlatformsSpawned.Count >= expectedClientCount + 1) // include host
+        if (clientsConfirmedPlatformsSpawned.Count >= NetworkManager.Singleton.ConnectedClientsList.Count) // include host
         {
             //Debug.Log($"[PlatformSync] Client {NetworkManager.Singleton.LocalClientId} reporting that the server is ready to spawn characters!");
             ReadyToSpawnCharactersServerRpc();
@@ -357,6 +359,7 @@ public class LevelManager : NetworkBehaviour
             aiController.SetAIHexMap(platforms[platformIndex]);
             ulong aiID = characterIds[(int)currentPlatformIndex];
             aiController.id.Value = aiID;
+            aiController.ConfigureEnemySettings(enemiesCanShoot);
             // set starting ammo
             CharacterShooter aiShooterScript = ai.GetComponent<CharacterShooter>();
             aiShooterScript.currentAmmo.Value = aiShooterScript.maxAmmo;

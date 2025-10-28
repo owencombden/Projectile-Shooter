@@ -57,9 +57,7 @@ public class GameManager : NetworkBehaviour
     private void OnNetworkSceneLoaded(ulong clientId, string sceneName, LoadSceneMode loadSceneMode)
     {
         //Debug.Log($"Local client ({clientId}) finished loading scene.");
-
-        //ClientSceneLoadedServerRpc(clientId);
-        if (NetworkManager.Singleton.LocalClientId == clientId) // ✅ Only call from the local client
+        if (NetworkManager.Singleton.LocalClientId == clientId) // only call from the local client
         {
             ClientSceneLoadedServerRpc(clientId);
         }
@@ -69,7 +67,6 @@ public class GameManager : NetworkBehaviour
     public void ClientSceneLoadedServerRpc(ulong clientId)
     {
         // count the incoming clients.  when all have connected, setup the game
-        //if (!NetworkManager.Singleton.IsHost) return;
 
         //Debug.Log($"ClientSceneLoadedServerRpc is firing from Client {clientId}");
 
@@ -103,12 +100,16 @@ public class GameManager : NetworkBehaviour
     [ClientRpc]
     private void ApplySettingsClientRpc(GameSettingsData settings)
     {
-        gameSettings = settings;
+         // host calls here too
+        Debug.Log($"[Client] Received settings: {settings.enemyCount} enemies, shoot={settings.enemiesCanShoot}, isMultiplayer={settings.gameIsMultiplayer}");
 
-        Debug.Log($"[Client] Received settings: {gameSettings.enemyCount} enemies, shoot={gameSettings.enemiesCanShoot}, isMultiplayer={gameSettings.gameIsMultiplayer}");
-
-        // next step, apply the game settings to gameplay here 
-        // ex:  LevelManager.Instance.numEnemies = gameSettings.enemyCount;
+        // only the host will configure LevelManager
+        if (IsHost)
+        {
+            LevelManager.Instance.ConfigureSettings(settings);
+        }
+        
+        // ...can include other settings on each client here if needed.
     }
     
     private void Awake()
@@ -171,7 +172,7 @@ public class GameManager : NetworkBehaviour
     {
         yield return new WaitUntil(() => NetworkManager.Singleton.IsServer && NetworkManager.Singleton.IsListening);
 
-        LevelManager.Instance.InitializeLevel(); // Create method to call platform/character spawn
+        LevelManager.Instance.InitializeLevel(); // platform/character spawn
     }
 
     public void SubmitAIDeath(NetworkObject losingAI, ulong losingAI_Id)
