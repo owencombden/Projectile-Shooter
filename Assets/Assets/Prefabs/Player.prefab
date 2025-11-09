@@ -868,8 +868,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  movementJoystickRect: {fileID: 0}
-  lookJoystickRect: {fileID: 0}
+  movementJoystick: {fileID: 0}
+  lookJoystick: {fileID: 0}
 --- !u!114 &-2084219818745628202
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -886,6 +886,7 @@ MonoBehaviour:
   id:
     m_InternalValue: 0
   playerDead: 0
+  canFallAndDie: 1
   isBeingKnockedBack: 0
 --- !u!114 &-2959471882302221406
 MonoBehaviour:
@@ -958,6 +959,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   maxSpeed: 350
+  minSpeed: 20
   maxHeight: 20
   maxAngle: 45
   minAngle: 0

@@ -9,6 +9,10 @@
             <engine:Button text="Quit Game" name="QuitGameButton" class="button" />
         </engine:VisualElement>
         <engine:VisualElement enabled="true" name="SettingsContainer" style="background-color: rgba(0, 0, 0, 0); width: 40%; height: 36%; align-self: flex-start; justify-content: space-around; flex-direction: column; align-content: auto; bottom: -508px; left: 141px; display: none; align-items: flex-start;">
+            <engine:VisualElement name="CanFallOffPlatform" style="flex-grow: 0; width: 74%; height: 15%; flex-direction: row; align-self: auto; align-items: center; flex-shrink: 0; display: flex;">
+                <engine:Label text="Can Fall Off Platform" name="CanFallOffPlaformLabel" class="menuLabelText" style="margin-right: 0; -unity-text-align: upper-left; align-items: auto; align-content: auto; width: 92%;" />
+                <engine:Toggle toggle-on-label-click="false" value="true" name="CanFallOffPlatformToggle" style="flex-shrink: 0; flex-grow: 1; align-self: auto; align-content: auto; align-items: center; height: auto; width: auto; justify-content: flex-start; scale: 2 2;" />
+            </engine:VisualElement>
             <engine:VisualElement name="EnemiesCanShoot" style="flex-grow: 0; width: 74%; height: 15%; flex-direction: row; align-self: auto; align-items: center; flex-shrink: 0;">
                 <engine:Label text="Enemies Can Shoot" name="EnemiesCanShootLabel" class="menuLabelText" style="margin-right: 0; -unity-text-align: upper-left; align-items: auto; align-content: auto; width: 92%;" />
                 <engine:Toggle toggle-on-label-click="false" value="true" name="EnemiesCanShootToggle" style="flex-shrink: 0; flex-grow: 1; align-self: auto; align-content: auto; align-items: center; height: auto; width: auto; justify-content: flex-start; scale: 2 2;" />

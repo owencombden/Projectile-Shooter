@@ -196,11 +196,11 @@ public class CharacterMotor : NetworkBehaviour
             {
                 if (isHuman)
                 {
-                    transform.GetComponent<PlayerController>().KillPlayer(hitData.point, Vector3.Cross(GetVelocity(false), transform.up));
+                    transform.GetComponent<PlayerController>().KillPlayer(Vector3.Cross(GetVelocity(false), transform.up));
                 }
                 else
                 {
-                    transform.GetComponent<AIController>().KillEnemy(hitData.point, Vector3.Cross(GetVelocity(false), transform.up));
+                    transform.GetComponent<AIController>().KillEnemy(Vector3.Cross(GetVelocity(false), transform.up));
                 }
 
             }

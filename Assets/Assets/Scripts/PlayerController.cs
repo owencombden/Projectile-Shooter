@@ -15,6 +15,7 @@ public class PlayerController : NetworkBehaviour
     private PlayerInputHandler handler;
     private Vector3 lastGroundPos;
     private Vector3 storedTippingAxis;
+    public bool canFallAndDie = true;  // from GameSettings
     private bool isAvoidingWater = false;
     public bool isBeingKnockedBack = false;
     Dictionary<Vector2Int, HexTile> hexMap;  // the collection of tiles that the Player is standing on
@@ -73,11 +74,17 @@ public class PlayerController : NetworkBehaviour
         // check for player over water
         if (tag == "Water")
         {
-            if (!isAvoidingWater)
+            if (isAvoidingWater) return;
+            
+            if (canFallAndDie)
+            {
+                KillPlayer(Vector3.Cross(motor.GetVelocity(false), transform.up));
+            }
+            else
             {
                 isAvoidingWater = true;
                 lastGroundPos.y = transform.position.y;
-                //Debug.Log($"Player is about to step in water!  Moving back to {lastGroundPos}");
+                //Debug.Log($"Player is about to fall off platform!  Moving back to {lastGroundPos}");
                 StartCoroutine(TryToAvoidWater(lastGroundPos, 0.2f));
             }
             return;
@@ -139,7 +146,7 @@ public class PlayerController : NetworkBehaviour
         {
             if (hitData.transform.tag != "Ground")
             {
-                KillPlayer(hitData.point, Vector3.Cross(motor.GetVelocity(false), transform.up));
+                KillPlayer(Vector3.Cross(motor.GetVelocity(false), transform.up));
             }
         }
 
@@ -176,7 +183,7 @@ public class PlayerController : NetworkBehaviour
             // calculate the angle, rotate the gun to position, get the required speed            
             float shotSpeed = shooter.AimAtTarget(distToTarget, shooter.gun);
             Vector3 shotVelocity = shotSpeed * shooter.spawnpoint.forward;
-            //Debug.Log($"Shot speed: {shotSpeed}    Shot velocity: {shotVelocity}");
+            Debug.Log($"Shot speed: {shotSpeed}    Shot velocity: {shotVelocity}");
 
             // request server to shoot in the direction the gun is pointing
             //Debug.Log($"Client {NetworkManager.Singleton.LocalClientId} is requesting a shot from the server.");
@@ -237,7 +244,7 @@ public class PlayerController : NetworkBehaviour
         hexMap = platform;
     }
 
-    public void KillPlayer(Vector3 feetPosition, Vector3 tippingAxis)
+    public void KillPlayer(Vector3 tippingAxis)
     {
         if (playerDead) return;
 

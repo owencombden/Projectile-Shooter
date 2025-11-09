@@ -63,7 +63,7 @@ public class AIController : NetworkBehaviour
             if (hitTag == "Water")
             {
                 Vector3 currentVelocity = (currentDestination - transform.position).normalized;
-                KillEnemy(hitData.point, Vector3.Cross(currentVelocity, transform.up));
+                KillEnemy(Vector3.Cross(currentVelocity, transform.up));
                 return;
             }
             else if (hitTag == "Ground")
@@ -281,7 +281,7 @@ public class AIController : NetworkBehaviour
         motor.ApplyBlastForce(direction, force, duration, false);
     }
 
-    public void KillEnemy(Vector3 feetPosition, Vector3 tippingAxis)
+    public void KillEnemy(Vector3 tippingAxis)
     {
         isDead = true;
 

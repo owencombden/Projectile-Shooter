@@ -10,6 +10,7 @@ public class LevelManager : NetworkBehaviour
 
     [Header("Game Settings")]
     private int extraAICount = -1;  // set on/by the host from GameSettingsData
+    private bool canFallOffPlatform = true;
     private bool enemiesCanShoot = true;
 
     [Header("Platform Settings")]
@@ -60,6 +61,7 @@ public class LevelManager : NetworkBehaviour
 
     public void ConfigureSettings(GameSettingsData settings)
     {
+        canFallOffPlatform = settings.canFallOffPlatform;
         extraAICount = settings.enemyCount;
         enemiesCanShoot = settings.enemiesCanShoot;
 
@@ -323,6 +325,7 @@ public class LevelManager : NetworkBehaviour
             playerMotorScript.isPlayer = true;
             var playerController = playerObj.GetComponent<PlayerController>();
             playerController.id.Value = client.ClientId;
+            playerController.canFallAndDie = canFallOffPlatform;
             //Debug.Log($"Setting human player controller as ID: {playerController.id}");
             playerController.SetPlayerHexMap(platforms[platformIndices[(int)currentPlatformIndex]]);
             // set starting ammo
@@ -432,9 +435,9 @@ public class LevelManager : NetworkBehaviour
             //Debug.Log($"...we have a winner with id {playerControllers.First().Value.id.Value}");
             return true;
         }
-        else if (playerControllers.Count == 0 && aiControllers.Count == 1)
+        else if (playerControllers.Count == 0 && aiControllers.Count >= 1)
         {
-            //Debug.Log($"...we have a winner with id {aiControllers.First().Value.id.Value}");
+            //Debug.Log($"...all players dead, no winner!");
             return true;
         }
         else
@@ -455,7 +458,7 @@ public class LevelManager : NetworkBehaviour
             bool winnerIsHuman = true;
             return (winnerNetObj, winnerId, winnerIsHuman);
         }
-        else if (playerControllers.Count == 0 && aiControllers.Count == 1)
+        else if (playerControllers.Count == 0 && aiControllers.Count >= 1)
         {
             //Debug.Log($"LevelManager is getting details for an AI winner");
             NetworkObject winnerNetObj = aiControllers.First().Value.GetComponent<NetworkObject>();

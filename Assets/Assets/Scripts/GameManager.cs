@@ -308,6 +308,8 @@ public class GameManager : NetworkBehaviour
 
             // despawn the ai winner
             //Debug.Log($"Despawining the winner");
+
+
             winningPlayer.Despawn(false);
             AssetManager.Instance.ReturnAI(winningPlayer.gameObject);
         }

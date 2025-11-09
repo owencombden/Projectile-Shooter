@@ -5,6 +5,7 @@ using Unity.Netcode;
 public class CharacterShooter : NetworkBehaviour
 {
     public float maxSpeed = 350f;
+    public float minSpeed = 20f;
     public float maxHeight = 10f;  // apoapsis
     public float maxAngle = 45f;  
     public float minAngle = 0;
@@ -129,6 +130,7 @@ public class CharacterShooter : NetworkBehaviour
 
         // cap velocity at 'maxSpeed'
         if (calculatedLaunchVelocity > maxSpeed) { calculatedLaunchVelocity = maxSpeed; }
+        if (calculatedLaunchVelocity < minSpeed) { calculatedLaunchVelocity = minSpeed; }
         return calculatedLaunchVelocity;
     }
 
@@ -196,8 +198,12 @@ public class CharacterShooter : NetworkBehaviour
 
         // cap velocity at 'maxSpeed'
         if (requiredSpeed > maxSpeed) { requiredSpeed = maxSpeed; }
+        if (requiredSpeed < minSpeed) { requiredSpeed = minSpeed; }
 
         Vector3 shotVelocity = requiredSpeed * shotDir;
+
+        Debug.Log($"Shot speed: {requiredSpeed}    Shot velocity: {shotVelocity}");
+
         return shotVelocity;
     }
 

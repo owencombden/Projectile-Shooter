@@ -23,6 +23,7 @@ public class MainMenuUI : NetworkBehaviour
     // settings menu inputs
     private VisualElement settingsMenuContainer;
     private DropdownField numOfEnemiesDropdown;
+    private Toggle canFallOffPlatformToggle;
     private Toggle enemiesCanShootToggle;
     private Button settingsBackButton;
 
@@ -69,6 +70,7 @@ public class MainMenuUI : NetworkBehaviour
 
         // settings menu inputs
         numOfEnemiesDropdown = uiDocument.rootVisualElement.Q("NumEnemiesDropdown") as DropdownField;
+        canFallOffPlatformToggle = uiDocument.rootVisualElement.Q("CanFallOffPlatformToggle") as Toggle;
         enemiesCanShootToggle = uiDocument.rootVisualElement.Q("EnemiesCanShootToggle") as Toggle;
         settingsBackButton = uiDocument.rootVisualElement.Q("SettingsBackButton") as Button;
         settingsBackButton.RegisterCallback<ClickEvent>(OnSettingsBackClicked);
@@ -85,6 +87,7 @@ public class MainMenuUI : NetworkBehaviour
         settingsMenuContainer.style.display = DisplayStyle.None;
         mainMenuContainer.style.display = DisplayStyle.Flex;
         numOfEnemiesDropdown.index = 2;
+        canFallOffPlatformToggle.value = true;
         enemiesCanShootToggle.value = true;        
     }    
 
@@ -122,6 +125,7 @@ public class MainMenuUI : NetworkBehaviour
     {
         // store menu setting in GameSettings static class
         GameSettings.EnemyCount = Int32.Parse(numOfEnemiesDropdown.value);
+        GameSettings.CanFallOffPlatform = canFallOffPlatformToggle.value;
         GameSettings.EnemiesCanShoot = enemiesCanShootToggle.value;
         GameSettings.GameIsMultiplayer = isMultiplayer;
     }
